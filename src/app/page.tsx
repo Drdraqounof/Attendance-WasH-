@@ -1,65 +1,101 @@
 import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <div className="flex min-h-full flex-col">
+      <header className="absolute inset-x-0 top-0 z-20">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 sm:px-8">
+          <span className="font-display text-sm font-semibold tracking-[0.14em] text-white/80 uppercase">
+            AttendPoint
+          </span>
+          <Link
+            href="/login"
+            className="text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            Sign in
+          </Link>
+        </div>
+      </header>
+
+      <section className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/hero-ops.jpg"
+          alt=""
+          fill
           priority
+          sizes="100vw"
+          className="object-cover object-center"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/50 to-slate/35"
+          aria-hidden
+        />
+        <div
+          className="ops-grid absolute inset-0 opacity-40 mix-blend-soft-light"
+          aria-hidden
+        />
+
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-16 pt-32 sm:px-8 sm:pb-20">
+          <div className="live-pulse mb-4 h-[3px] w-20 sm:mb-5 sm:w-36" aria-hidden />
+
+          <p className="animate-fade-up font-display text-[clamp(2.75rem,10vw,6.5rem)] leading-[0.9] font-bold tracking-tight text-white">
+            AttendPoint
+          </p>
+
+          <h1 className="animate-fade-up-delay-1 mt-6 max-w-xl font-display text-[clamp(1.35rem,3.2vw,2rem)] leading-snug font-semibold text-white/95">
+            Live attendance risk, before the shift slips.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+          <p className="animate-fade-up-delay-2 mt-4 max-w-md text-base leading-relaxed text-white/70 sm:text-lg">
+            Turn SMS attendance into live risk scores for managers.
+          </p>
+
+          <div className="animate-fade-up-delay-3 mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center justify-center bg-accent px-7 text-sm font-semibold tracking-wide text-white transition-[background-color,transform] duration-200 hover:bg-accent-deep hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white active:translate-y-0"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
+              Manager sign in
+            </Link>
             <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              href="#how-it-works"
+              className="inline-flex h-12 items-center justify-center border border-white/30 px-7 text-sm font-medium text-white/85 transition-colors hover:border-white/55 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Learning
-            </a>{" "}
-            center.
+              View demo overview
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="how-it-works"
+        className="ops-atmosphere relative border-t border-line"
+      >
+        <div className="ops-grid absolute inset-0 opacity-60" aria-hidden />
+        <div className="relative mx-auto max-w-6xl px-6 py-20 sm:px-8 sm:py-24">
+          <p className="text-xs font-semibold tracking-[0.18em] text-accent-deep uppercase">
+            How it works
+          </p>
+          <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            SMS in. Risk out.
+          </h2>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
+            Attendance messages land in AttendPoint, map to policy points, and
+            surface as live risk scores — so supervisors act before a floor
+            problem becomes a shift problem.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <footer className="border-t border-line bg-surface-2">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-slate/60 sm:px-8">
+          <span className="font-display font-semibold tracking-wide text-slate/70">
+            AttendPoint
+          </span>
+          <span>Demo build</span>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }

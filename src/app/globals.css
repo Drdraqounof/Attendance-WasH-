@@ -1,26 +1,127 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #0f1c24;
+  --slate: #1a2b36;
+  --surface: #f3f6f8;
+  --surface-2: #e7eef2;
+  --accent: #0d9488;
+  --accent-deep: #0f766e;
+  --line: #c5d4dc;
+  --danger-soft: #b45309;
+  --background: var(--surface);
+  --foreground: var(--ink);
 }
 
 @theme inline {
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-line: var(--line);
+  --color-danger-soft: var(--danger-soft);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-figtree);
+  --font-display: var(--font-syne);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-figtree), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-syne), system-ui, sans-serif;
+}
+
+/* Atmospheric base — soft paper fiber + cool gradient */
+.ops-atmosphere {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(13, 148, 136, 0.08), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 80%, rgba(26, 43, 54, 0.06), transparent 50%),
+    linear-gradient(165deg, #f7fafb 0%, var(--surface) 45%, var(--surface-2) 100%);
+}
+
+.ops-grid {
+  background-image:
+    linear-gradient(rgba(26, 43, 54, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 43, 54, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-drift 48s linear infinite;
+}
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 48px 48px;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Live telemetry pulse — sharper swing, travelling highlight */
+@keyframes pulse-line {
+  0%,
+  100% {
+    opacity: 0.4;
+    background-position: 0% 50%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.animate-fade-up-delay-3 {
+  animation: fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.live-pulse {
+  transform-origin: left center;
+  background-image: linear-gradient(
+    90deg,
+    var(--accent-deep) 0%,
+    #5eead4 45%,
+    var(--accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: pulse-line 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ops-grid,
+  .animate-fade-up,
+  .animate-fade-up-delay-1,
+  .animate-fade-up-delay-2,
+  .animate-fade-up-delay-3,
+  .live-pulse {
+    animation: none;
+  }
 }
