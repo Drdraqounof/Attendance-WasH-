@@ -8,7 +8,10 @@ import {
   riskLevelFromPoints,
 } from "@/lib/dashboard-mock";
 import {
+  attendanceTrendNarrative,
+  employeeOfTheMonth,
   getPersonById,
+  incidentSummary,
   pointsTowardCap,
   SCHEDULE_STATUS_LABELS,
   type ScheduleStatus,
@@ -59,6 +62,9 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const level = riskLevelFromPoints(person.points);
   const towardCap = pointsTowardCap(person);
   const capPct = Math.round((towardCap / person.policyCap) * 100);
+  const trend = incidentSummary(person, 30);
+  const narrative = attendanceTrendNarrative(person, 30);
+  const isNominee = employeeOfTheMonth()?.person.id === person.id;
 
   return (
     <OpsShell active="people" crumb={person.name}>
@@ -77,8 +83,14 @@ export default async function PersonDetailPage({ params }: PageProps) {
               <p className="text-xs font-semibold tracking-[0.16em] text-slate/55 uppercase">
                 Employee profile
               </p>
-              <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              <h1 className="font-display mt-2 flex flex-wrap items-center gap-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 {person.name}
+                {isNominee ? (
+                  <span className="inline-flex items-center gap-1.5 border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-accent-deep uppercase">
+                    <span aria-hidden>★</span>
+                    Employee of the month
+                  </span>
+                ) : null}
               </h1>
               <p className="mt-2 text-base text-slate/70">
                 {person.role} · {person.team}
@@ -169,7 +181,54 @@ export default async function PersonDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <div className="animate-fade-up-delay-2 mt-8 grid gap-8 lg:grid-cols-2">
+        {/* 30-day incident history */}
+        <section
+          className="animate-fade-up-delay-2 mt-8 border border-line bg-white/65 px-5 py-5 sm:px-6"
+          aria-labelledby="trend-heading"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2
+              id="trend-heading"
+              className="font-display text-lg font-semibold tracking-tight text-ink"
+            >
+              Last {trend.windowDays} days
+            </h2>
+            <p className="text-xs tracking-wide text-slate/55 uppercase">
+              Incident history
+            </p>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-px border border-line bg-line">
+            <div className="bg-white/80 px-4 py-3">
+              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+                Late arrivals
+              </p>
+              <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
+                {trend.lateCount}
+              </p>
+            </div>
+            <div className="bg-white/80 px-4 py-3">
+              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+                Absences
+              </p>
+              <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
+                {trend.absentCount}
+              </p>
+            </div>
+            <div className="bg-white/80 px-4 py-3">
+              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+                Other incidents
+              </p>
+              <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
+                {trend.otherCount}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-slate/75">
+            {narrative}
+          </p>
+        </section>
+
+        <div className="animate-fade-up-delay-3 mt-8 grid gap-8 lg:grid-cols-2">
           {/* Schedule */}
           <section aria-labelledby="schedule-heading">
             <div className="mb-3 flex items-baseline justify-between gap-3">

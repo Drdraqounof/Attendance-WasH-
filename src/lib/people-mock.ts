@@ -1,3 +1,4 @@
+import { attendanceScoreFromPoints } from "@/lib/attendance-utils";
 import {
   DEMO_ROSTER,
   riskLevelFromPoints,
@@ -525,4 +526,126 @@ export function analyticsSummary(roster: RosterEmployee[]) {
         ? 0
         : Math.round((openPoints / roster.length) * 10) / 10,
   };
+}
+
+/* ——— 30-day incident tracking & recognition (demo) ——— */
+
+/** "Today" for demo trend math — keeps 30-day windows deterministic. */
+export const DEMO_TODAY = "2026-08-02";
+
+function daysBetween(earlier: string, later: string): number {
+  const ms = new Date(later).getTime() - new Date(earlier).getTime();
+  return Math.round(ms / (1000 * 60 * 60 * 24));
+}
+
+export type IncidentSummary = {
+  windowDays: number;
+  totalIncidents: number;
+  lateCount: number;
+  absentCount: number;
+  otherCount: number;
+  pointsInWindow: number;
+  events: PointEvent[];
+};
+
+/** Point ledger entries within the trailing window, most recent first. */
+export function incidentHistory(
+  person: PersonProfile,
+  days = 30,
+  referenceDate = DEMO_TODAY,
+): PointEvent[] {
+  return person.pointLedger
+    .filter((event) => {
+      const age = daysBetween(event.date, referenceDate);
+      return age >= 0 && age <= days;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** Rolled-up incident history (30 days by default) for alerts and profiles. */
+export function incidentSummary(
+  person: PersonProfile,
+  days = 30,
+  referenceDate = DEMO_TODAY,
+): IncidentSummary {
+  const events = incidentHistory(person, days, referenceDate);
+  let lateCount = 0;
+  let absentCount = 0;
+  let otherCount = 0;
+  let pointsInWindow = 0;
+
+  for (const event of events) {
+    pointsInWindow += event.delta;
+    const reason = event.reason.toLowerCase();
+    if (reason.includes("late")) {
+      lateCount += 1;
+    } else if (
+      reason.includes("no-show") ||
+      reason.includes("absent") ||
+      reason.includes("sick")
+    ) {
+      absentCount += 1;
+    } else {
+      otherCount += 1;
+    }
+  }
+
+  return {
+    windowDays: days,
+    totalIncidents: events.length,
+    lateCount,
+    absentCount,
+    otherCount,
+    pointsInWindow,
+    events,
+  };
+}
+
+/** Rule-based stand-in for the AI trend narrative described in the attendance plan. */
+export function attendanceTrendNarrative(
+  person: PersonProfile,
+  days = 30,
+  referenceDate = DEMO_TODAY,
+): string {
+  const summary = incidentSummary(person, days, referenceDate);
+
+  if (summary.totalIncidents === 0) {
+    return `No attendance incidents logged in the last ${days} days — reliable trend.`;
+  }
+  if (summary.lateCount >= 5) {
+    return `${person.name} has been late ${summary.lateCount} times within the last ${days} days. Recommend attendance discussion.`;
+  }
+  if (summary.absentCount >= 2) {
+    return `${summary.absentCount} unplanned absences within the last ${days} days. Monitor closely.`;
+  }
+  if (summary.totalIncidents >= 3) {
+    return `${summary.totalIncidents} attendance incidents within the last ${days} days — trend worth a check-in.`;
+  }
+  return `${summary.totalIncidents} minor incident${summary.totalIncidents === 1 ? "" : "s"} in the last ${days} days — within normal variation.`;
+}
+
+export type MonthlyNominee = {
+  person: PersonProfile;
+  score: number;
+  reason: string;
+};
+
+/** Best-attendance nominations for manager recognition (demo: current cycle). */
+export function attendanceNominees(limit = 3): MonthlyNominee[] {
+  return [...getAllPeople()]
+    .sort((a, b) => a.points - b.points || a.name.localeCompare(b.name))
+    .slice(0, limit)
+    .map((person) => ({
+      person,
+      score: attendanceScoreFromPoints(person.points, person.policyCap),
+      reason:
+        person.pointLedger.length === 0
+          ? "Zero attendance incidents this cycle — perfect attendance."
+          : `Lowest open points on the floor (${person.points}) with a clean recent trend.`,
+    }));
+}
+
+/** Top nominee for "Employee of the month" recognition (demo: current cycle). */
+export function employeeOfTheMonth(): MonthlyNominee | null {
+  return attendanceNominees(1)[0] ?? null;
 }

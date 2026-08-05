@@ -7,6 +7,7 @@ import { DEMO_ROSTER, summarizeRoster } from "@/lib/dashboard-mock";
 import {
   ANALYTICS_TREND,
   analyticsSummary,
+  attendanceNominees,
   signalTypeBreakdown,
   teamRiskBreakdown,
   topPointHolders,
@@ -27,6 +28,7 @@ export default async function AnalyticsPage() {
   const teams = teamRiskBreakdown(DEMO_ROSTER);
   const signals = signalTypeBreakdown();
   const leaders = topPointHolders(5);
+  const nominees = attendanceNominees(3);
   const maxTrend = Math.max(...ANALYTICS_TREND.map((d) => d.points), 1);
 
   const metrics = [
@@ -353,6 +355,52 @@ export default async function AnalyticsPage() {
             </section>
           </div>
         </div>
+
+        {/* Recognition */}
+        <section
+          className="animate-fade-up-delay-3 mt-8"
+          aria-labelledby="recognition-heading"
+        >
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2
+              id="recognition-heading"
+              className="font-display text-lg font-semibold tracking-tight text-ink"
+            >
+              Employee of the month — nominees
+            </h2>
+            <p className="text-xs tracking-wide text-slate/55 uppercase">
+              Recognition · current cycle
+            </p>
+          </div>
+          <ol className="divide-y divide-line/70 border border-line bg-white/65">
+            {nominees.map((nominee, index) => (
+              <li key={nominee.person.id}>
+                <Link
+                  href={`/dashboard/people/${nominee.person.id}`}
+                  className="flex flex-col gap-1.5 px-4 py-4 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5"
+                  aria-label={`Open profile for ${nominee.person.name}`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-display text-sm font-semibold tabular-nums text-accent-deep">
+                        {index === 0 ? "★" : String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="font-medium text-ink">
+                        {nominee.person.name}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate/65 sm:pl-7">
+                      {nominee.reason}
+                    </p>
+                  </div>
+                  <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
+                    {nominee.score}/100
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-xs tracking-wide text-slate/50">
           Demo data · SMS intake not connected

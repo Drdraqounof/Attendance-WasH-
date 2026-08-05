@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
+import { generateAttendanceAlerts } from "@/lib/alerts-mock";
 import { hasDemoSession } from "@/lib/auth-mock";
 import {
   DEMO_SHIFT_META,
   interventionTargets,
   summarizeRoster,
 } from "@/lib/dashboard-mock";
+import { employeeOfTheMonth } from "@/lib/people-mock";
+import { AttendanceAlerts } from "./attendance-alerts";
 import {
   dashboardRoster,
   InterveneNow,
@@ -25,6 +29,8 @@ export default async function DashboardPage() {
 
   const summary = summarizeRoster(dashboardRoster);
   const intervene = interventionTargets(dashboardRoster, 3);
+  const alerts = generateAttendanceAlerts();
+  const nominee = employeeOfTheMonth();
 
   const metrics = [
     {
@@ -120,6 +126,50 @@ export default async function DashboardPage() {
         <div className="animate-fade-up-delay-3 mt-8">
           <InterveneNow targets={intervene} />
         </div>
+
+        <div className="animate-fade-up-delay-3 mt-8">
+          <AttendanceAlerts alerts={alerts} />
+        </div>
+
+        <section
+          className="animate-fade-up-delay-3 mt-8 border border-line bg-white/70 px-5 py-5 sm:px-6"
+          aria-labelledby="recognition-heading"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2
+              id="recognition-heading"
+              className="font-display text-lg font-semibold tracking-tight text-ink"
+            >
+              Employee of the month
+            </h2>
+            <Link
+              href="/analytics"
+              className="text-xs font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+              Full recognition list
+            </Link>
+          </div>
+          {nominee ? (
+            <div className="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+              <Link
+                href={`/dashboard/people/${nominee.person.id}`}
+                className="font-medium text-ink transition-colors hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              >
+                {nominee.person.name}
+              </Link>
+              <p className="min-w-0 flex-1 text-sm text-slate/65">
+                {nominee.reason}
+              </p>
+              <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
+                {nominee.score}/100
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate/65">
+              No nominee yet this cycle.
+            </p>
+          )}
+        </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-xs tracking-wide text-slate/50">
           Demo data · SMS intake not connected
