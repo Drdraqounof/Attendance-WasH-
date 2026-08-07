@@ -12,7 +12,7 @@ export default function LoginPage() {
       <div className="ops-grid absolute inset-0 opacity-70" aria-hidden />
 
       <header className="relative z-10">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-6 py-5 sm:px-8">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-6 py-5 sm:px-8">
           <Link
             href="/"
             className="text-sm text-slate/65 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -22,7 +22,7 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 pb-16 pt-4 sm:px-8 sm:pb-20">
+      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pb-16 pt-4 sm:px-8 sm:pb-20">
         <div className="w-full max-w-md">
           <div className="live-pulse mb-4 h-[3px] w-16 sm:w-24" aria-hidden />
 

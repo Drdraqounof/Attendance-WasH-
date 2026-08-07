@@ -57,11 +57,11 @@ export default async function DashboardPage() {
 
   return (
     <OpsShell active="dashboard">
-      <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
         <div className="animate-fade-up">
           <div className="flex flex-wrap items-center gap-3">
             <div className="live-pulse h-[3px] w-14 sm:w-20" aria-hidden />
-            <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-accent-deep uppercase">
+            <p className="flex items-center gap-2 text-sm font-semibold tracking-[0.16em] text-accent-deep uppercase">
               <span
                 className="inline-block h-1.5 w-1.5 bg-accent"
                 aria-hidden
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
 
           <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-xl">
-              <p className="text-xs font-semibold tracking-[0.16em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
                 Live attendance risk
               </p>
               <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
               key={metric.label}
               className="bg-white/80 px-4 py-4 sm:px-5 sm:py-5"
             >
-              <p className="text-xs font-semibold tracking-[0.14em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
                 {metric.label}
               </p>
               <p
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href="/analytics"
-              className="text-xs font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               Full recognition list
             </Link>
@@ -171,7 +171,7 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <p className="mt-10 border-t border-line/70 pt-5 text-xs tracking-wide text-slate/50">
+        <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
           Demo data · SMS intake not connected
         </p>
       </main>

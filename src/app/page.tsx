@@ -5,7 +5,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-full flex-col">
       <header className="absolute inset-x-0 top-0 z-20">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-8">
           <span className="font-display text-sm font-semibold tracking-[0.14em] text-white/80 uppercase">
             AttendPoint
           </span>
@@ -36,7 +36,7 @@ export default function HomePage() {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-16 pt-32 sm:px-8 sm:pb-20">
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-32 sm:px-8 sm:pb-20">
           <div className="live-pulse mb-4 h-[3px] w-20 sm:mb-5 sm:w-36" aria-hidden />
 
           <p className="animate-fade-up font-display text-[clamp(2.75rem,10vw,6.5rem)] leading-[0.9] font-bold tracking-tight text-white">
@@ -73,8 +73,8 @@ export default function HomePage() {
         className="ops-atmosphere relative border-t border-line"
       >
         <div className="ops-grid absolute inset-0 opacity-60" aria-hidden />
-        <div className="relative mx-auto max-w-6xl px-6 py-20 sm:px-8 sm:py-24">
-          <p className="text-xs font-semibold tracking-[0.18em] text-accent-deep uppercase">
+        <div className="relative mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-24">
+          <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
             How it works
           </p>
           <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
@@ -89,7 +89,7 @@ export default function HomePage() {
       </section>
 
       <footer className="border-t border-line bg-surface-2">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-slate/60 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-sm text-slate/60 sm:px-8">
           <span className="font-display font-semibold tracking-wide text-slate/70">
             AttendPoint
           </span>

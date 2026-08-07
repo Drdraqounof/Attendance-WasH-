@@ -49,7 +49,7 @@ function RosterRow({ employee }: { employee: RosterEmployee }) {
           <span className="block truncate font-medium text-ink">
             {employee.name}
           </span>
-          <span className="mt-0.5 block truncate text-xs text-slate/60 md:hidden">
+          <span className="mt-0.5 block truncate text-sm text-slate/60 md:hidden">
             {employee.role} · {employee.team}
           </span>
         </span>
@@ -76,7 +76,7 @@ function RosterRow({ employee }: { employee: RosterEmployee }) {
           <span className="block truncate text-sm text-slate/80">
             {employee.lastSignal}
           </span>
-          <span className="mt-0.5 block text-xs text-slate/55">
+          <span className="mt-0.5 block text-sm text-slate/55">
             {employee.lastSignalAgo}
           </span>
         </span>
@@ -109,13 +109,13 @@ export function PriorityRoster({ roster }: { roster: RosterEmployee[] }) {
         <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
           Priority roster
         </h2>
-        <p className="text-xs tracking-wide text-slate/55 uppercase">
+        <p className="text-sm tracking-wide text-slate/55 uppercase">
           Highest risk first · click a row
         </p>
       </div>
 
       <div
-        className="hidden border-b border-line/80 px-4 py-2.5 text-xs tracking-[0.12em] text-slate/60 uppercase sm:grid sm:grid-cols-[minmax(0,1.4fr)_auto_3.5rem] sm:gap-x-3 sm:px-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto_3.5rem] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_auto_3.5rem_minmax(0,1.2fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_auto_3.5rem_minmax(0,1.1fr)_minmax(0,1fr)]"
+        className="hidden border-b border-line/80 px-4 py-2.5 text-sm tracking-[0.12em] text-slate/60 uppercase sm:grid sm:grid-cols-[minmax(0,1.4fr)_auto_3.5rem] sm:gap-x-3 sm:px-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto_3.5rem] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_auto_3.5rem_minmax(0,1.2fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_auto_3.5rem_minmax(0,1.1fr)_minmax(0,1fr)]"
         aria-hidden
       >
         <span>Name</span>
@@ -158,7 +158,7 @@ export function InterveneNow({ targets }: { targets: RosterEmployee[] }) {
         >
           Intervene now
         </h2>
-        <p className="text-xs tracking-wide text-slate/55 uppercase">
+        <p className="text-sm tracking-wide text-slate/55 uppercase">
           Action targets
         </p>
       </div>
@@ -176,7 +176,7 @@ export function InterveneNow({ targets }: { targets: RosterEmployee[] }) {
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="font-medium text-ink">{person.name}</span>
-                  <span className="text-xs text-slate/55">
+                  <span className="text-sm text-slate/55">
                     {person.points} pts
                   </span>
                 </div>

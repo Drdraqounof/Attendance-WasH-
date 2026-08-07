@@ -68,7 +68,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
 
   return (
     <OpsShell active="people" crumb={person.name}>
-      <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
         <div className="animate-fade-up">
           <Link
             href="/dashboard"
@@ -80,13 +80,13 @@ export default async function PersonDetailPage({ params }: PageProps) {
 
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold tracking-[0.16em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
                 Employee profile
               </p>
               <h1 className="font-display mt-2 flex flex-wrap items-center gap-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 {person.name}
                 {isNominee ? (
-                  <span className="inline-flex items-center gap-1.5 border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-accent-deep uppercase">
+                  <span className="inline-flex items-center gap-1.5 border border-accent/40 bg-accent/10 px-2.5 py-1 text-sm font-semibold tracking-wide text-accent-deep uppercase">
                     <span aria-hidden>★</span>
                     Employee of the month
                   </span>
@@ -102,7 +102,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-slate/65">
               <div>
-                <p className="text-xs tracking-[0.12em] text-slate/50 uppercase">
+                <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
                   Risk
                 </p>
                 <p
@@ -116,13 +116,13 @@ export default async function PersonDetailPage({ params }: PageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-xs tracking-[0.12em] text-slate/50 uppercase">
+                <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
                   Phone
                 </p>
                 <p className="mt-1 font-medium text-ink">{person.phoneMasked}</p>
               </div>
               <div>
-                <p className="text-xs tracking-[0.12em] text-slate/50 uppercase">
+                <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
                   Hire date
                 </p>
                 <p className="mt-1 font-medium text-ink">{person.hireDate}</p>
@@ -137,7 +137,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
           aria-label="Points summary"
         >
           <div className="bg-white/80 px-5 py-5">
-            <p className="text-xs font-semibold tracking-[0.14em] text-slate/55 uppercase">
+            <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
               Open points
             </p>
             <p className="font-display mt-2 text-4xl font-bold tabular-nums text-ink">
@@ -149,7 +149,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
           </div>
           <div className="bg-white/80 px-5 py-5 sm:col-span-2">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-xs font-semibold tracking-[0.14em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
                 Toward policy cap
               </p>
               <p className="font-display text-sm font-semibold tabular-nums text-ink">
@@ -193,13 +193,13 @@ export default async function PersonDetailPage({ params }: PageProps) {
             >
               Last {trend.windowDays} days
             </h2>
-            <p className="text-xs tracking-wide text-slate/55 uppercase">
+            <p className="text-sm tracking-wide text-slate/55 uppercase">
               Incident history
             </p>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-px border border-line bg-line">
             <div className="bg-white/80 px-4 py-3">
-              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
                 Late arrivals
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
@@ -207,7 +207,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
               </p>
             </div>
             <div className="bg-white/80 px-4 py-3">
-              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
                 Absences
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
@@ -215,7 +215,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
               </p>
             </div>
             <div className="bg-white/80 px-4 py-3">
-              <p className="text-xs font-semibold tracking-[0.12em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
                 Other incidents
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
@@ -238,7 +238,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
               >
                 This week&apos;s schedule
               </h2>
-              <p className="text-xs tracking-wide text-slate/55 uppercase">
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
                 Jul 27 – Aug 2
               </p>
             </div>
@@ -256,7 +256,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                       {day.shift}
                     </p>
                     {day.note ? (
-                      <p className="mt-0.5 pl-9 text-xs text-slate/55">
+                      <p className="mt-0.5 pl-9 text-sm text-slate/55">
                         {day.note}
                       </p>
                     ) : null}
@@ -280,7 +280,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
               >
                 Points ledger
               </h2>
-              <p className="text-xs tracking-wide text-slate/55 uppercase">
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
                 Demo history
               </p>
             </div>
@@ -299,7 +299,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                       <p className="text-sm font-medium text-ink">
                         {event.reason}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate/55">
+                      <p className="mt-0.5 text-sm text-slate/55">
                         {event.date}
                         <span className="text-slate/35"> · </span>
                         {event.source}
@@ -315,7 +315,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
           </section>
         </div>
 
-        <p className="mt-10 border-t border-line/70 pt-5 text-xs tracking-wide text-slate/50">
+        <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
           Demo data · SMS intake not connected
         </p>
       </main>

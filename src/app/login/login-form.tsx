@@ -107,7 +107,7 @@ export function LoginForm() {
         Continue without credentials
       </button>
 
-      <p className="mt-6 text-center text-xs tracking-wide text-slate/55">
+      <p className="mt-6 text-center text-sm tracking-wide text-slate/55">
         <span className="inline-block border border-danger-soft/25 bg-danger-soft/8 px-2.5 py-1 text-danger-soft">
           Demo mode — any credentials work
         </span>

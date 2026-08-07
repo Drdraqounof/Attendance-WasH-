@@ -35,7 +35,7 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
         >
           Attendance alerts
         </h2>
-        <p className="text-xs tracking-wide text-slate/55 uppercase">
+        <p className="text-sm tracking-wide text-slate/55 uppercase">
           Automated warnings · {alerts.length} open
         </p>
       </div>
@@ -55,7 +55,7 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
                   />
                   <span className="font-medium text-ink">{alert.employee}</span>
                   <span
-                    className={`text-xs font-medium ${severityTone(alert.severity)}`}
+                    className={`text-sm font-medium ${severityTone(alert.severity)}`}
                   >
                     {ALERT_SEVERITY_LABELS[alert.severity]}
                   </span>

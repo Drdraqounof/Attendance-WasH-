@@ -56,10 +56,10 @@ export default async function AnalyticsPage() {
 
   return (
     <OpsShell active="analytics">
-      <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
         <div className="animate-fade-up">
           <div className="live-pulse mb-4 h-[3px] w-14 sm:w-20" aria-hidden />
-          <p className="text-xs font-semibold tracking-[0.16em] text-slate/55 uppercase">
+          <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
             Floor analytics
           </p>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
@@ -81,7 +81,7 @@ export default async function AnalyticsPage() {
               key={metric.label}
               className="bg-white/80 px-4 py-4 sm:px-5 sm:py-5"
             >
-              <p className="text-xs font-semibold tracking-[0.14em] text-slate/55 uppercase">
+              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
                 {metric.label}
               </p>
               <p
@@ -103,7 +103,7 @@ export default async function AnalyticsPage() {
               >
                 Points trend
               </h2>
-              <p className="text-xs tracking-wide text-slate/55 uppercase">
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
                 Last 7 days · {summary.weekSignals} signals
               </p>
             </div>
@@ -125,10 +125,10 @@ export default async function AnalyticsPage() {
                       }}
                       title={`${day.label}: ${day.points} points`}
                     />
-                    <p className="mt-2 text-center text-[10px] tracking-wide text-slate/55 uppercase sm:text-xs">
+                    <p className="mt-2 text-center text-[10px] tracking-wide text-slate/55 uppercase sm:text-sm">
                       {day.label}
                     </p>
-                    <p className="text-center font-display text-xs font-semibold tabular-nums text-ink">
+                    <p className="text-center font-display text-sm font-semibold tabular-nums text-ink">
                       {day.points}
                     </p>
                   </div>
@@ -146,7 +146,7 @@ export default async function AnalyticsPage() {
               >
                 Risk distribution
               </h2>
-              <p className="text-xs tracking-wide text-slate/55 uppercase">
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
                 {summary.headcount} on roster
               </p>
             </div>
@@ -225,14 +225,14 @@ export default async function AnalyticsPage() {
               >
                 Risk by team
               </h2>
-              <p className="text-xs tracking-wide text-slate/55 uppercase">
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
                 Open points
               </p>
             </div>
             <div className="overflow-x-auto border border-line bg-white/65">
               <table className="w-full min-w-[20rem] border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line/80 text-xs tracking-[0.12em] text-slate/60 uppercase">
+                  <tr className="border-b border-line/80 text-sm tracking-[0.12em] text-slate/60 uppercase">
                     <th className="px-4 py-2.5 font-semibold sm:px-5">Team</th>
                     <th className="px-2 py-2.5 font-semibold">At risk</th>
                     <th className="px-2 py-2.5 font-semibold">Watch</th>
@@ -280,7 +280,7 @@ export default async function AnalyticsPage() {
                 >
                   Signal mix
                 </h2>
-                <p className="text-xs tracking-wide text-slate/55 uppercase">
+                <p className="text-sm tracking-wide text-slate/55 uppercase">
                   From point ledger
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default async function AnalyticsPage() {
                 </h2>
                 <Link
                   href="/dashboard"
-                  className="text-xs font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                  className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
                   Open console
                 </Link>
@@ -340,7 +340,7 @@ export default async function AnalyticsPage() {
                           <span className="block truncate font-medium text-ink">
                             {person.name}
                           </span>
-                          <span className="block truncate text-xs text-slate/55">
+                          <span className="block truncate text-sm text-slate/55">
                             {person.team}
                           </span>
                         </span>
@@ -368,7 +368,7 @@ export default async function AnalyticsPage() {
             >
               Employee of the month — nominees
             </h2>
-            <p className="text-xs tracking-wide text-slate/55 uppercase">
+            <p className="text-sm tracking-wide text-slate/55 uppercase">
               Recognition · current cycle
             </p>
           </div>
@@ -402,7 +402,7 @@ export default async function AnalyticsPage() {
           </ol>
         </section>
 
-        <p className="mt-10 border-t border-line/70 pt-5 text-xs tracking-wide text-slate/50">
+        <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
           Demo data · SMS intake not connected
         </p>
       </main>
