@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { OpsShell } from "@/components/ops-shell";
+import { TREND_LABELS, type TrendDirection } from "@/lib/ai-analysis-mock";
+import { hasDemoSession } from "@/lib/auth-mock";
 import {
   employeesAtRisk,
   frequentLatenessPatterns,
   reliabilityRanking,
-  TREND_LABELS,
-  type TrendDirection,
-} from "@/lib/ai-analysis-mock";
-import { generateInsightsNarrative } from "@/lib/ai-narrative";
-import { hasDemoSession } from "@/lib/auth-mock";
-import { signalTypeBreakdown } from "@/lib/people-mock";
+  signalTypeBreakdown,
+} from "@/lib/insights-queries";
+import { AiSummaryCard, AiSummaryCardSkeleton } from "./ai-summary-card";
 
 export const metadata: Metadata = {
   title: "AI Attendance Analysis",
@@ -25,29 +25,46 @@ const CAPABILITIES = [
   "Attendance reliability scores",
 ] as const;
 
+const DAY_WINDOWS = [7, 30, 90] as const;
+const DEFAULT_DAYS = 30;
+const RELIABILITY_LIMIT = 10;
+
+function parseDays(raw: string | undefined): number {
+  const parsed = Number(raw);
+  return DAY_WINDOWS.includes(parsed as (typeof DAY_WINDOWS)[number])
+    ? parsed
+    : DEFAULT_DAYS;
+}
+
 function trendTone(trend: TrendDirection): string {
   if (trend === "improving") return "text-accent-deep";
   if (trend === "worsening") return "text-danger-soft";
   return "text-slate/65";
 }
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ days?: string }>;
+}) {
   const signedIn = await hasDemoSession();
   if (!signedIn) {
     redirect("/login");
   }
 
-  const lateness = frequentLatenessPatterns(3, 30);
-  const causes = signalTypeBreakdown();
-  const atRisk = employeesAtRisk(30);
-  const ranking = reliabilityRanking(30);
+  const days = parseDays((await searchParams)?.days);
+
+  // Deterministic sections read straight from Neon (src/lib/insights-queries.ts) —
+  // fast queries, awaited directly. Only the AI summary (below) is
+  // isolated behind its own <Suspense> boundary, since that's the call
+  // with real network/latency risk (OpenAI).
+  const [lateness, causes, atRisk, ranking] = await Promise.all([
+    frequentLatenessPatterns(days, 3),
+    signalTypeBreakdown(days),
+    employeesAtRisk(days),
+    reliabilityRanking(days, RELIABILITY_LIMIT),
+  ]);
   const maxCauseCount = causes[0]?.count ?? 1;
-  const narrative = await generateInsightsNarrative({
-    lateness,
-    causes,
-    atRisk,
-    ranking,
-  });
 
   return (
     <OpsShell active="insights">
@@ -57,9 +74,30 @@ export default async function InsightsPage() {
           <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
             AI attendance analysis
           </p>
-          <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            Patterns, causes, and risk — surfaced automatically
-          </h1>
+          <div className="mt-2 flex flex-wrap items-baseline justify-between gap-4">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              Patterns, causes, and risk — surfaced automatically
+            </h1>
+            <nav
+              className="flex items-center gap-1 border border-line bg-white/60 p-1 text-sm"
+              aria-label="Time window"
+            >
+              {DAY_WINDOWS.map((window) => (
+                <Link
+                  key={window}
+                  href={`/insights?days=${window}`}
+                  className={`px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    window === days
+                      ? "bg-accent-deep text-white"
+                      : "text-slate/65 hover:text-ink"
+                  }`}
+                  aria-current={window === days ? "true" : undefined}
+                >
+                  {window}d
+                </Link>
+              ))}
+            </nav>
+          </div>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/75">
             The attendance system continuously analyzes signals to identify:
           </p>
@@ -76,28 +114,10 @@ export default async function InsightsPage() {
           </ul>
         </div>
 
-        {/* AI-generated executive summary */}
-        <section
-          className="animate-fade-up-delay-1 mt-8"
-          aria-labelledby="ai-summary-heading"
-        >
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2
-              id="ai-summary-heading"
-              className="font-display text-lg font-semibold tracking-tight text-ink"
-            >
-              AI summary
-            </h2>
-            <p className="text-sm tracking-wide text-slate/55 uppercase">
-              {narrative.source === "openai" ? "Generated by OpenAI" : "Fallback"}
-            </p>
-          </div>
-          <div className="border border-line bg-white/65 px-5 py-4">
-            <p className="text-sm leading-relaxed text-slate/80">
-              {narrative.text}
-            </p>
-          </div>
-        </section>
+        {/* AI-generated executive summary — streams in independently */}
+        <Suspense fallback={<AiSummaryCardSkeleton />}>
+          <AiSummaryCard days={days} />
+        </Suspense>
 
         {/* Frequent lateness patterns */}
         <section
@@ -112,7 +132,7 @@ export default async function InsightsPage() {
               Frequent lateness patterns
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              3+ late arrivals · last 30 days
+              3+ late arrivals · last {days} days
             </p>
           </div>
           {lateness.length === 0 ? (
@@ -123,15 +143,12 @@ export default async function InsightsPage() {
           ) : (
             <ul className="divide-y divide-line/70 border border-line bg-white/65">
               {lateness.map((row) => (
-                <li
-                  key={row.person.id}
-                  className="px-4 py-4 sm:px-5"
-                >
+                <li key={row.employeeId} className="px-4 py-4 sm:px-5">
                   <Link
-                    href={`/dashboard/people/${row.person.id}`}
+                    href={`/dashboard/people/${row.employeeId}`}
                     className="font-medium text-ink transition-colors hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                   >
-                    {row.person.name}
+                    {row.name}
                   </Link>
                   <p className="mt-1 text-sm text-slate/70">
                     &ldquo;{row.narrative}&rdquo;
@@ -195,14 +212,14 @@ export default async function InsightsPage() {
             ) : (
               <ul className="divide-y divide-line/70 border border-line bg-white/65">
                 {atRisk.map((row) => (
-                  <li key={row.person.id}>
+                  <li key={row.employeeId}>
                     <Link
-                      href={`/dashboard/people/${row.person.id}`}
+                      href={`/dashboard/people/${row.employeeId}`}
                       className="flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-5"
                     >
                       <span className="min-w-0">
                         <span className="block truncate font-medium text-ink">
-                          {row.person.name}
+                          {row.name}
                         </span>
                         <span className="block truncate text-sm text-slate/55">
                           {row.reason}
@@ -232,7 +249,7 @@ export default async function InsightsPage() {
               Attendance reliability scores &amp; improvement trends
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Highest score first · vs. prior 30 days
+              Top {RELIABILITY_LIMIT} · vs. prior {days} days
             </p>
           </div>
           <div className="overflow-x-auto border border-line bg-white/65">
@@ -253,15 +270,15 @@ export default async function InsightsPage() {
               <tbody>
                 {ranking.map((row) => (
                   <tr
-                    key={row.person.id}
+                    key={row.employeeId}
                     className="border-b border-line/70 last:border-b-0"
                   >
                     <td className="px-4 py-3 sm:px-5">
                       <Link
-                        href={`/dashboard/people/${row.person.id}`}
+                        href={`/dashboard/people/${row.employeeId}`}
                         className="font-medium text-ink transition-colors hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                       >
-                        {row.person.name}
+                        {row.name}
                       </Link>
                     </td>
                     <td className="px-2 py-3 text-right font-display font-semibold tabular-nums text-ink">
@@ -280,8 +297,8 @@ export default async function InsightsPage() {
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Demo data · rule-based stand-in for AI analysis · SMS intake not
-          connected
+          Live query · reads from Neon (schema in docs/database.md) · SMS
+          intake not connected
         </p>
       </main>
     </OpsShell>
