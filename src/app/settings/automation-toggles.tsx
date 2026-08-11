@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   AUTOMATION_TOGGLES,
+  AUTOMATION_TOGGLES_STORAGE_KEY as STORAGE_KEY,
   type AutomationToggleKey,
 } from "@/lib/settings-mock";
-
-const STORAGE_KEY = "ap_automation_toggles";
 
 function defaultState(): Record<AutomationToggleKey, boolean> {
   const state = {} as Record<AutomationToggleKey, boolean>;

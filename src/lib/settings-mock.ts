@@ -30,6 +30,10 @@ export const DEDUCTION_RULES: PointRule[] = [
   { label: "Repeated attendance problems", value: "Additional review" },
 ];
 
+/** localStorage key the settings page writes toggle state to (read by
+ * the profile page's read-only catalog too, so both stay in sync). */
+export const AUTOMATION_TOGGLES_STORAGE_KEY = "ap_automation_toggles";
+
 export type AutomationToggleKey =
   | "smsIntake"
   | "managerAlerts"

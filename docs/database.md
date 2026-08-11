@@ -1,0 +1,69 @@
+# Database — Neon Postgres via Drizzle
+
+**Date added:** 2026-08-10
+**Status:** Schema migrated + seeded (live on Neon). App pages still read from mock files — not wired to the DB yet.
+**Provider:** Neon (serverless Postgres)
+**ORM:** Drizzle ORM + drizzle-kit
+
+## What this is
+
+A `DATABASE_URL` (Neon connection string) was added to `.env`. This pass
+builds the real Postgres schema and seeds it with data equivalent to
+the mock files under `src/lib/*-mock.ts`, so the same demo dataset now
+exists in an actual database.
+
+**The UI does not read from this database yet.** `/dashboard`,
+`/analytics`, `/insights`, `/dashboard/people/[id]`, etc. all still
+import directly from the mock files, same as before. Wiring pages to
+real queries is a separate follow-up — this pass is schema + seed only.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `.env` | Holds `DATABASE_URL` (git-ignored — never committed). |
+| `src/db/schema.ts` | Drizzle table definitions, one per mock entity (see mapping below). |
+| `src/db/client.ts` | Server-only Drizzle client using Neon's HTTP driver (`@neondatabase/serverless` + `drizzle-orm/neon-http`). Throws at import if `DATABASE_URL` is unset. |
+| `src/db/seed.ts` | Seed script — imports the existing mock modules directly (`getAllPeople()`, `DEMO_MANAGER`, `POSITIVE_POINT_RULES`, etc.) and inserts equivalent rows. Idempotent: deletes in FK-safe order before re-inserting. |
+| `drizzle.config.ts` | drizzle-kit config — points at `src/db/schema.ts`, migrations output to `drizzle/`, reads `DATABASE_URL` via `dotenv`. |
+| `drizzle/0000_windy_blob.sql` | Generated migration — the actual DDL applied to Neon. |
+
+## Schema → mock mapping
+
+| Table | Mirrors | Notes |
+| --- | --- | --- |
+| `managers` | `manager-mock.ts` → `DEMO_MANAGER` | Single demo manager row. |
+| `employees` | `dashboard-mock.ts` (`RosterEmployee`) + `people-mock.ts` (`PersonProfile`) | One row per floor employee; string IDs (`"e01"`) kept to match mock IDs. |
+| `schedule_days` | `people-mock.ts` → `ScheduleDay[]` | FK to `employees`, cascade delete. |
+| `point_events` | `people-mock.ts` → `PointEvent[]` (point ledger) | FK to `employees`, cascade delete; string IDs (`"p01a"`) kept. |
+| `point_rules` | `settings-mock.ts` → `POSITIVE_POINT_RULES` + `DEDUCTION_RULES` | `category` enum distinguishes the two lists; `sort_order` preserves display order. |
+| `automation_toggles` | `settings-mock.ts` → `AUTOMATION_TOGGLES` | Key is the natural primary key (`smsIntake`, `managerAlerts`, …). |
+| `attendance_alerts` | `alerts-mock.ts` → `generateAttendanceAlerts()` | In the mock layer these are computed at request time from employees; here they're persisted as a snapshot so a real alerting pipeline has somewhere to write later. |
+
+Enums: `schedule_status`, `point_source`, `alert_severity`,
+`point_rule_category` — all mirror the TypeScript union types in the
+mock files exactly.
+
+## Commands
+
+```bash
+npm run db:generate   # regenerate SQL migration from src/db/schema.ts after a schema edit
+npm run db:migrate    # apply pending migrations to the DATABASE_URL in .env
+npm run db:seed       # wipe + re-insert demo data (safe to re-run)
+npm run db:studio     # open Drizzle Studio against the live database
+```
+
+## Verification performed on 2026-08-10
+
+- `npx drizzle-kit generate` → produced `drizzle/0000_windy_blob.sql` (7 tables, 4 enums).
+- `npx drizzle-kit migrate` → applied successfully to the live Neon database.
+- `npm run db:seed` → inserted 1 manager, 11 employees, 77 schedule days, 21 point events, 14 point rules, 5 automation toggles, 6 attendance alerts.
+- Row counts double-checked with a direct `@neondatabase/serverless` query against each table — all matched the seed script's own counts.
+- `npx next build` — compiles and type-checks cleanly with the new `src/db/*` files present.
+
+## Operational notes
+
+- **Secrets**: `.env` is git-ignored (`.gitignore` → `.env*`). `DATABASE_URL` contains a live Neon password — never log it in full or commit it. `src/db/client.ts` is server-only; never import it from a `"use client"` component.
+- **Driver**: uses Neon's HTTP driver (`neon-http`), not a persistent TCP socket — works from serverless/edge runtimes without connection-pool management. If a future feature needs transactions or `LISTEN/NOTIFY`, switch to `drizzle-orm/neon-serverless` (WebSocket) for that specific path.
+- **Idempotency**: `db:seed` deletes existing rows before inserting, so re-running it is always safe and won't create duplicates.
+- **Next step (not done here)**: swapping page data sources from `src/lib/*-mock.ts` imports to `src/db/client.ts` queries, one route at a time, is intentionally deferred to a follow-up pass.
