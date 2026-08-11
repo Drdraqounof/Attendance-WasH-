@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
+import { NotificationBell } from "@/components/notification-bell";
+import { generateAttendanceAlerts } from "@/lib/alerts-mock";
 
 type OpsNavActive =
   | "dashboard"
@@ -35,8 +37,10 @@ export function OpsHeader({
   active: OpsNavActive;
   crumb?: string;
 }) {
+  const alerts = generateAttendanceAlerts();
+
   return (
-    <header className="relative z-10 border-b border-line/80 bg-white/50 backdrop-blur-sm">
+    <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Link
@@ -79,6 +83,7 @@ export function OpsHeader({
             {navLink("/insights", "AI", active === "insights")}
             {navLink("/settings", "Settings", active === "settings")}
           </nav>
+          <NotificationBell alerts={alerts} />
           {navLink("/profile", "Profile", active === "profile")}
           <SignOutButton />
         </div>
