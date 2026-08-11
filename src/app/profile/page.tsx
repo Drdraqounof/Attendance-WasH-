@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
+import { NotificationPreferences } from "@/app/profile/notification-preferences";
 import { hasDemoSession } from "@/lib/auth-mock";
 import { DEMO_MANAGER } from "@/lib/manager-mock";
 
@@ -69,30 +69,7 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <section
-          className="animate-fade-up-delay-2 mt-8 border border-line bg-white/70 px-5 py-6 sm:px-6"
-          aria-labelledby="notifications-heading"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2
-              id="notifications-heading"
-              className="font-display text-xl font-semibold tracking-tight text-ink"
-            >
-              Notification preferences
-            </h2>
-            <Link
-              href="/settings"
-              className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              Manage automation
-            </Link>
-          </div>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/70">
-            Manager alerts, 30-day trend analysis, and recognition
-            automations are configured on the settings page and apply across
-            every floor you supervise.
-          </p>
-        </section>
+        <NotificationPreferences />
 
         <div className="animate-fade-up-delay-3 mt-10 flex items-center justify-between border-t border-line/70 pt-6">
           <p className="text-sm tracking-wide text-slate/50">
