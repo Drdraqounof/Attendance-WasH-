@@ -2,7 +2,11 @@ import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { employees, pointEvents } from "@/db/schema";
 import { attendanceScoreFromPoints } from "@/lib/attendance-utils";
-import { RISK_THRESHOLDS } from "@/lib/dashboard-mock";
+import {
+  POLICY_THRESHOLDS,
+  riskLevelFromPoints,
+  type RiskLevel,
+} from "@/lib/policy-engine";
 import type { TrendDirection } from "@/lib/ai-analysis-mock";
 
 /**
@@ -105,11 +109,21 @@ export type AtRiskRow = {
   name: string;
   reliabilityScore: number;
   reason: string;
+  /** How close this employee is to the 16-point cap — see policy-engine.ts. */
+  riskLevel: RiskLevel;
+  /** True once points have reached the cap — final review/termination protocol. */
+  isTerminationFlag: boolean;
 };
 
-/** "Employees at risk of attendance problems" — watch band and above, worst first. */
+/**
+ * "Employees at risk of attendance problems" — watch band (the lowest
+ * automated-workflow threshold, 2 points) and above, worst first.
+ * Employees who've reached the 16-point cap (`isTerminationFlag: true`)
+ * sort to the top, per docs/points-system-brd.md's escalation policy.
+ */
 export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   const since = isoDateDaysAgo(days);
+  const watchFloor = POLICY_THRESHOLDS[0]!.pointValue; // 2 — "verbal_warning"
   const incidentCountExpr = sql<number>`count(${pointEvents.id}) filter (where ${pointEvents.date} >= ${since} and ${pointEvents.date} <= ${REFERENCE_DATE})`;
 
   const rows = await db
@@ -123,7 +137,7 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
     })
     .from(employees)
     .leftJoin(pointEvents, eq(pointEvents.employeeId, employees.id))
-    .where(gte(employees.points, RISK_THRESHOLDS.watch))
+    .where(gte(employees.points, watchFloor))
     .groupBy(
       employees.id,
       employees.name,
@@ -135,6 +149,7 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   return rows
     .map((row) => {
       const incidentCount = Number(row.incidentCount);
+      const riskLevel = riskLevelFromPoints(row.points, row.policyCap);
       return {
         employeeId: row.id,
         name: row.name,
@@ -143,9 +158,16 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
           incidentCount > 0
             ? `${incidentCount} incident${incidentCount === 1 ? "" : "s"} in the last ${days} days`
             : row.suggestedAction,
+        riskLevel,
+        isTerminationFlag: riskLevel === "termination_flag",
       };
     })
-    .sort((a, b) => a.reliabilityScore - b.reliabilityScore);
+    .sort((a, b) => {
+      if (a.isTerminationFlag !== b.isTerminationFlag) {
+        return a.isTerminationFlag ? -1 : 1;
+      }
+      return a.reliabilityScore - b.reliabilityScore;
+    });
 }
 
 export type ReliabilityRow = {

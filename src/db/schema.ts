@@ -43,6 +43,12 @@ export const pointRuleCategoryEnum = pgEnum("point_rule_category", [
   "deduction",
 ]);
 
+export const warningStatusEnum = pgEnum("warning_status", [
+  "open",
+  "acknowledged",
+  "resolved",
+]);
+
 /** Signed-in manager accounts. Demo: no real identity provider yet. */
 export const managers = pgTable("managers", {
   id: serial("id").primaryKey(),
@@ -66,7 +72,8 @@ export const employees = pgTable("employees", {
   team: text("team").notNull(),
   hireDate: date("hire_date").notNull(),
   phoneMasked: text("phone_masked").notNull(),
-  policyCap: integer("policy_cap").notNull().default(12),
+  // 16-point escalating policy cap — see docs/points-system-brd.md.
+  policyCap: integer("policy_cap").notNull().default(16),
   points: integer("points").notNull().default(0),
   lastSignal: text("last_signal").notNull(),
   lastSignalAgo: text("last_signal_ago").notNull(),
@@ -99,6 +106,9 @@ export const pointEvents = pgTable("point_events", {
   delta: integer("delta").notNull(),
   reason: text("reason").notNull(),
   source: pointSourceEnum("source").notNull(),
+  // Stable rule code (see src/lib/policy-engine.ts) this event was generated
+  // from — nullable so pre-existing/legacy ledger rows stay valid.
+  ruleCode: text("rule_code"),
 });
 
 /** Point rule reference table (positive + deduction rules from settings-mock.ts). */
@@ -108,6 +118,46 @@ export const pointRules = pgTable("point_rules", {
   label: text("label").notNull(),
   value: text("value").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
+  // Stable identifier used by the policy engine to compute points
+  // (see src/lib/policy-engine.ts's ESCALATION_RULES). Nullable/unique —
+  // only the escalating deduction rules have one today; legacy
+  // display-only rows (positive point catalog) are left without a code.
+  code: text("code").unique(),
+  points: integer("points"),
+  active: boolean("active").notNull().default(true),
+});
+
+/**
+ * Admin-editable point thresholds that trigger an automated workflow
+ * (verbal warning / action plan / final review). See
+ * src/lib/policy-engine.ts's POLICY_THRESHOLDS for the seeded defaults
+ * and docs/points-system-brd.md for the business rules.
+ */
+export const policyThresholds = pgTable("policy_thresholds", {
+  key: text("key").primaryKey(), // e.g. "verbal_warning", "action_plan", "final_review"
+  pointValue: integer("point_value").notNull(),
+  label: text("label").notNull(),
+  active: boolean("active").notNull().default(true),
+});
+
+/**
+ * Stateful record of a threshold crossing (distinct from the raw
+ * attendance_alerts feed below) — backs the "active warning" / "action
+ * plan status" KPIs in docs/points-system-brd.md's analytics section.
+ */
+export const warnings = pgTable("warnings", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id")
+    .notNull()
+    .references(() => employees.id, { onDelete: "cascade" }),
+  thresholdKey: text("threshold_key")
+    .notNull()
+    .references(() => policyThresholds.key),
+  pointsAtTrigger: integer("points_at_trigger").notNull(),
+  status: warningStatusEnum("status").notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 /** Automation toggle definitions (AutomationToggleDef from settings-mock.ts). */

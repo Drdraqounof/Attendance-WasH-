@@ -218,8 +218,15 @@ export default async function InsightsPage({
                       className="flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-5"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-medium text-ink">
-                          {row.name}
+                        <span className="flex items-center gap-2">
+                          <span className="block truncate font-medium text-ink">
+                            {row.name}
+                          </span>
+                          {row.isTerminationFlag && (
+                            <span className="shrink-0 border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
+                              Final review
+                            </span>
+                          )}
                         </span>
                         <span className="block truncate text-sm text-slate/55">
                           {row.reason}
