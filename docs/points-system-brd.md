@@ -71,28 +71,28 @@ This is a **deduction-only model**: points start at 0 and only increase via the 
 
 ---
 
-## Part 2 — Reconciliation Against the Current Codebase
+## Part 2 — Reconciliation Against the Codebase (as of 2026-09-06)
 
-This isn't a greenfield feature — the schema already has real infrastructure for it, only partially wired up. Read this section before starting any implementation work.
+This wasn't a greenfield feature — the schema already had real infrastructure for it, only partially wired up. Phase 1 (below) has since closed most of that gap; this section now reflects the **current, implemented** state rather than the original pre-Phase-1 plan.
 
-**Already provisioned in `src/db/schema.ts`:**
-- `employees` — has `points` and `policyCap` (currently defaults to **12**, needs migrating to **16**).
-- `pointEvents` — a ledger table (`employeeId`, `date`, `delta`, `reason`, `source` enum `SMS`/`Policy`/`Supervisor`). This is the audit trail the anniversary-reset rule depends on — it's insert-only by convention already.
-- `pointRules` — reference table (`category` enum `positive`/`deduction`, `label`, `value`, `sortOrder`). Currently `value` is a **display-only string** (e.g. `"−2"`); it is not consumed as a computed number anywhere.
-- `attendanceAlerts` — a generic alert feed (`issue`, `detail`, `attendanceScore`, `severity`). This is a feed, not stateful workflow tracking — it can't by itself represent "warning is open / acknowledged / resolved."
+**Live in `src/db/schema.ts` today:**
+- `employees` — `points` + `policyCap`, defaulting to **16** for real (Neon-backed) rows, seeded explicitly from `POLICY_CAP` in `src/db/seed.ts`. (`people-mock.ts`'s separate `policyCap: 12` field still feeds the legacy mock-driven pages — see below.)
+- `pointEvents` — the ledger (`employeeId`, `date`, `delta`, `reason`, `source`, plus a nullable `ruleCode` added in Phase 1 for traceability). Insert-only by convention — the audit trail the (still-unbuilt) anniversary-reset rule will depend on.
+- `pointRules` — `code`/`points`/`active` were added in Phase 1 and are populated for the four real escalation rules (`minor_tardy`, `moderate_tardy`, `severe_late_absence`, `nc_ns_major`); the legacy positive/deduction display rows (for `/settings`, `/profile`) are unchanged and have `code = null`.
+- `policyThresholds` — new in Phase 1: `verbal_warning` (2pt), `manager_meeting` (10pt), `pip` (16pt).
+- `warnings` — new in Phase 1: a stateful `open`/`acknowledged`/`resolved` record per threshold crossing, distinct from the raw `attendanceAlerts` feed.
 
-**Model divergence to resolve:**
-The current implementation (`src/lib/attendance-utils.ts`, `src/lib/dashboard-mock.ts`) already uses a 0-start, accrue-upward, inverse-scoring model — conceptually aligned with this BRD. It differs from this BRD only in: cap (12 vs. 16) and the deltas used (placeholder values, not the 1/2/4/8 escalation schedule). Reconciliation is a migration, not a rewrite: raise the cap and make `pointRules` the real computed source of truth for the escalation schedule.
+**Model, as implemented:** deduction-only, inverse scoring (0 = perfect), 16-point hard cap, the four-tier 1/2/4/8 escalation schedule, three automated-workflow thresholds (2pt verbal warning, 10pt required manager meeting, 16pt PIP — see the 2026-09-06 update above). All of it lives in `src/lib/policy-engine.ts` (pure logic) + `src/lib/policy-queries.ts` (Drizzle read/write), and is exercised today by `/insights`' "Employees at risk" list.
 
-Note: `docs/Attendance-Plan.md` describes an older, unrelated 100-point *subtractive* model (start at 100, subtract for infractions). That document is now **superseded** by this BRD for anything points-related — it's kept for historical context, not deleted, but should not be treated as current.
+Note: `docs/Attendance-Plan.md` describes an older, unrelated 100-point *subtractive* model (start at 100, subtract for infractions). That document is **superseded** by this BRD for anything points-related — kept for historical context, not deleted, but not current.
 
-**Genuinely new (nothing exists yet):**
+**Still not built (unchanged since Phase 1):**
 - Zoho Shifts ingestion — no Zoho code/SDK anywhere in the repo.
 - Zoom SMS dispatch — no SMS/Zoom code anywhere; `notification-bell.tsx` and the `automationToggles` settings are in-app UI stubs only, with no backend dispatch.
-- Warning / action-plan **state** tracking (distinct from the raw `attendanceAlerts` feed).
 - The anniversary reset job — no scheduler exists in this app (no cron config).
 - The managerial reporting page's specific filters/KPIs — `src/app/analytics/page.tsx` exists but is mock-data-driven and doesn't match this BRD's filter/KPI set.
 - CSV export — no CSV code anywhere in the repo.
+- The legacy mock-driven pages (`/dashboard`, `/analytics`, `/dashboard/people/[id]`) still run on `people-mock.ts`'s old 12-point model, untouched by Phase 1 — see Phase 6.
 
 ---
 
@@ -186,7 +186,7 @@ Locked decisions for this roadmap:
 
 | # | Question | Blocks |
 |---|---|---|
-| 1 | If a single event crosses two thresholds at once (e.g. an 8pt event moving 9→17) — does it fire both the 10pt and 16pt workflows, and does the score hard-clamp at 16? | Phase 1 |
+| 1 | ~~If a single event crosses two thresholds at once (e.g. an 8pt event moving 9→17) — does it fire both the 10pt and 16pt workflows, and does the score hard-clamp at 16?~~ **Resolved in Phase 1:** yes to both — `thresholdsCrossed()` fires every threshold in range and `applyPointEvent()` hard-clamps at 16 (`clampToCap`). See `policy-engine.test.ts`. | Phase 1 ✅ |
 | 2 | Does the anniversary reset repeat every year, or only fire once at the 1-year mark? | Phase 5 |
 | 3 | Are "location"/"department" new concepts, or existing `team`/`managers.floor` renamed? | Phase 6 |
 | 4 | Does Zoho Shifts support outbound webhooks, or is polling required? | Phase 3 |
