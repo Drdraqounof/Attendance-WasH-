@@ -8,11 +8,12 @@
  * Model: deduction-only, inverse scoring. Every employee starts at 0
  * points (perfect attendance) and only accrues points upward via the
  * escalation schedule below. 16 points is a hard cap — an employee can
- * never register above it — and reaching it flags the employee for
- * final administrative review / termination protocol.
+ * never register above it — and reaching it places the employee on a
+ * formal Performance Improvement Plan (PIP), a corrective action step,
+ * not an automatic termination.
  */
 
-/** Hard point cap. Reaching it triggers the final-review/termination flag. */
+/** Hard point cap. Reaching it triggers the PIP flag. */
 export const POLICY_CAP = 16;
 
 export type EscalationRuleCode =
@@ -47,7 +48,7 @@ export const ESCALATION_RULES: EscalationRule[] = [
   },
 ];
 
-export type PolicyThresholdKey = "verbal_warning" | "action_plan" | "final_review";
+export type PolicyThresholdKey = "verbal_warning" | "manager_meeting" | "pip";
 
 export type PolicyThreshold = {
   key: PolicyThresholdKey;
@@ -66,18 +67,18 @@ export const POLICY_THRESHOLDS: PolicyThreshold[] = [
       "Notify the employee's manager/supervisor to conduct a verbal warning conversation. Logged in system.",
   },
   {
-    key: "action_plan",
+    key: "manager_meeting",
     pointValue: 10,
-    label: "Attendance Action Plan",
+    label: "Required Manager Meeting",
     action:
-      "Flag the employee profile and open a formal HR/Supervisor attendance action plan.",
+      "Flag the employee profile and require a formal attendance meeting between the employee and their manager/supervisor.",
   },
   {
-    key: "final_review",
+    key: "pip",
     pointValue: POLICY_CAP,
-    label: "Cap Met — Final Review",
+    label: "Performance Improvement Plan (PIP)",
     action:
-      "Flag the employee for final administrative review / termination protocol.",
+      "Place the employee on a formal Performance Improvement Plan (PIP) and notify HR. This is a corrective action step, not an automatic termination.",
   },
 ];
 
@@ -114,8 +115,8 @@ export type PointEventResult = {
   delta: number;
   newPoints: number;
   crossedThresholds: PolicyThreshold[];
-  /** True once the employee is at (or clamped to) the 16-point cap. */
-  isTerminationFlag: boolean;
+  /** True once the employee is at (or clamped to) the 16-point cap — on a PIP. */
+  isPipFlag: boolean;
 };
 
 /**
@@ -137,11 +138,11 @@ export function applyPointEvent(
     delta,
     newPoints,
     crossedThresholds,
-    isTerminationFlag: newPoints >= cap,
+    isPipFlag: newPoints >= cap,
   };
 }
 
-export type RiskLevel = "clear" | "watch" | "at_risk" | "termination_flag";
+export type RiskLevel = "clear" | "watch" | "at_risk" | "pip_flag";
 
 /**
  * Coarse risk banding used for "risk radar"-style views — how close an
@@ -151,7 +152,7 @@ export function riskLevelFromPoints(
   points: number,
   cap: number = POLICY_CAP,
 ): RiskLevel {
-  if (points >= cap) return "termination_flag";
+  if (points >= cap) return "pip_flag";
   if (points >= 10) return "at_risk";
   if (points >= 2) return "watch";
   return "clear";

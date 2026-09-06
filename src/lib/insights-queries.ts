@@ -111,15 +111,15 @@ export type AtRiskRow = {
   reason: string;
   /** How close this employee is to the 16-point cap — see policy-engine.ts. */
   riskLevel: RiskLevel;
-  /** True once points have reached the cap — final review/termination protocol. */
-  isTerminationFlag: boolean;
+  /** True once points have reached the cap — placed on a PIP. */
+  isPipFlag: boolean;
 };
 
 /**
  * "Employees at risk of attendance problems" — watch band (the lowest
  * automated-workflow threshold, 2 points) and above, worst first.
- * Employees who've reached the 16-point cap (`isTerminationFlag: true`)
- * sort to the top, per docs/points-system-brd.md's escalation policy.
+ * Employees who've reached the 16-point cap (`isPipFlag: true`) sort to
+ * the top, per docs/points-system-brd.md's escalation policy.
  */
 export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   const since = isoDateDaysAgo(days);
@@ -159,12 +159,12 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
             ? `${incidentCount} incident${incidentCount === 1 ? "" : "s"} in the last ${days} days`
             : row.suggestedAction,
         riskLevel,
-        isTerminationFlag: riskLevel === "termination_flag",
+        isPipFlag: riskLevel === "pip_flag",
       };
     })
     .sort((a, b) => {
-      if (a.isTerminationFlag !== b.isTerminationFlag) {
-        return a.isTerminationFlag ? -1 : 1;
+      if (a.isPipFlag !== b.isPipFlag) {
+        return a.isPipFlag ? -1 : 1;
       }
       return a.reliabilityScore - b.reliabilityScore;
     });

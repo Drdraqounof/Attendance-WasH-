@@ -46,11 +46,11 @@ describe("policy-engine", () => {
     });
 
     it("fires multiple thresholds at once when a large event jumps past them", () => {
-      // 9 -> 17 (pre-clamp) covers both the 10pt action-plan and 16pt
-      // final-review thresholds in one event.
+      // 9 -> 17 (pre-clamp) covers both the 10pt manager-meeting and
+      // 16pt PIP thresholds in one event.
       expect(thresholdsCrossed(9, 17).map((t) => t.key)).toEqual([
-        "action_plan",
-        "final_review",
+        "manager_meeting",
+        "pip",
       ]);
     });
 
@@ -64,7 +64,7 @@ describe("policy-engine", () => {
       const result = applyPointEvent(0, "minor_tardy");
       expect(result.newPoints).toBe(1);
       expect(result.crossedThresholds).toEqual([]);
-      expect(result.isTerminationFlag).toBe(false);
+      expect(result.isPipFlag).toBe(false);
     });
 
     it("fires the verbal warning at exactly 2 points", () => {
@@ -75,27 +75,25 @@ describe("policy-engine", () => {
       ]);
     });
 
-    it("fires the action plan at exactly 10 points", () => {
+    it("fires the required manager meeting at exactly 10 points", () => {
       const result = applyPointEvent(8, "moderate_tardy");
       expect(result.newPoints).toBe(10);
       expect(result.crossedThresholds.map((t) => t.key)).toEqual([
-        "action_plan",
+        "manager_meeting",
       ]);
     });
 
-    it("clamps at the 16-point cap and flags final review/termination", () => {
+    it("clamps at the 16-point cap and flags the employee for a PIP", () => {
       const result = applyPointEvent(12, "nc_ns_major"); // 12 + 8 = 20, clamped to 16
       expect(result.newPoints).toBe(16);
-      expect(result.isTerminationFlag).toBe(true);
-      expect(result.crossedThresholds.map((t) => t.key)).toContain(
-        "final_review",
-      );
+      expect(result.isPipFlag).toBe(true);
+      expect(result.crossedThresholds.map((t) => t.key)).toContain("pip");
     });
 
-    it("keeps flagging termination on further infractions once already at the cap", () => {
+    it("keeps flagging the PIP on further infractions once already at the cap", () => {
       const result = applyPointEvent(16, "minor_tardy");
       expect(result.newPoints).toBe(16);
-      expect(result.isTerminationFlag).toBe(true);
+      expect(result.isPipFlag).toBe(true);
       // No *new* crossing — already at the cap before this event.
       expect(result.crossedThresholds).toEqual([]);
     });
@@ -109,10 +107,10 @@ describe("policy-engine", () => {
       expect(riskLevelFromPoints(9)).toBe("watch");
       expect(riskLevelFromPoints(10)).toBe("at_risk");
       expect(riskLevelFromPoints(15)).toBe("at_risk");
-      expect(riskLevelFromPoints(16)).toBe("termination_flag");
+      expect(riskLevelFromPoints(16)).toBe("pip_flag");
       // Defensive: a value above the cap (shouldn't normally happen once
       // callers clamp via applyPointEvent) still reads as flagged.
-      expect(riskLevelFromPoints(20)).toBe("termination_flag");
+      expect(riskLevelFromPoints(20)).toBe("pip_flag");
     });
   });
 

@@ -35,15 +35,15 @@ export type RecordPointEventResult = {
   previousPoints: number;
   newPoints: number;
   crossedThresholdKeys: PolicyThresholdKey[];
-  /** True once the employee is at (or clamped to) the 16-point cap. */
-  isTerminationFlag: boolean;
+  /** True once the employee is at (or clamped to) the 16-point cap — on a PIP. */
+  isPipFlag: boolean;
 };
 
 /**
  * Records one infraction: inserts the ledger row, updates the
  * employee's running point total, and opens a `warnings` row for every
- * threshold the event just crossed (2pt verbal warning, 10pt action
- * plan, 16pt final review/termination flag).
+ * threshold the event just crossed (2pt verbal warning, 10pt required
+ * manager meeting, 16pt PIP).
  */
 export async function recordPointEvent(
   input: RecordPointEventInput,
@@ -93,6 +93,6 @@ export async function recordPointEvent(
     previousPoints: result.previousPoints,
     newPoints: result.newPoints,
     crossedThresholdKeys: result.crossedThresholds.map((t) => t.key),
-    isTerminationFlag: result.isTerminationFlag,
+    isPipFlag: result.isPipFlag,
   };
 }

@@ -134,7 +134,7 @@ export const pointRules = pgTable("point_rules", {
  * and docs/points-system-brd.md for the business rules.
  */
 export const policyThresholds = pgTable("policy_thresholds", {
-  key: text("key").primaryKey(), // e.g. "verbal_warning", "action_plan", "final_review"
+  key: text("key").primaryKey(), // e.g. "verbal_warning", "manager_meeting", "pip"
   pointValue: integer("point_value").notNull(),
   label: text("label").notNull(),
   active: boolean("active").notNull().default(true),

@@ -1,7 +1,9 @@
 # Attendance Points System — BRD & Implementation Roadmap
 
-Status: **Phase 1 implemented (2026-09-03)** — the policy engine, schema, and seed data below are live. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, reporting page, CSV export) are still requirements only.
+Status: **Phase 1 implemented (2026-09-03), thresholds clarified (2026-09-06)** — the policy engine, schema, and seed data below are live. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, reporting page, CSV export) are still requirements only.
 This document has two parts: (1) the business requirements as provided, and (2) a phased engineering roadmap grounded in the app's actual current codebase (Next.js 16, Drizzle ORM, Neon Postgres).
+
+**2026-09-06 update:** the 10-point and 16-point thresholds were clarified — 10 points requires a formal **meeting** between the employee and their manager (not just a generic "action plan" flag), and 16 points places the employee on a **Performance Improvement Plan (PIP)**, not a termination/final-review flag. Part 1 §2 and the implementation below reflect this.
 
 ---
 
@@ -27,8 +29,8 @@ This is a **deduction-only model**: points start at 0 and only increase via the 
 | Point Threshold | Triggered Action | Automated System Output |
 |---|---|---|
 | 2 Points | Verbal Warning | Auto-trigger notification to Manager/Supervisor to conduct a verbal conversation. Logged in system. |
-| 10 Points | Attendance Action Plan | Auto-flag employee profile; trigger formal HR/Supervisor action plan workflow. |
-| 16 Points | Cap Met | Flag for final administrative review/termination protocol. |
+| 10 Points | Required Manager Meeting | Auto-flag employee profile; require a formal attendance meeting between the employee and their manager/supervisor. |
+| 16 Points | Performance Improvement Plan (PIP) | Place the employee on a formal PIP and notify HR — a corrective action step, not automatic termination. |
 
 ### 3. Integrations & Data Sources
 
@@ -58,13 +60,14 @@ This is a **deduction-only model**: points start at 0 and only increase via the 
 **KPIs:**
 - Warning counts — total active verbal warnings issued across teams.
 - Warning distribution — warnings per staff member / per manager over the selected time frame.
-- Action plan tracking — count of employees currently on a 10-point action plan.
+- Manager-meeting tracking — count of employees currently required to have the 10-point manager meeting.
+- PIP tracking — count of employees currently on a Performance Improvement Plan (16-point cap).
 - Risk radar — employees approaching the 16-point cap.
 
 ### 6. Data Export
 
 - One-click CSV export for HR and Payroll processing.
-- Export fields: Employee ID, Employee Name, Current Points, Active Warnings Count, Action Plan Status, Last Infraction Date, Anniversary Date.
+- Export fields: Employee ID, Employee Name, Current Points, Active Warnings Count, PIP Status, Last Infraction Date, Anniversary Date.
 
 ---
 
@@ -105,9 +108,10 @@ Locked decisions for this roadmap:
 
 *Goal: make the 16-point escalating model the computational source of truth, independent of any integration.*
 
-**Implemented 2026-09-03.** Delivered as planned below, plus two things worth noting:
+**Implemented 2026-09-03; threshold terminology updated 2026-09-06.** Delivered as planned below, plus notes:
 - `src/db/seed.ts` seeds the real `employees.policyCap` from `POLICY_CAP` (16), not from `people-mock.ts`'s `policyCap` field — that mock field stays at 12 on purpose, since it only feeds the legacy mock-driven pages (`/dashboard`, `/analytics`, `/dashboard/people/[id]`), which are unchanged in this phase (see Phase 6).
-- `src/lib/insights-queries.ts::employeesAtRisk` (the one real DB-backed page, `/insights`) now uses `policy-engine.ts`'s `riskLevelFromPoints` instead of the old `dashboard-mock.ts` `RISK_THRESHOLDS`, and surfaces a "Final review" badge for anyone at the 16-point cap. Migration `drizzle/0001_open_slayback.sql` applied and the database reseeded.
+- `src/lib/insights-queries.ts::employeesAtRisk` (the one real DB-backed page, `/insights`) now uses `policy-engine.ts`'s `riskLevelFromPoints` instead of the old `dashboard-mock.ts` `RISK_THRESHOLDS`, and surfaces an "On PIP" badge for anyone at the 16-point cap. Migration `drizzle/0001_open_slayback.sql` applied and the database reseeded.
+- The `policyThresholds` key at 10 points is `manager_meeting` (was `action_plan`) and at 16 points is `pip` (was `final_review`) — renamed to match the 2026-09-06 clarification; `RiskLevel`'s `"pip_flag"` value (was `"termination_flag"`) and `isPipFlag` (was `isTerminationFlag`) follow the same rename across `policy-engine.ts`, `policy-queries.ts`, and `insights-queries.ts`.
 
 - Migrate `employees.policyCap` default 12 → 16.
 - Add `pointRules.code` (unique text) + `pointRules.points` (integer) + `pointRules.active` (boolean); seed the four escalation codes: `minor_tardy=1`, `moderate_tardy=2`, `severe_late_absence=4`, `nc_ns_major=8`. Skip positive-rule seeding (deduction-only).
@@ -141,7 +145,7 @@ Locked decisions for this roadmap:
 *Goal: automated supervisor SMS at the 2pt/10pt thresholds, plus a manual "contact supervisor" escalation.*
 
 - `src/lib/integrations/sms-client.zoom.ts` — Zoom SMS/Contact Center API client, lazy/soft-fail pattern, env-var configured. Confirm the exact API surface/product tier with Zoom before implementation (their SMS capability lives in Zoom Contact Center, a separate license from core Zoom Meetings).
-- Extend `src/lib/notifications.ts`: on a `verbal_warning` (2pt) or `action_plan` (10pt) crossing, dispatch SMS to the employee's supervisor.
+- Extend `src/lib/notifications.ts`: on a `verbal_warning` (2pt) or `manager_meeting` (10pt) crossing, dispatch SMS to the employee's supervisor.
 - New `src/app/api/escalate/route.ts` + `src/components/escalate-button.tsx` for the in-app manual escalation feature.
 - **Data-sensitivity decision:** `managers.phoneMasked` is masked by design; real SMS dispatch needs an actual unmasked `managers.phone` field, resolved server-side only.
 - New `notificationLog` table for outbound-SMS audit trail — don't reuse `pointEvents.source = 'SMS'`, which currently means *inbound* SMS-reported attendance signals, a different meaning than outbound dispatch logging.
@@ -162,7 +166,7 @@ Locked decisions for this roadmap:
 *Goal: the filters/KPIs from Part 1 §5, DB-backed.*
 
 - New `src/app/reports/page.tsx` — modeled on the DB-backed pattern in `src/app/insights/page.tsx`, not the mock-driven `src/app/analytics/page.tsx`.
-- `src/lib/reports-queries.ts`: `activeWarningCounts`, `warningDistributionByManager`, `actionPlanEmployees`, `riskRadar` (employees ≥12 points, approaching 16) — querying Phase 1's `warnings`/`policyThresholds` tables directly.
+- `src/lib/reports-queries.ts`: `activeWarningCounts`, `warningDistributionByManager`, `pipEmployees`, `riskRadar` (employees ≥12 points, approaching 16) — querying Phase 1's `warnings`/`policyThresholds` tables directly.
 - `src/components/reports-filter-bar.tsx` for filter controls.
 - **Schema gap to resolve here:** `employees` has `team` but no `location`, `department`, or `managerId`. Confirm whether "location"/"department" map to existing `team`/`managers.floor`, or are new fields, and add `employees.managerId` if not already added in Phase 2.
 
@@ -170,7 +174,7 @@ Locked decisions for this roadmap:
 
 *Goal: one-click CSV for HR/Payroll, matching Part 1 §6's field list exactly.*
 
-- `src/app/api/reports/export/route.ts` (GET, streams CSV), reusing `reports-queries.ts` so the export and the UI never disagree on what counts as an "active warning."
+- `src/app/api/reports/export/route.ts` (GET, streams CSV), reusing `reports-queries.ts` so the export and the UI never disagree on what counts as an "active warning" or "on a PIP."
 - `src/lib/csv-export.ts` — plain string-join CSV serialization (no new dependency needed for 7 columns).
 - `src/components/export-csv-button.tsx`.
 - "Last Infraction Date" = `max(pointEvents.date)` filtered to `pointRules.category = 'deduction'`.

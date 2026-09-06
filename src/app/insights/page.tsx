@@ -222,9 +222,9 @@ export default async function InsightsPage({
                           <span className="block truncate font-medium text-ink">
                             {row.name}
                           </span>
-                          {row.isTerminationFlag && (
+                          {row.isPipFlag && (
                             <span className="shrink-0 border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
-                              Final review
+                              On PIP
                             </span>
                           )}
                         </span>
