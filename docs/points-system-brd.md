@@ -1,6 +1,6 @@
 # Attendance Points System — BRD & Implementation Roadmap
 
-Status: **Phase 1 implemented (2026-09-03), thresholds clarified (2026-09-06)** — the policy engine, schema, and seed data below are live. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, reporting page, CSV export) are still requirements only.
+Status: **Phase 1 implemented (2026-09-03), thresholds clarified (2026-09-06), legacy pages unified onto the policy engine (2026-09-06)** — the policy engine, schema, and seed data below are live, and every page in the app (not just `/insights`) now reads from it. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, a dedicated `/reports` page, CSV export) are still requirements only.
 This document has two parts: (1) the business requirements as provided, and (2) a phased engineering roadmap grounded in the app's actual current codebase (Next.js 16, Drizzle ORM, Neon Postgres).
 
 **2026-09-06 update:** the 10-point and 16-point thresholds were clarified — 10 points requires a formal **meeting** between the employee and their manager (not just a generic "action plan" flag), and 16 points places the employee on a **Performance Improvement Plan (PIP)**, not a termination/final-review flag. Part 1 §2 and the implementation below reflect this.
@@ -86,13 +86,18 @@ This wasn't a greenfield feature — the schema already had real infrastructure 
 
 Note: `docs/Attendance-Plan.md` describes an older, unrelated 100-point *subtractive* model (start at 100, subtract for infractions). That document is **superseded** by this BRD for anything points-related — kept for historical context, not deleted, but not current.
 
-**Still not built (unchanged since Phase 1):**
+**2026-09-06: legacy pages unified onto the policy engine.** The gap called out above (mock-driven pages on an old, separate 12-point model) is now closed for the *risk-level plumbing*:
+- `src/lib/dashboard-mock.ts` deleted its own `RISK_THRESHOLDS`/`riskLevelFromPoints`/`RiskLevel` and re-exports the real ones from `policy-engine.ts` — one source of truth for `/dashboard`, `/analytics`, `/settings`, and `/dashboard/people/[id]`.
+- `src/lib/people-mock.ts`'s demo data was retuned to the 16-point cap and the real 1/2/4/8 escalation deltas — Marcus Hale (16 pts) now demonstrates "On PIP" and Priya Nandakumar (12 pts) demonstrates "Required Manager Meeting" outside `/insights` too.
+- `src/app/settings/page.tsx` now renders `ESCALATION_RULES`/`POLICY_THRESHOLDS` directly from `policy-engine.ts`; the old separate "positive points" + "deduction" catalog (`settings-mock.ts`) was retired, and `src/db/seed.ts` no longer seeds those legacy display-only `point_rules` rows.
+- `RiskLevel` widened from 3 values to 4 (`pip_flag` added) everywhere it's consumed: `RISK_LABELS`, `summarizeRoster`/`interventionTargets`, `priority-roster.tsx`'s risk dots, `alerts-mock.ts`'s severity mapping (PIP maps to `critical`, same as at-risk, since `alertSeverityEnum` only has two values), and the person-profile page's risk badge/progress bar.
+
+**Still not built:**
 - Zoho Shifts ingestion — no Zoho code/SDK anywhere in the repo.
 - Zoom SMS dispatch — no SMS/Zoom code anywhere; `notification-bell.tsx` and the `automationToggles` settings are in-app UI stubs only, with no backend dispatch.
 - The anniversary reset job — no scheduler exists in this app (no cron config).
-- The managerial reporting page's specific filters/KPIs — `src/app/analytics/page.tsx` exists but is mock-data-driven and doesn't match this BRD's filter/KPI set.
+- A dedicated managerial reporting page with the BRD's specific filters/KPIs and `warnings`-table-backed counts — `src/app/analytics/page.tsx` now shares the same risk levels as everything else, but doesn't yet have the filter/KPI set from Part 1 §5. See Phase 6.
 - CSV export — no CSV code anywhere in the repo.
-- The legacy mock-driven pages (`/dashboard`, `/analytics`, `/dashboard/people/[id]`) still run on `people-mock.ts`'s old 12-point model, untouched by Phase 1 — see Phase 6.
 
 ---
 

@@ -34,6 +34,11 @@ export default async function DashboardPage() {
 
   const metrics = [
     {
+      label: "On PIP",
+      value: summary.pip,
+      tone: "text-danger-soft",
+    },
+    {
       label: "At risk",
       value: summary.atRisk,
       tone: "text-danger-soft",
@@ -98,7 +103,7 @@ export default async function DashboardPage() {
         </div>
 
         <div
-          className="animate-fade-up-delay-1 mt-8 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4"
+          className="animate-fade-up-delay-1 mt-8 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-5"
           role="group"
           aria-label="Shift risk summary"
         >

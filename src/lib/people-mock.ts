@@ -76,7 +76,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-1042",
     hireDate: "2024-03-12",
     phoneMasked: "••• ••• 4182",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "late", "22 min late"),
@@ -86,19 +86,23 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       day("Off", "off"),
       day("Off", "off"),
     ]),
+    // Retuned for the 16-point escalation schedule (1/2/4/8, see
+    // src/lib/policy-engine.ts) — sums to 16, the policy cap, so Marcus
+    // demonstrates the "On PIP" state on the legacy dashboard/profile
+    // pages, same as the seeded /insights data.
     pointLedger: [
       {
         id: "p01a",
         date: "2026-07-31",
-        delta: 4,
+        delta: 8,
         reason: "No-call no-show — shift start",
         source: "SMS",
       },
       {
         id: "p01b",
         date: "2026-07-28",
-        delta: 2,
-        reason: "Late arrival — 22 min",
+        delta: 4,
+        reason: "Late arrival — 35 min",
         source: "SMS",
       },
       {
@@ -111,7 +115,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       {
         id: "p01d",
         date: "2026-07-14",
-        delta: 1,
+        delta: 2,
         reason: "Early departure — unapproved",
         source: "Supervisor",
       },
@@ -121,7 +125,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0871",
     hireDate: "2023-08-01",
     phoneMasked: "••• ••• 9021",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -131,11 +135,13 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       day("Off", "off"),
       day("Off", "off"),
     ]),
+    // Retuned to sum to 12 (the "Required Manager Meeting" band, 10-15)
+    // so Priya demonstrates that state on the legacy pages.
     pointLedger: [
       {
         id: "p02a",
         date: "2026-07-31",
-        delta: 3,
+        delta: 4,
         reason: "Running late 45 min — traffic",
         source: "SMS",
       },
@@ -156,9 +162,9 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       {
         id: "p02d",
         date: "2026-07-09",
-        delta: 1,
-        reason: "Late arrival — 8 min",
-        source: "Policy",
+        delta: 4,
+        reason: "Late arrival — 35 min",
+        source: "SMS",
       },
     ],
   },
@@ -166,7 +172,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-1190",
     hireDate: "2025-01-20",
     phoneMasked: "••• ••• 3340",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("14:00–22:30", "worked"),
       day("14:00–22:30", "worked"),
@@ -204,7 +210,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0664",
     hireDate: "2022-11-08",
     phoneMasked: "••• ••• 7712",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -242,7 +248,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-1311",
     hireDate: "2024-09-15",
     phoneMasked: "••• ••• 5508",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "late", "20 min"),
@@ -273,7 +279,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0448",
     hireDate: "2021-06-01",
     phoneMasked: "••• ••• 2290",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -304,7 +310,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-1520",
     hireDate: "2025-04-02",
     phoneMasked: "••• ••• 8814",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -328,7 +334,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0332",
     hireDate: "2020-02-18",
     phoneMasked: "••• ••• 6103",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -352,7 +358,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0988",
     hireDate: "2023-12-04",
     phoneMasked: "••• ••• 1477",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("14:00–22:30", "worked"),
       day("14:00–22:30", "worked"),
@@ -376,7 +382,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-0775",
     hireDate: "2024-07-22",
     phoneMasked: "••• ••• 3906",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -392,7 +398,7 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
     employeeCode: "AP-1604",
     hireDate: "2025-06-10",
     phoneMasked: "••• ••• 2045",
-    policyCap: 12,
+    policyCap: 16,
     schedule: weekSchedule([
       day("06:00–14:30", "worked"),
       day("06:00–14:30", "worked"),
@@ -429,6 +435,7 @@ export function pointsTowardCap(person: PersonProfile): number {
 
 export function riskProgressLabel(person: PersonProfile): string {
   const level = riskLevelFromPoints(person.points);
+  if (level === "pip_flag") return "On a Performance Improvement Plan";
   if (level === "at_risk") return "At risk vs policy";
   if (level === "watch") return "Watch band";
   return "Within clear band";
@@ -479,7 +486,10 @@ export function teamRiskBreakdown(roster: RosterEmployee[]): TeamRiskRow[] {
     };
     current.openPoints += row.points;
     const level = riskLevelFromPoints(row.points);
-    if (level === "at_risk") current.atRisk += 1;
+    // Fold "pip_flag" (the most severe band) into the "at risk" tally —
+    // this legacy 3-column breakdown hasn't been redesigned with a
+    // dedicated PIP column yet (see docs/points-system-brd.md Phase 6).
+    if (level === "pip_flag" || level === "at_risk") current.atRisk += 1;
     else if (level === "watch") current.watch += 1;
     else current.clear += 1;
     map.set(row.team, current);
@@ -512,9 +522,10 @@ export function analyticsSummary(roster: RosterEmployee[]) {
   const openPoints = roster.reduce((sum, row) => sum + row.points, 0);
   const weekPoints = ANALYTICS_TREND.reduce((sum, d) => sum + d.points, 0);
   const weekSignals = ANALYTICS_TREND.reduce((sum, d) => sum + d.signals, 0);
-  const atRisk = roster.filter(
-    (r) => riskLevelFromPoints(r.points) === "at_risk",
-  ).length;
+  const atRisk = roster.filter((r) => {
+    const level = riskLevelFromPoints(r.points);
+    return level === "pip_flag" || level === "at_risk";
+  }).length;
   return {
     openPoints,
     weekPoints,

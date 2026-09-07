@@ -20,7 +20,7 @@ describe("people-mock", () => {
     const person = getPersonById("e01");
     expect(person).not.toBeNull();
     expect(person?.name).toBe("Marcus Hale");
-    expect(person?.policyCap).toBe(12);
+    expect(person?.policyCap).toBe(16);
   });
 
   it("returns a profile for every roster member", () => {

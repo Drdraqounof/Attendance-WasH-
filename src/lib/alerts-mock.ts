@@ -15,7 +15,12 @@ export type AttendanceAlert = {
   severity: AlertSeverity;
 };
 
+// alertSeverityEnum in the DB schema only has critical/warning, so a PIP
+// (the most severe band) maps to the same "critical" severity as at_risk
+// for now — this alert feed doesn't yet distinguish PIP-level from
+// at-risk-level the way policy-engine.ts's riskLevelFromPoints does.
 const SEVERITY_BY_RISK: Record<RiskLevel, AlertSeverity | null> = {
+  pip_flag: "critical",
   at_risk: "critical",
   watch: "warning",
   clear: null,

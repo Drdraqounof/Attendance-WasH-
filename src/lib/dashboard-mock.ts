@@ -1,4 +1,8 @@
-export type RiskLevel = "at_risk" | "watch" | "clear";
+// Risk banding is the same 16-point policy engine used by /insights —
+// see src/lib/policy-engine.ts. Re-exported here so existing imports of
+// `RiskLevel`/`riskLevelFromPoints` from this file keep working.
+export { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
+import { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
 
 export type RosterEmployee = {
   id: string;
@@ -11,18 +15,8 @@ export type RosterEmployee = {
   suggestedAction: string;
 };
 
-export const RISK_THRESHOLDS = {
-  atRisk: 6,
-  watch: 3,
-} as const;
-
-export function riskLevelFromPoints(points: number): RiskLevel {
-  if (points >= RISK_THRESHOLDS.atRisk) return "at_risk";
-  if (points >= RISK_THRESHOLDS.watch) return "watch";
-  return "clear";
-}
-
 export const RISK_LABELS: Record<RiskLevel, string> = {
+  pip_flag: "On PIP",
   at_risk: "At risk",
   watch: "Watch",
   clear: "Clear",
@@ -35,20 +29,20 @@ export const DEMO_ROSTER: RosterEmployee[] = [
     name: "Marcus Hale",
     role: "Picker",
     team: "Dock A",
-    points: 9,
+    points: 16,
     lastSignal: "No-call no-show — shift start",
     lastSignalAgo: "12 min ago",
-    suggestedAction: "Confirm no-call no-show",
+    suggestedAction: "At policy cap — place on formal PIP",
   },
   {
     id: "e02",
     name: "Priya Nandakumar",
     role: "Team lead",
     team: "Pack line",
-    points: 8,
+    points: 12,
     lastSignal: "Running late 45 min — traffic",
     lastSignalAgo: "28 min ago",
-    suggestedAction: "Call before 2nd break",
+    suggestedAction: "Schedule required manager meeting",
   },
   {
     id: "e03",
@@ -149,6 +143,7 @@ export const DEMO_SHIFT_META = {
 } as const;
 
 export type RosterSummary = {
+  pip: number;
   atRisk: number;
   watch: number;
   clear: number;
@@ -156,6 +151,7 @@ export type RosterSummary = {
 };
 
 export function summarizeRoster(roster: RosterEmployee[]): RosterSummary {
+  let pip = 0;
   let atRisk = 0;
   let watch = 0;
   let clear = 0;
@@ -164,19 +160,25 @@ export function summarizeRoster(roster: RosterEmployee[]): RosterSummary {
   for (const row of roster) {
     openPointsToday += row.points;
     const level = riskLevelFromPoints(row.points);
-    if (level === "at_risk") atRisk += 1;
+    if (level === "pip_flag") pip += 1;
+    else if (level === "at_risk") atRisk += 1;
     else if (level === "watch") watch += 1;
     else clear += 1;
   }
 
-  return { atRisk, watch, clear, openPointsToday };
+  return { pip, atRisk, watch, clear, openPointsToday };
 }
 
+/** Worst-first: employees on a PIP surface before those merely at risk. */
 export function interventionTargets(
   roster: RosterEmployee[],
   limit = 3,
 ): RosterEmployee[] {
   return roster
-    .filter((row) => riskLevelFromPoints(row.points) === "at_risk")
+    .filter((row) => {
+      const level = riskLevelFromPoints(row.points);
+      return level === "pip_flag" || level === "at_risk";
+    })
+    .sort((a, b) => b.points - a.points)
     .slice(0, limit);
 }

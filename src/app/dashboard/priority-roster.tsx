@@ -9,6 +9,8 @@ import Link from "next/link";
 
 function riskTone(level: RiskLevel): string {
   switch (level) {
+    case "pip_flag":
+      return "text-danger-soft";
     case "at_risk":
       return "text-danger-soft";
     case "watch":
@@ -20,6 +22,8 @@ function riskTone(level: RiskLevel): string {
 
 function riskMark(level: RiskLevel): string {
   switch (level) {
+    case "pip_flag":
+      return "bg-danger-soft";
     case "at_risk":
       return "bg-danger-soft";
     case "watch":
