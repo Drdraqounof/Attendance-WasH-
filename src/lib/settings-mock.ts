@@ -1,34 +1,15 @@
 /**
- * Static settings/automation reference data (demo). Mirrors the point rule
- * tables and automation toggles described in the attendance plan. Nothing
- * here is wired to a backend — the automation toggles are stored per-browser
+ * Static settings/automation reference data (demo). Mirrors the
+ * automation toggles described in the attendance plan. Nothing here is
+ * wired to a backend — the automation toggles are stored per-browser
  * via localStorage in the settings page's client component.
+ *
+ * The point-rule catalog that used to live here (a separate
+ * "positive points" + "deduction" model) has been retired — the
+ * Settings page now renders the real 16-point escalation schedule and
+ * automated thresholds directly from src/lib/policy-engine.ts, the
+ * same source of truth /insights uses. See docs/points-system-brd.md.
  */
-
-export type PointRule = {
-  label: string;
-  value: string;
-};
-
-export const POSITIVE_POINT_RULES: PointRule[] = [
-  { label: "Arrives on time", value: "+2" },
-  { label: "Perfect attendance — weekly", value: "+10" },
-  { label: "Perfect attendance — monthly", value: "+25" },
-  { label: "Covers another employee's shift", value: "+5" },
-  { label: "Picks up an additional shift", value: "+5" },
-  { label: "Early notification (24+ hours)", value: "+3" },
-  { label: "Excellent attendance for 90 days", value: "+20" },
-];
-
-export const DEDUCTION_RULES: PointRule[] = [
-  { label: "Late 1–10 minutes", value: "−2" },
-  { label: "Late 11–30 minutes", value: "−5" },
-  { label: "Late 30+ minutes", value: "−10" },
-  { label: "Leaving early without approval", value: "−10" },
-  { label: "Missed shift without notice", value: "−15" },
-  { label: "No call / no show", value: "−20" },
-  { label: "Repeated attendance problems", value: "Additional review" },
-];
 
 /** localStorage key the settings page writes toggle state to (read by
  * the profile page's read-only catalog too, so both stay in sync). */

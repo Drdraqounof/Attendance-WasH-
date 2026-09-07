@@ -106,13 +106,18 @@ export default async function PersonDetailPage({ params }: PageProps) {
                   Risk
                 </p>
                 <p
-                  className={`mt-1 font-medium ${
+                  className={`mt-1 flex items-center gap-2 font-medium ${
                     level === "clear"
                       ? "text-accent-deep"
                       : "text-danger-soft"
                   }`}
                 >
                   {RISK_LABELS[level]}
+                  {level === "pip_flag" && (
+                    <span className="border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
+                      PIP
+                    </span>
+                  )}
                 </p>
               </div>
               <div>
@@ -166,7 +171,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
             >
               <div
                 className={`h-full transition-[width] duration-500 ${
-                  level === "at_risk"
+                  level === "pip_flag" || level === "at_risk"
                     ? "bg-danger-soft"
                     : level === "watch"
                       ? "bg-danger-soft/70"

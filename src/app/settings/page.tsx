@@ -2,43 +2,28 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
-import { RISK_THRESHOLDS } from "@/lib/dashboard-mock";
-import {
-  DEDUCTION_RULES,
-  POSITIVE_POINT_RULES,
-  type PointRule,
-} from "@/lib/settings-mock";
+import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
 import { AutomationToggles } from "./automation-toggles";
 
 export const metadata: Metadata = {
   title: "Settings & automation",
 };
 
-function RuleTable({
-  title,
-  rules,
-  toneClass,
-}: {
-  title: string;
-  rules: PointRule[];
-  toneClass: string;
-}) {
+function EscalationTable() {
   return (
     <section>
       <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-        {title}
+        Attendance escalation schedule
       </h2>
       <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
-        {rules.map((rule) => (
+        {ESCALATION_RULES.map((rule) => (
           <li
-            key={rule.label}
+            key={rule.code}
             className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"
           >
             <span className="text-sm text-slate/80">{rule.label}</span>
-            <span
-              className={`font-display shrink-0 text-sm font-semibold tabular-nums ${toneClass}`}
-            >
-              {rule.value}
+            <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-danger-soft">
+              +{rule.points}
             </span>
           </li>
         ))}
@@ -89,7 +74,7 @@ export default async function SettingsPage() {
           <AutomationToggles />
         </section>
 
-        {/* Risk thresholds */}
+        {/* Automated policy thresholds */}
         <section
           className="animate-fade-up-delay-2 mt-10"
           aria-labelledby="thresholds-heading"
@@ -98,52 +83,34 @@ export default async function SettingsPage() {
             id="thresholds-heading"
             className="font-display text-lg font-semibold tracking-tight text-ink"
           >
-            Risk thresholds
+            Automated policy thresholds
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
-            <div className="bg-white/80 px-5 py-4">
-              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-                Clear
-              </p>
-              <p className="font-display mt-1 text-xl font-bold text-ink">
-                0 – {RISK_THRESHOLDS.watch - 1} pts
-              </p>
-            </div>
-            <div className="bg-white/80 px-5 py-4">
-              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-                Watch
-              </p>
-              <p className="font-display mt-1 text-xl font-bold text-ink">
-                {RISK_THRESHOLDS.watch} – {RISK_THRESHOLDS.atRisk - 1} pts
-              </p>
-            </div>
-            <div className="bg-white/80 px-5 py-4">
-              <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-                At risk
-              </p>
-              <p className="font-display mt-1 text-xl font-bold text-ink">
-                {RISK_THRESHOLDS.atRisk}+ pts
-              </p>
-            </div>
+            {POLICY_THRESHOLDS.map((threshold) => (
+              <div key={threshold.key} className="bg-white/80 px-5 py-4">
+                <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
+                  {threshold.label}
+                </p>
+                <p className="font-display mt-1 text-xl font-bold text-ink">
+                  {threshold.pointValue} pts
+                </p>
+                <p className="mt-1 text-sm text-slate/65">
+                  {threshold.action}
+                </p>
+              </div>
+            ))}
           </div>
           <p className="mt-3 text-sm text-slate/65">
-            These bands drive the dashboard, analytics, and alert severity
-            across the app.
+            0 points is perfect attendance — every employee starts there and
+            only accrues points through the escalation schedule below.
+            Crossing a threshold above drives the dashboard, analytics, and
+            alert severity across the app.
           </p>
         </section>
 
-        {/* Point rule tables */}
-        <div className="animate-fade-up-delay-3 mt-10 grid gap-8 lg:grid-cols-2">
-          <RuleTable
-            title="Positive attendance points"
-            rules={POSITIVE_POINT_RULES}
-            toneClass="text-accent-deep"
-          />
-          <RuleTable
-            title="Attendance deductions"
-            rules={DEDUCTION_RULES}
-            toneClass="text-danger-soft"
-          />
+        {/* Escalation schedule */}
+        <div className="animate-fade-up-delay-3 mt-10">
+          <EscalationTable />
         </div>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">

@@ -18,13 +18,15 @@ describe("alerts-mock", () => {
     }
   });
 
-  it("marks at-risk employees critical and watch employees as warning", () => {
+  it("marks pip/at-risk employees critical and watch employees as warning", () => {
     const alerts = generateAttendanceAlerts();
     const people = getAllPeople();
     for (const alert of alerts) {
       const person = people.find((p) => p.id === alert.personId)!;
       const level = riskLevelFromPoints(person.points);
-      expect(alert.severity).toBe(level === "at_risk" ? "critical" : "warning");
+      const expectedSeverity =
+        level === "pip_flag" || level === "at_risk" ? "critical" : "warning";
+      expect(alert.severity).toBe(expectedSeverity);
     }
   });
 

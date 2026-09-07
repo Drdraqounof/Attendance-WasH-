@@ -7,16 +7,19 @@ import {
   managers,
   pointEvents,
   pointRules,
+  policyThresholds,
   scheduleDays,
+  warnings,
 } from "@/db/schema";
 import { generateAttendanceAlerts } from "@/lib/alerts-mock";
 import { DEMO_MANAGER } from "@/lib/manager-mock";
 import { getAllPeople } from "@/lib/people-mock";
 import {
-  AUTOMATION_TOGGLES,
-  DEDUCTION_RULES,
-  POSITIVE_POINT_RULES,
-} from "@/lib/settings-mock";
+  ESCALATION_RULES,
+  POLICY_CAP,
+  POLICY_THRESHOLDS,
+} from "@/lib/policy-engine";
+import { AUTOMATION_TOGGLES } from "@/lib/settings-mock";
 
 /**
  * Seeds Neon Postgres with data equivalent to the mock files, so the
@@ -33,11 +36,13 @@ async function seed() {
 
   // Delete in FK-safe order.
   await db.delete(attendanceAlerts);
+  await db.delete(warnings);
   await db.delete(pointEvents);
   await db.delete(scheduleDays);
   await db.delete(employees);
   await db.delete(managers);
   await db.delete(pointRules);
+  await db.delete(policyThresholds);
   await db.delete(automationToggles);
 
   // Manager.
@@ -63,7 +68,11 @@ async function seed() {
       team: person.team,
       hireDate: person.hireDate,
       phoneMasked: person.phoneMasked,
-      policyCap: person.policyCap,
+      // The real Neon `employees` table follows the policy engine's
+      // POLICY_CAP constant directly (currently 16, same value
+      // people-mock.ts's `policyCap` field also uses) rather than
+      // trusting the mock field to stay in sync.
+      policyCap: POLICY_CAP,
       points: person.points,
       lastSignal: person.lastSignal,
       lastSignalAgo: person.lastSignalAgo,
@@ -102,23 +111,31 @@ async function seed() {
   }
   console.log(`  ✓ ${pointEventRows.length} point events`);
 
-  // Point rules (positive + deduction).
-  const ruleRows = [
-    ...POSITIVE_POINT_RULES.map((rule, i) => ({
-      category: "positive" as const,
-      label: rule.label,
-      value: rule.value,
-      sortOrder: i,
+  // Point rules — the real 16-point escalation schedule (has
+  // `code`/`points`, consumed by src/lib/policy-engine.ts via
+  // src/lib/policy-queries.ts). The old separate "positive points"
+  // catalog was retired — the point model is deduction-only.
+  const escalationRuleRows = ESCALATION_RULES.map((rule, i) => ({
+    category: "deduction" as const,
+    label: rule.label,
+    value: `+${rule.points}`,
+    sortOrder: i,
+    code: rule.code,
+    points: rule.points,
+  }));
+  await db.insert(pointRules).values(escalationRuleRows);
+  console.log(`  ✓ ${escalationRuleRows.length} point rules`);
+
+  // Policy thresholds (2pt verbal warning / 10pt required manager
+  // meeting / 16pt PIP).
+  await db.insert(policyThresholds).values(
+    POLICY_THRESHOLDS.map((threshold) => ({
+      key: threshold.key,
+      pointValue: threshold.pointValue,
+      label: threshold.label,
     })),
-    ...DEDUCTION_RULES.map((rule, i) => ({
-      category: "deduction" as const,
-      label: rule.label,
-      value: rule.value,
-      sortOrder: i,
-    })),
-  ];
-  await db.insert(pointRules).values(ruleRows);
-  console.log(`  ✓ ${ruleRows.length} point rules`);
+  );
+  console.log(`  ✓ ${POLICY_THRESHOLDS.length} policy thresholds`);
 
   // Automation toggles.
   await db.insert(automationToggles).values(

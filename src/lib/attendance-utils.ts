@@ -6,7 +6,7 @@ export type AttendanceStatus =
 
 export function attendanceScoreFromPoints(
   points: number,
-  policyCap = 12,
+  policyCap = 16,
 ): number {
   if (policyCap <= 0) return 0;
   const raw = 100 - Math.round((points / policyCap) * 100);
@@ -22,7 +22,7 @@ export function attendanceStatusFromScore(score: number): AttendanceStatus {
 
 export function attendanceStatusFromPoints(
   points: number,
-  policyCap = 12,
+  policyCap = 16,
 ): AttendanceStatus {
   return attendanceStatusFromScore(attendanceScoreFromPoints(points, policyCap));
 }
