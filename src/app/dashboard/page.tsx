@@ -7,6 +7,8 @@ import { hasDemoSession } from "@/lib/auth-mock";
 import {
   DEMO_SHIFT_META,
   interventionTargets,
+  RISK_LABELS,
+  riskLevelFromPoints,
   summarizeRoster,
 } from "@/lib/dashboard-mock";
 import { employeeOfTheMonth } from "@/lib/people-mock";
@@ -166,7 +168,10 @@ export default async function DashboardPage() {
                 {nominee.reason}
               </p>
               <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
-                {nominee.score}/100
+                {nominee.person.points} pts
+                <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                  · {RISK_LABELS[riskLevelFromPoints(nominee.person.points)]}
+                </span>
               </p>
             </div>
           ) : (

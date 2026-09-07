@@ -16,6 +16,12 @@ import {
   SCHEDULE_STATUS_LABELS,
   type ScheduleStatus,
 } from "@/lib/people-mock";
+import {
+  getEmployeeHistory,
+  getEmployeePolicySnapshot,
+  type HistoryEntry,
+} from "@/lib/policy-queries";
+import { ClearPipButton } from "./clear-pip-button";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -29,6 +35,23 @@ export async function generateMetadata({
   return {
     title: person ? person.name : "Person",
   };
+}
+
+const WARNING_STATUS_LABELS = {
+  open: "Open",
+  acknowledged: "Acknowledged",
+  resolved: "Resolved",
+} as const;
+
+function warningStatusTone(status: "open" | "acknowledged" | "resolved"): string {
+  switch (status) {
+    case "open":
+      return "border-danger-soft/40 bg-danger-soft/10 text-danger-soft";
+    case "acknowledged":
+      return "border-accent/40 bg-accent/10 text-accent-deep";
+    case "resolved":
+      return "border-line bg-surface-2 text-slate/65";
+  }
 }
 
 function statusTone(status: ScheduleStatus): string {
@@ -65,6 +88,22 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const trend = incidentSummary(person, 30);
   const narrative = attendanceTrendNarrative(person, 30);
   const isNominee = employeeOfTheMonth()?.person.id === person.id;
+
+  // Track record + status-change action read/write the real Neon DB
+  // (see docs/employee-track-record-plan.md) — everything else on this
+  // page above is still mock-driven. Degrade gracefully rather than
+  // crash the whole profile page if the DB is unreachable.
+  let history: HistoryEntry[] = [];
+  let dbSnapshot: Awaited<ReturnType<typeof getEmployeePolicySnapshot>> = null;
+  let historyError: string | null = null;
+  try {
+    [history, dbSnapshot] = await Promise.all([
+      getEmployeeHistory(person.id),
+      getEmployeePolicySnapshot(person.id),
+    ]);
+  } catch {
+    historyError = "Live track record is unavailable right now.";
+  }
 
   return (
     <OpsShell active="people" crumb={person.name}>
@@ -159,6 +198,9 @@ export default async function PersonDetailPage({ params }: PageProps) {
               </p>
               <p className="font-display text-sm font-semibold tabular-nums text-ink">
                 {towardCap} / {person.policyCap}
+                <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                  · {RISK_LABELS[level]}
+                </span>
               </p>
             </div>
             <div
@@ -319,6 +361,110 @@ export default async function PersonDetailPage({ params }: PageProps) {
             )}
           </section>
         </div>
+
+        {/* Track record — real DB history + status-change action */}
+        <section
+          className="animate-fade-up-delay-3 mt-8 border border-line bg-white/65 px-5 py-5 sm:px-6"
+          aria-labelledby="track-record-heading"
+        >
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+            <h2
+              id="track-record-heading"
+              className="font-display text-lg font-semibold tracking-tight text-ink"
+            >
+              Track record
+            </h2>
+            <p className="text-sm tracking-wide text-slate/55 uppercase">
+              Live data
+            </p>
+          </div>
+
+          {historyError ? (
+            <div className="border border-line bg-white/60 px-5 py-6 text-sm text-slate/65">
+              {historyError}
+            </div>
+          ) : (
+            <>
+              {dbSnapshot ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-line bg-surface-2/60 px-4 py-3">
+                  <p className="text-sm text-slate/70">
+                    Current standing:{" "}
+                    <span className="font-display font-semibold text-ink">
+                      {dbSnapshot.points} / {dbSnapshot.policyCap} pts
+                    </span>{" "}
+                    · {RISK_LABELS[dbSnapshot.riskLevel]}
+                  </p>
+                  {dbSnapshot.riskLevel === "pip_flag" && (
+                    <ClearPipButton employeeId={person.id} />
+                  )}
+                </div>
+              ) : null}
+
+              {history.length === 0 ? (
+                <div className="border border-line bg-white/60 px-5 py-8 text-sm text-slate/65">
+                  No history recorded yet.
+                </div>
+              ) : (
+                <ul className="divide-y divide-line/70 border border-line bg-white/65">
+                  {history.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
+                    >
+                      {entry.kind === "point_event" ? (
+                        <>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-ink">
+                              {entry.reason}
+                            </p>
+                            <p className="mt-0.5 text-sm text-slate/55">
+                              {entry.date}
+                              <span className="text-slate/35"> · </span>
+                              {entry.source}
+                            </p>
+                          </div>
+                          <p
+                            className={`font-display shrink-0 text-sm font-semibold tabular-nums ${
+                              entry.delta < 0
+                                ? "text-accent-deep"
+                                : "text-danger-soft"
+                            }`}
+                          >
+                            {entry.delta > 0 ? "+" : ""}
+                            {entry.delta}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-ink">
+                              Crossed threshold: {entry.label}
+                            </p>
+                            <p className="mt-0.5 text-sm text-slate/55">
+                              {entry.date}
+                              <span className="text-slate/35"> · </span>
+                              {entry.pointsAtTrigger} pts at trigger
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase ${warningStatusTone(entry.status)}`}
+                          >
+                            {WARNING_STATUS_LABELS[entry.status]}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+          <p className="mt-3 text-sm text-slate/65">
+            Sourced from the live database — may differ from the demo
+            points ledger above until the rest of this page is migrated
+            off mock data.
+          </p>
+        </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
           Demo data · SMS intake not connected

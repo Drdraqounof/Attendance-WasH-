@@ -3,7 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
-import { DEMO_ROSTER, summarizeRoster } from "@/lib/dashboard-mock";
+import {
+  DEMO_ROSTER,
+  RISK_LABELS,
+  riskLevelFromPoints,
+  summarizeRoster,
+} from "@/lib/dashboard-mock";
 import {
   ANALYTICS_TREND,
   analyticsSummary,
@@ -394,7 +399,10 @@ export default async function AnalyticsPage() {
                     </p>
                   </div>
                   <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
-                    {nominee.score}/100
+                    {nominee.person.points} pts
+                    <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                      · {RISK_LABELS[riskLevelFromPoints(nominee.person.points)]}
+                    </span>
                   </p>
                 </Link>
               </li>

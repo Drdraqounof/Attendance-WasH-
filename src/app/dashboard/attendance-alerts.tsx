@@ -3,6 +3,7 @@ import {
   ALERT_SEVERITY_LABELS,
   type AttendanceAlert,
 } from "@/lib/alerts-mock";
+import { RISK_LABELS } from "@/lib/dashboard-mock";
 
 function severityTone(severity: AttendanceAlert["severity"]): string {
   return severity === "critical" ? "text-danger-soft" : "text-danger-soft/80";
@@ -68,7 +69,10 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
               </div>
               <div className="shrink-0 text-right">
                 <p className="font-display text-sm font-semibold tabular-nums text-ink">
-                  {alert.attendanceScore}/100
+                  {alert.points} pts
+                  <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                    · {RISK_LABELS[alert.riskLevel]}
+                  </span>
                 </p>
                 <p className="text-sm font-medium text-accent-deep">
                   {alert.recommendedAction}

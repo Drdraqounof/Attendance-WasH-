@@ -10,6 +10,15 @@ export type AttendanceAlert = {
   employee: string;
   issue: string;
   detail: string;
+  /** Raw open points (16-point policy) — the display field on the dashboard. */
+  points: number;
+  riskLevel: RiskLevel;
+  /**
+   * Legacy 0-100 derived score. No longer shown in the UI (see
+   * docs/employee-track-record-plan.md) — kept only because
+   * src/db/seed.ts persists it into the attendance_alerts snapshot
+   * table's `attendance_score` column.
+   */
   attendanceScore: number;
   recommendedAction: string;
   severity: AlertSeverity;
@@ -41,7 +50,8 @@ export function generateAttendanceAlerts(
 ): AttendanceAlert[] {
   return people
     .map((person): AttendanceAlert | null => {
-      const severity = SEVERITY_BY_RISK[riskLevelFromPoints(person.points)];
+      const riskLevel = riskLevelFromPoints(person.points);
+      const severity = SEVERITY_BY_RISK[riskLevel];
       if (!severity) return null;
       return {
         id: `alert-${person.id}`,
@@ -49,6 +59,8 @@ export function generateAttendanceAlerts(
         employee: person.name,
         issue: person.lastSignal,
         detail: person.lastSignalAgo,
+        points: person.points,
+        riskLevel,
         attendanceScore: attendanceScoreFromPoints(
           person.points,
           person.policyCap,
