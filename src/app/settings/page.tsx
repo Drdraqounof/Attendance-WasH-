@@ -3,22 +3,28 @@ import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
 import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
-import { getPolicyThresholds } from "@/lib/policy-queries";
+import { getEscalationRules, getPolicyThresholds } from "@/lib/policy-queries";
 import { AutomationToggles } from "./automation-toggles";
+import { EscalationEditor } from "./escalation-editor";
 import { ThresholdEditor } from "./threshold-editor";
 
 export const metadata: Metadata = {
   title: "Settings & automation",
 };
 
-function EscalationTable() {
+function StaticEscalationTable({ rules }: { rules: typeof ESCALATION_RULES }) {
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-        Attendance escalation schedule
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
+          Attendance escalation schedule
+        </h2>
+        <p className="text-sm tracking-wide text-danger-soft uppercase">
+          Read-only — live rules unavailable
+        </p>
+      </div>
       <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
-        {ESCALATION_RULES.map((rule) => (
+        {rules.map((rule) => (
           <li
             key={rule.code}
             className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"
@@ -50,6 +56,14 @@ export default async function SettingsPage() {
     thresholds = await getPolicyThresholds();
   } catch {
     thresholdsEditable = false;
+  }
+
+  let escalationRules = ESCALATION_RULES;
+  let escalationEditable = true;
+  try {
+    escalationRules = await getEscalationRules();
+  } catch {
+    escalationEditable = false;
   }
 
   return (
@@ -139,7 +153,11 @@ export default async function SettingsPage() {
 
         {/* Escalation schedule */}
         <div className="animate-fade-up-delay-3 mt-10">
-          <EscalationTable />
+          {escalationEditable ? (
+            <EscalationEditor initialRules={escalationRules} />
+          ) : (
+            <StaticEscalationTable rules={escalationRules} />
+          )}
         </div>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">

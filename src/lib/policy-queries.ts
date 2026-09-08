@@ -1,21 +1,32 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   employees,
   policyThresholds,
   pointEvents,
+  pointRules,
   warnings,
 } from "@/db/schema";
 import {
   applyPointEvent,
+  ESCALATION_RULES,
   POLICY_CAP,
   POLICY_THRESHOLDS,
   riskLevelFromPoints,
+  type EscalationRule,
   type EscalationRuleCode,
   type PolicyThreshold,
   type PolicyThresholdKey,
   type RiskLevel,
 } from "@/lib/policy-engine";
+
+/** All four escalation codes — mirrors policy-engine.ts's EscalationRuleCode union. */
+const ESCALATION_RULE_CODES: EscalationRuleCode[] = [
+  "minor_tardy",
+  "moderate_tardy",
+  "severe_late_absence",
+  "nc_ns_major",
+];
 
 /**
  * All three thresholds are editable from Settings. Editing "pip" also
@@ -150,22 +161,92 @@ export async function updatePolicyThreshold(
 }
 
 /**
+ * Reads the current (possibly admin-edited) escalation schedule from
+ * the `point_rules` table (the four rows with a `code`), ordered by
+ * point value. Falls back to the static ESCALATION_RULES if the table
+ * is somehow empty.
+ */
+export async function getEscalationRules(): Promise<EscalationRule[]> {
+  const rows = await db
+    .select({
+      code: pointRules.code,
+      label: pointRules.label,
+      points: pointRules.points,
+    })
+    .from(pointRules)
+    .where(isNotNull(pointRules.code))
+    .orderBy(pointRules.points);
+
+  if (rows.length === 0) return ESCALATION_RULES;
+
+  return rows.map((row) => ({
+    code: row.code as EscalationRuleCode,
+    label: row.label,
+    points: row.points ?? 0,
+  }));
+}
+
+export type UpdateEscalationRuleResult = {
+  rules: EscalationRule[];
+};
+
+/**
+ * Admin edit: retune how many points one escalation tier is worth.
+ * Validates ordering so the four tiers stay meaningfully escalating:
+ * minor_tardy < moderate_tardy < severe_late_absence < nc_ns_major.
+ */
+export async function updateEscalationRule(
+  code: EscalationRuleCode,
+  points: number,
+): Promise<UpdateEscalationRuleResult> {
+  if (!ESCALATION_RULE_CODES.includes(code)) {
+    throw new Error(`"${code}" isn't a recognized escalation rule.`);
+  }
+  if (!Number.isInteger(points) || points <= 0) {
+    throw new Error("Points must be a positive whole number.");
+  }
+
+  const current = await getEscalationRules();
+  const next = current.map((r) => (r.code === code ? { ...r, points } : r));
+  const byCode = Object.fromEntries(next.map((r) => [r.code, r.points]));
+  if (
+    !(
+      byCode.minor_tardy < byCode.moderate_tardy &&
+      byCode.moderate_tardy < byCode.severe_late_absence &&
+      byCode.severe_late_absence < byCode.nc_ns_major
+    )
+  ) {
+    throw new Error(
+      `Escalation tiers must stay in order: minor (${byCode.minor_tardy}) < moderate (${byCode.moderate_tardy}) < severe (${byCode.severe_late_absence}) < no-call/no-show (${byCode.nc_ns_major}).`,
+    );
+  }
+
+  await db
+    .update(pointRules)
+    .set({ points, value: `+${points}` })
+    .where(eq(pointRules.code, code));
+
+  return { rules: next };
+}
+
+/**
  * Records one infraction: inserts the ledger row, updates the
  * employee's running point total, and opens a `warnings` row for every
  * threshold the event just crossed (verbal warning, required manager
- * meeting, PIP — using the live, possibly admin-edited threshold
- * values, not the static defaults).
+ * meeting, PIP — using the live, possibly admin-edited threshold and
+ * escalation-rule values, not the static defaults).
  */
 export async function recordPointEvent(
   input: RecordPointEventInput,
 ): Promise<RecordPointEventResult> {
-  const [employee, thresholds] = await Promise.all([
+  const [employee, thresholds, escalationRules] = await Promise.all([
     db
       .select({ points: employees.points, policyCap: employees.policyCap })
       .from(employees)
       .where(eq(employees.id, input.employeeId))
       .then((rows) => rows[0]),
     getPolicyThresholds(),
+    getEscalationRules(),
   ]);
 
   if (!employee) {
@@ -177,6 +258,7 @@ export async function recordPointEvent(
     input.ruleCode,
     employee.policyCap ?? POLICY_CAP,
     thresholds,
+    escalationRules,
   );
 
   await db.insert(pointEvents).values({

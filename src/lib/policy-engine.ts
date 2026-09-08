@@ -82,8 +82,19 @@ export const POLICY_THRESHOLDS: PolicyThreshold[] = [
   },
 ];
 
-export function pointsForRule(code: EscalationRuleCode | string): number {
-  const rule = ESCALATION_RULES.find((r) => r.code === code);
+/**
+ * Accepts a `rules` override (defaulting to the static ESCALATION_RULES)
+ * so callers with access to the admin-editable values in the
+ * `point_rules` table — see
+ * src/lib/policy-queries.ts::getEscalationRules() — can pass those in
+ * instead. Callers that can't reach the DB (mock data, pure functions)
+ * keep working unchanged against the defaults.
+ */
+export function pointsForRule(
+  code: EscalationRuleCode | string,
+  rules: EscalationRule[] = ESCALATION_RULES,
+): number {
+  const rule = rules.find((r) => r.code === code);
   if (!rule) {
     throw new Error(`Unknown escalation rule code: ${code}`);
   }
@@ -137,8 +148,9 @@ export function applyPointEvent(
   ruleCode: EscalationRuleCode | string,
   cap: number = POLICY_CAP,
   thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
+  escalationRules: EscalationRule[] = ESCALATION_RULES,
 ): PointEventResult {
-  const delta = pointsForRule(ruleCode);
+  const delta = pointsForRule(ruleCode, escalationRules);
   const newPoints = clampToCap(currentPoints + delta, cap);
   const crossedThresholds = thresholdsCrossed(currentPoints, newPoints, thresholds);
 

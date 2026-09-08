@@ -8,6 +8,7 @@ import {
   pointsForRule,
   riskLevelFromPoints,
   thresholdsCrossed,
+  type EscalationRule,
   type PolicyThreshold,
 } from "./policy-engine";
 
@@ -169,6 +170,33 @@ describe("policy-engine", () => {
           riskLevelFromPoints(points, POLICY_CAP, POLICY_THRESHOLDS),
         );
       }
+    });
+  });
+
+  describe("admin-editable escalation rules", () => {
+    // Simulates the escalation schedule retuned via /settings.
+    const customRules: EscalationRule[] = [
+      { code: "minor_tardy", label: "Minor tardy", points: 2 },
+      { code: "moderate_tardy", label: "Moderate tardy", points: 5 },
+      { code: "severe_late_absence", label: "Severe", points: 9 },
+      { code: "nc_ns_major", label: "No-call/no-show", points: 12 },
+    ];
+
+    it("pointsForRule looks up against the custom rules, not the defaults", () => {
+      expect(pointsForRule("minor_tardy", customRules)).toBe(2);
+      expect(pointsForRule("nc_ns_major", customRules)).toBe(12);
+    });
+
+    it("applyPointEvent uses custom rules for the delta end to end", () => {
+      const result = applyPointEvent(
+        0,
+        "severe_late_absence",
+        POLICY_CAP,
+        POLICY_THRESHOLDS,
+        customRules,
+      );
+      expect(result.delta).toBe(9);
+      expect(result.newPoints).toBe(9);
     });
   });
 });
