@@ -9,16 +9,21 @@ import {
 } from "@/db/schema";
 import {
   applyPointEvent,
+  clampToCap,
   ESCALATION_RULES,
   POLICY_CAP,
   POLICY_THRESHOLDS,
   riskLevelFromPoints,
+  thresholdsCrossed,
   type EscalationRule,
   type EscalationRuleCode,
   type PolicyThreshold,
   type PolicyThresholdKey,
   type RiskLevel,
 } from "@/lib/policy-engine";
+
+/** Every status a manager can set an employee to, in ascending severity. */
+export const TARGET_STATUSES: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
 
 /** All four escalation codes — mirrors policy-engine.ts's EscalationRuleCode union. */
 const ESCALATION_RULE_CODES: EscalationRuleCode[] = [
@@ -407,61 +412,148 @@ export async function getEmployeeHistory(
   return entries.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export type ResetEmployeeStatusResult = {
+export type SetEmployeeStatusResult = {
   previousPoints: number;
+  newPoints: number;
+  delta: number;
+  targetStatus: RiskLevel;
+  /** Thresholds newly opened, if the change moved points up. */
+  crossedThresholdKeys: PolicyThresholdKey[];
+  /** Warnings resolved because they no longer apply, if points moved down. */
   resolvedWarningCount: number;
 };
 
 /**
- * Manually clears an employee's status back to "Clear": zeroes their
- * points, logs the reset as an auditable ledger entry (never silently
- * edits the total), and resolves any open/acknowledged warnings. Same
- * "ledger it, don't erase it" shape as the (still-unbuilt) anniversary
- * reset described in docs/points-system-brd.md Phase 5.
+ * The point value that puts an employee at the *start* of a given
+ * band — the lower boundary, since a band is a range and the boundary
+ * is the only unambiguous single point within it. "clear" is always 0;
+ * "pip_flag" is always the employee's policy cap (see
+ * docs/policy-thresholds-editing.md's PIP↔cap coupling).
  */
-export async function resetEmployeeStatus(
+function pointsForTargetStatus(
+  targetStatus: RiskLevel,
+  cap: number,
+  thresholds: PolicyThreshold[],
+): number {
+  const sorted = [...thresholds].sort((a, b) => a.pointValue - b.pointValue);
+  const [verbalWarning, managerMeeting] = sorted;
+  switch (targetStatus) {
+    case "clear":
+      return 0;
+    case "watch":
+      return verbalWarning?.pointValue ?? 2;
+    case "at_risk":
+      return managerMeeting?.pointValue ?? 10;
+    case "pip_flag":
+      return cap;
+  }
+}
+
+const TARGET_STATUS_LABELS: Record<RiskLevel, string> = {
+  clear: "Clear",
+  watch: "Watch",
+  at_risk: "At Risk",
+  pip_flag: "PIP",
+};
+
+/**
+ * Manually moves an employee to a chosen status (Clear / Watch / At
+ * Risk / PIP) rather than just clearing them. Adds or deducts however
+ * many points are needed to land at that band's boundary, logged as
+ * one auditable ledger entry (never a silent edit) — same "ledger it,
+ * don't erase it" shape as the (still-unbuilt) anniversary reset
+ * described in docs/points-system-brd.md Phase 5.
+ *
+ * Moving points up fires the same threshold-crossing/warnings logic as
+ * a real infraction (see recordPointEvent). Moving points down
+ * resolves any open/acknowledged warnings for thresholds the employee
+ * no longer meets.
+ */
+export async function setEmployeeStatus(
   employeeId: string,
+  targetStatus: RiskLevel,
   note?: string,
-): Promise<ResetEmployeeStatusResult> {
-  const [employee] = await db
-    .select({ points: employees.points })
-    .from(employees)
-    .where(eq(employees.id, employeeId));
+): Promise<SetEmployeeStatusResult> {
+  const [[employee], thresholds] = await Promise.all([
+    db
+      .select({ points: employees.points, policyCap: employees.policyCap })
+      .from(employees)
+      .where(eq(employees.id, employeeId)),
+    getPolicyThresholds(),
+  ]);
 
   if (!employee) {
     throw new Error(`Unknown employee: ${employeeId}`);
   }
 
-  if (employee.points > 0) {
+  const cap = employee.policyCap ?? POLICY_CAP;
+  const targetPoints = clampToCap(
+    pointsForTargetStatus(targetStatus, cap, thresholds),
+    cap,
+  );
+  const delta = targetPoints - employee.points;
+
+  if (delta !== 0) {
     await db.insert(pointEvents).values({
-      id: `reset-${employeeId}-${Date.now()}`,
+      id: `status-${employeeId}-${Date.now()}`,
       employeeId,
       date: new Date().toISOString().slice(0, 10),
-      delta: -employee.points,
-      reason: note?.trim() || "Manually cleared by manager",
+      delta,
+      reason:
+        note?.trim() ||
+        `Manually set to ${TARGET_STATUS_LABELS[targetStatus]} by manager`,
       source: "Supervisor",
       ruleCode: null,
     });
+
+    await db
+      .update(employees)
+      .set({ points: targetPoints })
+      .where(eq(employees.id, employeeId));
   }
 
-  await db
-    .update(employees)
-    .set({ points: 0 })
-    .where(eq(employees.id, employeeId));
+  let crossedThresholdKeys: PolicyThresholdKey[] = [];
+  let resolvedWarningCount = 0;
 
-  const resolved = await db
-    .update(warnings)
-    .set({ status: "resolved" })
-    .where(
-      and(
-        eq(warnings.employeeId, employeeId),
-        inArray(warnings.status, ["open", "acknowledged"]),
-      ),
-    )
-    .returning({ id: warnings.id });
+  if (delta > 0) {
+    const crossed = thresholdsCrossed(employee.points, targetPoints, thresholds);
+    if (crossed.length > 0) {
+      await db.insert(warnings).values(
+        crossed.map((threshold) => ({
+          employeeId,
+          thresholdKey: threshold.key,
+          pointsAtTrigger: targetPoints,
+          status: "open" as const,
+        })),
+      );
+      crossedThresholdKeys = crossed.map((t) => t.key);
+    }
+  } else if (delta < 0) {
+    const noLongerApplicable = thresholds
+      .filter((t) => t.pointValue > targetPoints)
+      .map((t) => t.key);
+    if (noLongerApplicable.length > 0) {
+      const resolved = await db
+        .update(warnings)
+        .set({ status: "resolved" })
+        .where(
+          and(
+            eq(warnings.employeeId, employeeId),
+            inArray(warnings.status, ["open", "acknowledged"]),
+            inArray(warnings.thresholdKey, noLongerApplicable),
+          ),
+        )
+        .returning({ id: warnings.id });
+      resolvedWarningCount = resolved.length;
+    }
+  }
 
   return {
     previousPoints: employee.points,
-    resolvedWarningCount: resolved.length,
+    newPoints: targetPoints,
+    delta,
+    targetStatus,
+    crossedThresholdKeys,
+    resolvedWarningCount,
   };
 }

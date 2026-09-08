@@ -21,7 +21,7 @@ import {
   getEmployeePolicySnapshot,
   type HistoryEntry,
 } from "@/lib/policy-queries";
-import { ClearPipButton } from "./clear-pip-button";
+import { StatusChanger } from "./status-changer";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -394,9 +394,10 @@ export default async function PersonDetailPage({ params }: PageProps) {
                     </span>{" "}
                     · {RISK_LABELS[dbSnapshot.riskLevel]}
                   </p>
-                  {dbSnapshot.riskLevel === "pip_flag" && (
-                    <ClearPipButton employeeId={person.id} />
-                  )}
+                  <StatusChanger
+                    employeeId={person.id}
+                    currentStatus={dbSnapshot.riskLevel}
+                  />
                 </div>
               ) : null}
 

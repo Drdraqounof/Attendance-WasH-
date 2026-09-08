@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { hasDemoSession } from "@/lib/auth-mock";
-import { resetEmployeeStatus } from "@/lib/policy-queries";
+import type { RiskLevel } from "@/lib/policy-engine";
+import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
 
 /**
  * First real mutation-capable API route in the app — see
  * docs/employee-track-record-plan.md and docs/points-system-brd.md's
  * Phase 2 ("list/update warning & action-plan status").
  *
- * POST { employeeId, note? } -> clears the employee's status back to
- * "Clear": zeroes their points (logged as an auditable ledger entry)
- * and resolves any open/acknowledged warnings.
+ * POST { employeeId, targetStatus, note? } -> moves the employee to
+ * the chosen status (Clear / Watch / At Risk / PIP), adding or
+ * deducting whatever points that takes — logged as an auditable
+ * ledger entry, with warnings opened/resolved to match. See
+ * src/lib/policy-queries.ts::setEmployeeStatus.
  *
  * Gated the same way as every other page in this demo: any signed-in
  * user (hasDemoSession()) — there is no manager/admin role system yet
@@ -32,6 +35,10 @@ export async function POST(request: Request) {
     typeof body === "object" && body !== null && "employeeId" in body
       ? (body as { employeeId: unknown }).employeeId
       : undefined;
+  const targetStatus =
+    typeof body === "object" && body !== null && "targetStatus" in body
+      ? (body as { targetStatus: unknown }).targetStatus
+      : undefined;
   const note =
     typeof body === "object" && body !== null && "note" in body
       ? (body as { note: unknown }).note
@@ -43,15 +50,25 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  if (
+    typeof targetStatus !== "string" ||
+    !TARGET_STATUSES.includes(targetStatus as RiskLevel)
+  ) {
+    return NextResponse.json(
+      { error: `targetStatus must be one of: ${TARGET_STATUSES.join(", ")}.` },
+      { status: 400 },
+    );
+  }
 
   try {
-    const result = await resetEmployeeStatus(
+    const result = await setEmployeeStatus(
       employeeId,
+      targetStatus as RiskLevel,
       typeof note === "string" ? note : undefined,
     );
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Reset failed.";
+    const message = error instanceof Error ? error.message : "Update failed.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

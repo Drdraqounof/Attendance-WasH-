@@ -1,6 +1,8 @@
 # Employee Track Record & Status-Change Plan
 
-Status: **Implemented (2026-09-07).** All four parts below are built and verified against the live Neon database.
+Status: **Implemented (2026-09-07); status-change action generalized (2026-09-08).** All four parts below are built and verified against the live Neon database.
+
+**2026-09-08 update:** the status-change action described in §4 originally only supported "Clear PIP status" (reset to 0). It's now a general status changer — a manager can move an employee to *any* of the four statuses (Clear / Watch / At Risk / PIP), and the system adds or deducts whatever points that requires. See the rewritten §4 below; `resetEmployeeStatus()` was replaced by `setEmployeeStatus(employeeId, targetStatus, note?)` in `src/lib/policy-queries.ts`, and `ClearPipButton` by `StatusChanger` (a dropdown + Apply button) in `src/app/dashboard/people/[id]/status-changer.tsx`.
 
 ## 1. Problem Statement
 
@@ -50,39 +52,41 @@ A new section on the existing person profile page (`/dashboard/people/[id]`) —
 
 **Important caveat to flag in-page (and here):** since `/dashboard/people/[id]` is otherwise mock-driven, this section would be the *first* place on that page reading from the real DB. The employee's *displayed* points (from mock data) and their *track record* (from the DB) are two different data sources until a fuller migration happens — they can disagree for a given demo employee. This plan does not attempt to reconcile that; it's called out as an open question below.
 
-## 4. Status-Change Action (new, DB-backed, first real write path)
+## 4. Status-Change Action (generalized 2026-09-08)
 
-"Change status from PIP to Clear" = **reset points to 0**, logged as an auditable action — not a silent DB edit — and any open warnings resolved. Same pattern as the still-unbuilt anniversary reset described in `docs/points-system-brd.md` Phase 5.
+A manager can move an employee to **any** of the four statuses (Clear / Watch / At Risk / PIP) — not just clear a PIP — and the system adds or deducts whatever points that requires, logged as an auditable action, never a silent DB edit. Same "ledger it, don't erase it" pattern as the still-unbuilt anniversary reset described in `docs/points-system-brd.md` Phase 5.
 
-- **New function** — `resetEmployeeStatus(employeeId, note?)` in `src/lib/policy-queries.ts`:
-  1. Insert a `pointEvents` row: `delta = -currentPoints`, `reason = note ?? "Manually cleared by manager"`, `source = "Supervisor"`.
-  2. Set `employees.points = 0`.
-  3. Update any `warnings` rows for that employee with `status` in (`open`, `acknowledged`) to `status = "resolved"`.
-- **New API route** — `src/app/api/warnings/route.ts` (`POST`, body `{ employeeId }`), calling `resetEmployeeStatus`. Gated by `hasDemoSession()` (401 if not signed in) — this is the **first real mutation-capable API route** in the app, and the path Phase 2 of the BRD already planned for "list/update warning & action-plan status."
-- **UI**: a "Clear PIP status" button in the new Track record section, shown when the employee's *DB* points are at/above the PIP threshold (16), calling the new route and refreshing the page afterward.
+- **New function** — `setEmployeeStatus(employeeId, targetStatus, note?)` in `src/lib/policy-queries.ts`:
+  1. Compute the target point value: the chosen band's lower boundary — 0 for Clear, the verbal-warning threshold for Watch, the manager-meeting threshold for At Risk, the employee's policy cap for PIP (all read live from `getPolicyThresholds()`, so admin-edited thresholds are respected).
+  2. `delta = targetPoints - currentPoints` — positive (adds points) or negative (deducts points) depending on the direction of the change.
+  3. If `delta !== 0`: insert one `pointEvents` row (`reason = note ?? "Manually set to {Status} by manager"`, `source = "Supervisor"`) and update `employees.points`.
+  4. If points moved **up**: run the same `thresholdsCrossed()` logic as a real infraction and open `warnings` rows for any newly-crossed threshold.
+  5. If points moved **down**: resolve any open/acknowledged `warnings` for thresholds the employee no longer meets.
+- **API route** — `src/app/api/warnings/route.ts` (`POST`, body `{ employeeId, targetStatus, note? }`), validated against the four allowed statuses (`TARGET_STATUSES` in `policy-queries.ts`). Gated by `hasDemoSession()` (401 if not signed in) — the **first real mutation-capable API route** in the app, and the path Phase 2 of the BRD already planned for "list/update warning & action-plan status."
+- **UI** — `src/app/dashboard/people/[id]/status-changer.tsx`: a status dropdown (defaulting to the employee's current status) + "Change status" button, always visible in the Track record section (not just when on a PIP), with a confirmation prompt before applying since any change can add or deduct a meaningful number of points.
 
 ## 5. Open Questions (not blocking, flagged for later)
 
 | # | Question |
 |---|---|
 | 1 | The dashboard/profile's displayed points stay mock-sourced while history/reset are DB-sourced. Is a fuller `/dashboard` → DB migration (so both agree) an explicit next phase, and if so, when? |
-| 2 | Should `resetEmployeeStatus` be restricted to a genuine manager/admin role once one exists? Today, any signed-in demo user can call it — same as every other action in the app. |
-| 3 | Should resets always zero points fully, or should there be a partial-reduction option (e.g. "reduce by N points") for cases short of a full reset? |
+| 2 | Should `setEmployeeStatus` be restricted to a genuine manager/admin role once one exists? Today, any signed-in demo user can call it — same as every other action in the app. |
+| 3 | ~~Should resets always zero points fully, or should there be a partial-reduction option...~~ **Resolved 2026-09-08**: superseded by the general status changer — a manager now picks any of the four bands, not just "reset to zero." |
 
 ## Implementation Notes
 
 - Section 2 (score display) also fixed the identical `{nominee.score}/100` pattern on `/analytics`, since it's the exact same bug via the shared `attendanceNominees()` function — not explicitly called out in the original ask, but left broken it would have been the one remaining "/100" spot in the app.
 - `src/lib/alerts-mock.ts`'s `AttendanceAlert` type kept the old `attendanceScore` field (unused in the UI now) because `src/db/seed.ts` still persists it into the `attendance_alerts.attendance_score` DB column — removing it would have required a schema/seed change out of scope here.
-- `getEmployeeHistory`/`getEmployeePolicySnapshot`/`resetEmployeeStatus` all live in `src/lib/policy-queries.ts`, following `insights-queries.ts`'s conventions as planned.
-- Confirmed live against Neon: `resetEmployeeStatus("e01", ...)` zeroed points (16 → 0), inserted a `-16` ledger entry, and the new history query picked it up immediately. `resolvedWarningCount` was `0` in that test because `src/db/seed.ts` inserts historical `pointEvents` directly rather than through `recordPointEvent()`, so no `warnings` rows exist yet for any seeded employee — the "Clear PIP status" button and `warnings`-resolution logic are correct, but won't have anything to resolve until Phase 2 (`recordPointEvent()` wired to a real intake path) is built.
-- The person profile page (`/dashboard/people/[id]`) is now a **hybrid** page: schedule, incident-history narrative, and the demo points ledger are still mock-driven; the new "Track record" section and "Clear PIP status" action read/write the real Neon DB for the same employee ID. The page explicitly labels the new section "Live data" and notes the two sources can disagree, per the open question below.
+- `getEmployeeHistory`/`getEmployeePolicySnapshot`/`setEmployeeStatus` all live in `src/lib/policy-queries.ts`, following `insights-queries.ts`'s conventions as planned.
+- Confirmed live against Neon (2026-09-08): `setEmployeeStatus("e11", "at_risk")` correctly *added* 10 points and opened `verbal_warning`+`manager_meeting` warnings; `setEmployeeStatus("e11", "pip_flag")` added 6 more and opened the `pip` warning; `setEmployeeStatus("e11", "clear")` correctly *deducted* all 16 points in one ledger entry and resolved all 3 open warnings. Database reseeded afterward.
+- The person profile page (`/dashboard/people/[id]`) is now a **hybrid** page: schedule, incident-history narrative, and the demo points ledger are still mock-driven; the new "Track record" section and status-change action read/write the real Neon DB for the same employee ID. The page explicitly labels the new section "Live data" and notes the two sources can disagree, per the open question below.
 - DB reads on this page are wrapped in a try/catch that degrades to an inline error message instead of crashing the whole page, since (unlike `/insights`) this page previously had zero DB dependency and shouldn't become fully unavailable if `DATABASE_URL` is misconfigured (see the still-open Vercel `DATABASE_URL` gap from earlier).
 
 ## Verification Performed
 
-- `npx vitest run` — 43/43 passing.
+- `npx vitest run` — 49/49 passing.
 - `npx tsc --noEmit` — clean.
-- `npx next build` — clean; new `/api/warnings` route builds as a dynamic route alongside the existing pages.
-- Live Neon verification (via a temporary script, since removed): confirmed `getEmployeePolicySnapshot`, `getEmployeeHistory`, and `resetEmployeeStatus` all work end-to-end against the seeded `e01` (Marcus Hale) row. The database was reseeded afterward (`npm run db:seed`) to restore the original demo state.
+- `npx next build` — clean; `/api/warnings` route builds as a dynamic route alongside the existing pages.
+- Live Neon verification (via temporary scripts, since removed): confirmed `getEmployeePolicySnapshot`, `getEmployeeHistory`, and (2026-09-08) `setEmployeeStatus` moving an employee up through Watch → At Risk → PIP (adding points, opening warnings each step) and back down to Clear in one move (deducting all points, resolving every open warning). Database reseeded afterward each time to restore the original demo state.
 
 Note: the "Open Questions" table in §5 above is unchanged from the draft — none of those three questions are resolved by this implementation.
