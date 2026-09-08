@@ -1,7 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { employees, pointEvents } from "@/db/schema";
-import { attendanceScoreFromPoints } from "@/lib/attendance-utils";
 import {
   POLICY_THRESHOLDS,
   riskLevelFromPoints,
@@ -12,10 +11,14 @@ import type { TrendDirection } from "@/lib/ai-analysis-mock";
 /**
  * Drizzle/Neon-backed replacements for the four deterministic
  * `/insights` sections that used to read from ai-analysis-mock.ts +
- * people-mock.ts. Same math, same output shapes (renamed to avoid
- * importing PersonProfile) — now driven by a `days` time window
- * instead of a hardcoded 30, and querying `employees` / `point_events`
- * directly. See docs/database.md for the schema these read from.
+ * people-mock.ts — driven by a `days` time window instead of a
+ * hardcoded 30, and querying `employees` / `point_events` directly.
+ * See docs/database.md for the schema these read from.
+ *
+ * `AtRiskRow`/`ReliabilityRow` show raw points + a policy-engine risk
+ * band (see src/lib/policy-engine.ts), not the old 0-100
+ * attendanceScoreFromPoints() percentage — see
+ * docs/employee-track-record-plan.md.
  *
  * The mock files are untouched — /analytics still uses them.
  */
@@ -107,7 +110,8 @@ export async function signalTypeBreakdown(
 export type AtRiskRow = {
   employeeId: string;
   name: string;
-  reliabilityScore: number;
+  /** Raw open points (16-point policy) — the display field, not a 0-100 score. */
+  points: number;
   reason: string;
   /** How close this employee is to the 16-point cap — see policy-engine.ts. */
   riskLevel: RiskLevel;
@@ -153,7 +157,7 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
       return {
         employeeId: row.id,
         name: row.name,
-        reliabilityScore: attendanceScoreFromPoints(row.points, row.policyCap),
+        points: row.points,
         reason:
           incidentCount > 0
             ? `${incidentCount} incident${incidentCount === 1 ? "" : "s"} in the last ${days} days`
@@ -166,21 +170,24 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
       if (a.isPipFlag !== b.isPipFlag) {
         return a.isPipFlag ? -1 : 1;
       }
-      return a.reliabilityScore - b.reliabilityScore;
+      // Worst first — highest points among the non-PIP rows leads.
+      return b.points - a.points;
     });
 }
 
 export type ReliabilityRow = {
   employeeId: string;
   name: string;
-  score: number;
+  /** Raw open points (16-point policy) — the display field, not a 0-100 score. */
+  points: number;
+  riskLevel: RiskLevel;
   trend: TrendDirection;
 };
 
 /**
- * "Attendance reliability scores & improvement trends" — highest score
- * first, capped to `limit` rows so the table stays performant as
- * headcount scales (task: UI scalability).
+ * "Attendance reliability scores & improvement trends" — most reliable
+ * (lowest points) first, capped to `limit` rows so the table stays
+ * performant as headcount scales (task: UI scalability).
  */
 export async function reliabilityRanking(
   days = 30,
@@ -215,10 +222,11 @@ export async function reliabilityRanking(
       return {
         employeeId: row.id,
         name: row.name,
-        score: attendanceScoreFromPoints(row.points, row.policyCap),
+        points: row.points,
+        riskLevel: riskLevelFromPoints(row.points, row.policyCap),
         trend,
       };
     })
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => a.points - b.points)
     .slice(0, limit);
 }

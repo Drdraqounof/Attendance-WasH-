@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { OpsShell } from "@/components/ops-shell";
 import { TREND_LABELS, type TrendDirection } from "@/lib/ai-analysis-mock";
 import { hasDemoSession } from "@/lib/auth-mock";
+import { RISK_LABELS } from "@/lib/dashboard-mock";
 import {
   employeesAtRisk,
   frequentLatenessPatterns,
@@ -22,7 +23,7 @@ const CAPABILITIES = [
   "Common causes of attendance issues",
   "Employees at risk of attendance problems",
   "Improvement trends",
-  "Attendance reliability scores",
+  "Attendance points & policy status",
 ] as const;
 
 const DAY_WINDOWS = [7, 30, 90] as const;
@@ -233,7 +234,10 @@ export default async function InsightsPage({
                         </span>
                       </span>
                       <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-danger-soft">
-                        {row.reliabilityScore}/100
+                        {row.points} pts
+                        <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                          · {RISK_LABELS[row.riskLevel]}
+                        </span>
                       </span>
                     </Link>
                   </li>
@@ -243,7 +247,7 @@ export default async function InsightsPage({
           </section>
         </div>
 
-        {/* Reliability scores & improvement trends */}
+        {/* Attendance points & improvement trends */}
         <section
           className="animate-fade-up-delay-3 mt-10"
           aria-labelledby="reliability-heading"
@@ -253,7 +257,7 @@ export default async function InsightsPage({
               id="reliability-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Attendance reliability scores &amp; improvement trends
+              Attendance points &amp; improvement trends
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
               Top {RELIABILITY_LIMIT} · vs. prior {days} days
@@ -267,7 +271,7 @@ export default async function InsightsPage({
                     Employee
                   </th>
                   <th className="px-2 py-2.5 text-right font-semibold">
-                    Reliability score
+                    Points · Status
                   </th>
                   <th className="px-4 py-2.5 text-right font-semibold sm:px-5">
                     Trend
@@ -289,7 +293,10 @@ export default async function InsightsPage({
                       </Link>
                     </td>
                     <td className="px-2 py-3 text-right font-display font-semibold tabular-nums text-ink">
-                      {row.score}/100
+                      {row.points} pts
+                      <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
+                        · {RISK_LABELS[row.riskLevel]}
+                      </span>
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium sm:px-5 ${trendTone(row.trend)}`}

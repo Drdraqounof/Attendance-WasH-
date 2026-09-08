@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { RISK_LABELS } from "@/lib/dashboard-mock";
 import { getOpenAIClient, OPENAI_MODEL } from "@/lib/openai-client";
 import {
   employeesAtRisk,
@@ -57,14 +58,17 @@ function buildPrompt(input: {
     input.atRisk
       .map(
         (row) =>
-          `- ${row.name}: reliability ${row.reliabilityScore}/100 — ${row.reason}`,
+          `- ${row.name}: ${row.points} pts (${RISK_LABELS[row.riskLevel]}) — ${row.reason}`,
       )
       .join("\n") || "- none flagged";
 
   const rankingLines =
     input.ranking
       .slice(0, 5)
-      .map((row) => `- ${row.name}: ${row.score}/100, trend ${row.trend}`)
+      .map(
+        (row) =>
+          `- ${row.name}: ${row.points} pts (${RISK_LABELS[row.riskLevel]}), trend ${row.trend}`,
+      )
       .join("\n") || "- no data";
 
   return [
@@ -74,10 +78,10 @@ function buildPrompt(input: {
     "Common causes of attendance issues:",
     causeLines,
     "",
-    "Employees at risk:",
+    "Employees at risk (16-point policy: 2 pts verbal warning, 10 pts required manager meeting, 16 pts PIP):",
     atRiskLines,
     "",
-    "Top reliability scores (highest 5):",
+    "Most reliable employees (lowest points, top 5):",
     rankingLines,
   ].join("\n");
 }
