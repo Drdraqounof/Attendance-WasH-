@@ -99,13 +99,21 @@ export function clampToCap(points: number, cap: number = POLICY_CAP): number {
  * Thresholds whose pointValue falls in (oldPoints, newPoints] — i.e. the
  * ones an infraction just pushed the employee up past. Returns [] if
  * points didn't increase (e.g. an anniversary reset).
+ *
+ * Accepts a `thresholds` override (defaulting to the static
+ * POLICY_THRESHOLDS) so callers with access to the admin-editable
+ * values in the `policy_thresholds` table — see
+ * src/lib/policy-queries.ts::getPolicyThresholds() — can pass those in
+ * instead. Callers that can't reach the DB (mock data, pure functions)
+ * keep working unchanged against the defaults.
  */
 export function thresholdsCrossed(
   oldPoints: number,
   newPoints: number,
+  thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
 ): PolicyThreshold[] {
   if (newPoints <= oldPoints) return [];
-  return POLICY_THRESHOLDS.filter(
+  return thresholds.filter(
     (threshold) => threshold.pointValue > oldPoints && threshold.pointValue <= newPoints,
   );
 }
@@ -128,10 +136,11 @@ export function applyPointEvent(
   currentPoints: number,
   ruleCode: EscalationRuleCode | string,
   cap: number = POLICY_CAP,
+  thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
 ): PointEventResult {
   const delta = pointsForRule(ruleCode);
   const newPoints = clampToCap(currentPoints + delta, cap);
-  const crossedThresholds = thresholdsCrossed(currentPoints, newPoints);
+  const crossedThresholds = thresholdsCrossed(currentPoints, newPoints, thresholds);
 
   return {
     previousPoints: currentPoints,
@@ -147,13 +156,22 @@ export type RiskLevel = "clear" | "watch" | "at_risk" | "pip_flag";
 /**
  * Coarse risk banding used for "risk radar"-style views — how close an
  * employee is to the 16-point cap, not just their raw score.
+ *
+ * Generalized over however many `thresholds` are passed (defaulting to
+ * the static POLICY_THRESHOLDS: verbal_warning, manager_meeting, pip)
+ * rather than hardcoding 2/10 — so admin-edited thresholds (see
+ * src/lib/policy-queries.ts::getPolicyThresholds()) band employees
+ * correctly too: 0 crossed → clear, 1 → watch, 2+ → at_risk, at/above
+ * the cap → pip_flag regardless of the thresholds passed in.
  */
 export function riskLevelFromPoints(
   points: number,
   cap: number = POLICY_CAP,
+  thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
 ): RiskLevel {
   if (points >= cap) return "pip_flag";
-  if (points >= 10) return "at_risk";
-  if (points >= 2) return "watch";
+  const crossedCount = thresholds.filter((t) => points >= t.pointValue).length;
+  if (crossedCount >= 2) return "at_risk";
+  if (crossedCount >= 1) return "watch";
   return "clear";
 }

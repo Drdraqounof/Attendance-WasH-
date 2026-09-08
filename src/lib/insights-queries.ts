@@ -1,11 +1,8 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { employees, pointEvents } from "@/db/schema";
-import {
-  POLICY_THRESHOLDS,
-  riskLevelFromPoints,
-  type RiskLevel,
-} from "@/lib/policy-engine";
+import { getPolicyThresholds } from "@/lib/policy-queries";
+import { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
 import type { TrendDirection } from "@/lib/ai-analysis-mock";
 
 /**
@@ -127,7 +124,8 @@ export type AtRiskRow = {
  */
 export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   const since = isoDateDaysAgo(days);
-  const watchFloor = POLICY_THRESHOLDS[0]!.pointValue; // 2 — "verbal_warning"
+  const thresholds = await getPolicyThresholds();
+  const watchFloor = Math.min(...thresholds.map((t) => t.pointValue));
   const incidentCountExpr = sql<number>`count(${pointEvents.id}) filter (where ${pointEvents.date} >= ${since} and ${pointEvents.date} <= ${REFERENCE_DATE})`;
 
   const rows = await db
@@ -153,7 +151,7 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   return rows
     .map((row) => {
       const incidentCount = Number(row.incidentCount);
-      const riskLevel = riskLevelFromPoints(row.points, row.policyCap);
+      const riskLevel = riskLevelFromPoints(row.points, row.policyCap, thresholds);
       return {
         employeeId: row.id,
         name: row.name,
@@ -200,6 +198,7 @@ export async function reliabilityRanking(
   const currentSumExpr = sql<number>`coalesce(sum(${pointEvents.delta}) filter (where ${pointEvents.date} >= ${currentSince} and ${pointEvents.date} <= ${REFERENCE_DATE}), 0)`;
   const previousSumExpr = sql<number>`coalesce(sum(${pointEvents.delta}) filter (where ${pointEvents.date} >= ${previousSince} and ${pointEvents.date} <= ${previousUntil}), 0)`;
 
+  const thresholds = await getPolicyThresholds();
   const rows = await db
     .select({
       id: employees.id,
@@ -223,7 +222,7 @@ export async function reliabilityRanking(
         employeeId: row.id,
         name: row.name,
         points: row.points,
-        riskLevel: riskLevelFromPoints(row.points, row.policyCap),
+        riskLevel: riskLevelFromPoints(row.points, row.policyCap, thresholds),
         trend,
       };
     })

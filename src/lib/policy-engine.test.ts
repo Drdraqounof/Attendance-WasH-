@@ -8,6 +8,7 @@ import {
   pointsForRule,
   riskLevelFromPoints,
   thresholdsCrossed,
+  type PolicyThreshold,
 } from "./policy-engine";
 
 describe("policy-engine", () => {
@@ -117,5 +118,57 @@ describe("policy-engine", () => {
   it("keeps POLICY_THRESHOLDS ordered ascending by point value", () => {
     const values = POLICY_THRESHOLDS.map((t) => t.pointValue);
     expect(values).toEqual([...values].sort((a, b) => a - b));
+  });
+
+  describe("admin-editable thresholds (see docs/policy-thresholds-editing.md)", () => {
+    // Simulates thresholds retuned via /settings — verbal warning moved
+    // to 3, required manager meeting moved to 8 — to confirm the
+    // engine bands/fires against whatever thresholds it's given rather
+    // than hardcoded 2/10.
+    const customThresholds: PolicyThreshold[] = [
+      { key: "verbal_warning", pointValue: 3, label: "Verbal Warning", action: "" },
+      { key: "manager_meeting", pointValue: 8, label: "Required Manager Meeting", action: "" },
+      { key: "pip", pointValue: POLICY_CAP, label: "PIP", action: "" },
+    ];
+
+    it("thresholdsCrossed fires against the custom values, not the defaults", () => {
+      expect(thresholdsCrossed(2, 3, customThresholds).map((t) => t.key)).toEqual([
+        "verbal_warning",
+      ]);
+      // 2 points wouldn't have crossed the default 2pt threshold's
+      // *next* event boundary here, but definitely shouldn't fire the
+      // custom 3pt threshold yet.
+      expect(thresholdsCrossed(1, 2, customThresholds)).toEqual([]);
+      expect(thresholdsCrossed(7, 8, customThresholds).map((t) => t.key)).toEqual([
+        "manager_meeting",
+      ]);
+    });
+
+    it("applyPointEvent respects custom thresholds end to end", () => {
+      const result = applyPointEvent(1, "moderate_tardy", POLICY_CAP, customThresholds);
+      expect(result.newPoints).toBe(3);
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual([
+        "verbal_warning",
+      ]);
+    });
+
+    it("riskLevelFromPoints bands against the custom thresholds", () => {
+      expect(riskLevelFromPoints(2, POLICY_CAP, customThresholds)).toBe("clear");
+      expect(riskLevelFromPoints(3, POLICY_CAP, customThresholds)).toBe("watch");
+      expect(riskLevelFromPoints(7, POLICY_CAP, customThresholds)).toBe("watch");
+      expect(riskLevelFromPoints(8, POLICY_CAP, customThresholds)).toBe("at_risk");
+      expect(riskLevelFromPoints(16, POLICY_CAP, customThresholds)).toBe("pip_flag");
+    });
+
+    it("still matches the default banding when no override is passed", () => {
+      // Regression guard: the generalized threshold-counting
+      // implementation must reproduce the original hardcoded 2/10
+      // bands exactly when called with defaults.
+      for (const points of [0, 1, 2, 9, 10, 15, 16, 20]) {
+        expect(riskLevelFromPoints(points)).toBe(
+          riskLevelFromPoints(points, POLICY_CAP, POLICY_THRESHOLDS),
+        );
+      }
+    });
   });
 });

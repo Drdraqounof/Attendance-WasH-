@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
 import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
+import { getPolicyThresholds } from "@/lib/policy-queries";
 import { AutomationToggles } from "./automation-toggles";
+import { ThresholdEditor } from "./threshold-editor";
 
 export const metadata: Metadata = {
   title: "Settings & automation",
@@ -36,6 +38,18 @@ export default async function SettingsPage() {
   const signedIn = await hasDemoSession();
   if (!signedIn) {
     redirect("/login");
+  }
+
+  // Thresholds are DB-backed and editable (see
+  // docs/policy-thresholds-editing.md) — degrade to the static
+  // defaults, read-only, if the DB is unreachable rather than
+  // crashing the page.
+  let thresholds = POLICY_THRESHOLDS;
+  let thresholdsEditable = true;
+  try {
+    thresholds = await getPolicyThresholds();
+  } catch {
+    thresholdsEditable = false;
   }
 
   return (
@@ -79,32 +93,47 @@ export default async function SettingsPage() {
           className="animate-fade-up-delay-2 mt-10"
           aria-labelledby="thresholds-heading"
         >
-          <h2
-            id="thresholds-heading"
-            className="font-display text-lg font-semibold tracking-tight text-ink"
-          >
-            Automated policy thresholds
-          </h2>
-          <div className="mt-3 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
-            {POLICY_THRESHOLDS.map((threshold) => (
-              <div key={threshold.key} className="bg-white/80 px-5 py-4">
-                <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-                  {threshold.label}
-                </p>
-                <p className="font-display mt-1 text-xl font-bold text-ink">
-                  {threshold.pointValue} pts
-                </p>
-                <p className="mt-1 text-sm text-slate/65">
-                  {threshold.action}
-                </p>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2
+              id="thresholds-heading"
+              className="font-display text-lg font-semibold tracking-tight text-ink"
+            >
+              Automated policy thresholds
+            </h2>
+            {!thresholdsEditable && (
+              <p className="text-sm tracking-wide text-danger-soft uppercase">
+                Read-only — live thresholds unavailable
+              </p>
+            )}
           </div>
+
+          {thresholdsEditable ? (
+            <ThresholdEditor initialThresholds={thresholds} />
+          ) : (
+            <div className="mt-3 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
+              {thresholds.map((threshold) => (
+                <div key={threshold.key} className="bg-white/80 px-5 py-4">
+                  <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
+                    {threshold.label}
+                  </p>
+                  <p className="font-display mt-1 text-xl font-bold text-ink">
+                    {threshold.pointValue} pts
+                  </p>
+                  <p className="mt-1 text-sm text-slate/65">
+                    {threshold.action}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
           <p className="mt-3 text-sm text-slate/65">
             0 points is perfect attendance — every employee starts there and
             only accrues points through the escalation schedule below.
             Crossing a threshold above drives the dashboard, analytics, and
-            alert severity across the app.
+            alert severity across the app. The verbal warning and required
+            manager meeting thresholds are editable above; PIP is fixed at
+            the 16-point policy cap.
           </p>
         </section>
 
