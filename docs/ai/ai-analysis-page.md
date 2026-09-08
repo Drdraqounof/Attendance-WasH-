@@ -40,7 +40,7 @@ the top of the page. It's the analysis counterpart to `/dashboard`
    (Improving / Stable / Worsening) vs. the prior window of equal
    length.
 7. **Footer disclosure** — "Live query · reads from Neon (schema in
-   docs/database.md) · SMS intake not connected."
+   docs/database/database.md) · SMS intake not connected."
 
 ## Data flow
 

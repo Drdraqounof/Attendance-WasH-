@@ -9,7 +9,7 @@ import {
 /**
  * Lets a signed-in user retune any of the three automated-workflow
  * thresholds (verbal warning / required manager meeting / PIP) from
- * /settings. See docs/policy-thresholds-editing.md.
+ * /settings. See docs/policy/policy-thresholds-editing.md.
  *
  * GET  -> current thresholds (DB-backed, falls back to the static
  *         defaults if the table is ever empty).

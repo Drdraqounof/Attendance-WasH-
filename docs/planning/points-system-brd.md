@@ -84,7 +84,7 @@ This wasn't a greenfield feature — the schema already had real infrastructure 
 
 **Model, as implemented:** deduction-only, inverse scoring (0 = perfect), 16-point hard cap, the four-tier 1/2/4/8 escalation schedule, three automated-workflow thresholds (2pt verbal warning, 10pt required manager meeting, 16pt PIP — see the 2026-09-06 update above). All of it lives in `src/lib/policy-engine.ts` (pure logic) + `src/lib/policy-queries.ts` (Drizzle read/write), and is exercised today by `/insights`' "Employees at risk" list.
 
-Note: `docs/Attendance-Plan.md` describes an older, unrelated 100-point *subtractive* model (start at 100, subtract for infractions). That document is **superseded** by this BRD for anything points-related — kept for historical context, not deleted, but not current.
+Note: `docs/planning/Attendance-Plan.md` describes an older, unrelated 100-point *subtractive* model (start at 100, subtract for infractions). That document is **superseded** by this BRD for anything points-related — kept for historical context, not deleted, but not current.
 
 **2026-09-06: legacy pages unified onto the policy engine.** The gap called out above (mock-driven pages on an old, separate 12-point model) is now closed for the *risk-level plumbing*:
 - `src/lib/dashboard-mock.ts` deleted its own `RISK_THRESHOLDS`/`riskLevelFromPoints`/`RiskLevel` and re-exports the real ones from `policy-engine.ts` — one source of truth for `/dashboard`, `/analytics`, `/settings`, and `/dashboard/people/[id]`.
@@ -124,7 +124,7 @@ Locked decisions for this roadmap:
 - New `warnings` table: `employeeId`, `thresholdKey`, `pointsAtTrigger`, `status` (`open`/`acknowledged`/`resolved`), `createdAt` — the stateful record the KPIs in Part 1 §5 need.
 - `pointEvents.ruleCode` (nullable) — traceability for new events without rewriting history.
 - **New files:** `src/lib/policy-engine.ts` (pure functions: `pointsForRule`, `applyPointEvent`, `thresholdsCrossed`), `src/lib/policy-queries.ts` (transactional Drizzle writes, following the conventions in `src/lib/insights-queries.ts`).
-- **Modify:** `src/lib/attendance-utils.ts` (cap 12→16), `src/db/seed.ts` (seed rules/thresholds), `docs/database.md`.
+- **Modify:** `src/lib/attendance-utils.ts` (cap 12→16), `src/db/seed.ts` (seed rules/thresholds), `docs/database/database.md`.
 - **Tests:** `src/lib/policy-engine.test.ts` — threshold-crossing correctness, cap clamp at 16, and the multi-threshold-in-one-event edge case (open question below).
 
 ### Phase 2 — Automated Workflow Triggers & In-App Notifications

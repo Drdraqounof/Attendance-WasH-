@@ -47,7 +47,7 @@ export default async function SettingsPage() {
   }
 
   // Thresholds are DB-backed and editable (see
-  // docs/policy-thresholds-editing.md) — degrade to the static
+  // docs/policy/policy-thresholds-editing.md) — degrade to the static
   // defaults, read-only, if the DB is unreachable rather than
   // crashing the page.
   let thresholds = POLICY_THRESHOLDS;

@@ -5,7 +5,7 @@ import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
 
 /**
  * First real mutation-capable API route in the app — see
- * docs/employee-track-record-plan.md and docs/points-system-brd.md's
+ * docs/planning/employee-track-record-plan.md and docs/planning/points-system-brd.md's
  * Phase 2 ("list/update warning & action-plan status").
  *
  * POST { employeeId, targetStatus, note? } -> moves the employee to
@@ -16,7 +16,7 @@ import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
  *
  * Gated the same way as every other page in this demo: any signed-in
  * user (hasDemoSession()) — there is no manager/admin role system yet
- * (see docs/employee-track-record-plan.md's open questions).
+ * (see docs/planning/employee-track-record-plan.md's open questions).
  */
 export async function POST(request: Request) {
   const signedIn = await hasDemoSession();

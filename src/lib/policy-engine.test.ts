@@ -121,7 +121,7 @@ describe("policy-engine", () => {
     expect(values).toEqual([...values].sort((a, b) => a - b));
   });
 
-  describe("admin-editable thresholds (see docs/policy-thresholds-editing.md)", () => {
+  describe("admin-editable thresholds (see docs/policy/policy-thresholds-editing.md)", () => {
     // Simulates thresholds retuned via /settings — verbal warning moved
     // to 3, required manager meeting moved to 8 — to confirm the
     // engine bands/fires against whatever thresholds it's given rather

@@ -9,7 +9,7 @@ import {
 /**
  * Lets a signed-in user retune the four escalation tiers (how many
  * points each infraction type is worth) from /settings. See
- * docs/policy-thresholds-editing.md.
+ * docs/policy/policy-thresholds-editing.md.
  *
  * GET   -> current rules (DB-backed, falls back to the static
  *          defaults if the table is ever empty).

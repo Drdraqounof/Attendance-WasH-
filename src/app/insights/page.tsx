@@ -311,7 +311,7 @@ export default async function InsightsPage({
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Live query · reads from Neon (schema in docs/database.md) · SMS
+          Live query · reads from Neon (schema in docs/database/database.md) · SMS
           intake not connected
         </p>
       </main>

@@ -10,7 +10,7 @@ const STATUS_OPTIONS: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
 /**
  * Lets a manager move an employee to any status (not just clearing a
  * PIP) — adds or deducts whatever points that takes, logged as an
- * auditable ledger entry. See docs/employee-track-record-plan.md and
+ * auditable ledger entry. See docs/planning/employee-track-record-plan.md and
  * src/lib/policy-queries.ts::setEmployeeStatus.
  */
 export function StatusChanger({

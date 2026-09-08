@@ -15,7 +15,7 @@ export type AttendanceAlert = {
   riskLevel: RiskLevel;
   /**
    * Legacy 0-100 derived score. No longer shown in the UI (see
-   * docs/employee-track-record-plan.md) — kept only because
+   * docs/planning/employee-track-record-plan.md) — kept only because
    * src/db/seed.ts persists it into the attendance_alerts snapshot
    * table's `attendance_score` column.
    */

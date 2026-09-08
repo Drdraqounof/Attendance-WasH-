@@ -20,7 +20,7 @@ truth:
 - Lateness counts, at-risk flags, reliability scores, and trend direction
   all come from `src/lib/insights-queries.ts`, computed with Drizzle
   queries against the live `employees` / `point_events` tables (schema
-  in `docs/database.md`).
+  in `docs/database/database.md`).
 - OpenAI is **not** used to compute scores, flags, or trends — only to
   turn the already-computed numbers into a readable paragraph.
 

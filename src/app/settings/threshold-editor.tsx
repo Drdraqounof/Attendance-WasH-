@@ -9,7 +9,7 @@ import type { PolicyThreshold, PolicyThresholdKey } from "@/lib/policy-engine";
  * including PIP. Editing PIP also updates every employee's policy cap
  * to match (PIP *is* the cap) — flagged inline since it's a wider
  * blast radius than the other two. See
- * docs/policy-thresholds-editing.md.
+ * docs/policy/policy-thresholds-editing.md.
  */
 export function ThresholdEditor({
   initialThresholds,

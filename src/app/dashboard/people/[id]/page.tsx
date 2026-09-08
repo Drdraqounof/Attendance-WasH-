@@ -90,7 +90,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const isNominee = employeeOfTheMonth()?.person.id === person.id;
 
   // Track record + status-change action read/write the real Neon DB
-  // (see docs/employee-track-record-plan.md) — everything else on this
+  // (see docs/planning/employee-track-record-plan.md) — everything else on this
   // page above is still mock-driven. Degrade gracefully rather than
   // crash the whole profile page if the DB is unreachable.
   let history: HistoryEntry[] = [];

@@ -38,8 +38,8 @@ Runs the Vitest suite covering the mock data helpers and the attendance scoring 
 ## Notes
 
 - Demo data only — SMS intake is not connected yet.
-- More detail: [`docs/plain-english.md`](docs/plain-english.md) and [`docs/system-overview.md`](docs/system-overview.md).
-- Full product spec (SMS intake, AI extraction, point rules, alerts, future roadmap): [`docs/Attendance-Plan.md`](docs/Attendance-Plan.md).
+- More detail: [`docs/overview/plain-english.md`](docs/overview/plain-english.md) and [`docs/overview/system-overview.md`](docs/overview/system-overview.md).
+- Full product spec (SMS intake, AI extraction, point rules, alerts, future roadmap): [`docs/planning/Attendance-Plan.md`](docs/planning/Attendance-Plan.md).
 
 ## Stack
 

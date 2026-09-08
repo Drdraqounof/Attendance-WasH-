@@ -49,7 +49,7 @@ union types in the mock files (or `src/lib/policy-engine.ts`, for
 
 ## The 16-point escalating policy (added 2026-09-03)
 
-See `docs/points-system-brd.md` for the full business requirements. In short:
+See `docs/planning/points-system-brd.md` for the full business requirements. In short:
 
 - `src/lib/policy-engine.ts` is the pure-logic source of truth: the four
   escalation rules (1/2/4/8 points), the three automated-workflow
@@ -73,7 +73,7 @@ See `docs/points-system-brd.md` for the full business requirements. In short:
   Settings now renders the real escalation schedule/thresholds instead
   of the old positive/deduction catalog. Full parity (a dedicated
   `/reports` page, `warnings`-table-backed KPIs, filters) is still
-  Phase 6 in `docs/points-system-brd.md` — this pass only unified the
+  Phase 6 in `docs/planning/points-system-brd.md` — this pass only unified the
   risk-level plumbing and demo data, not the reporting/analytics
   rebuild.
 

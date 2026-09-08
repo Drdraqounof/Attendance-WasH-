@@ -22,8 +22,8 @@ All three derive from `attendanceScoreFromPoints()` in `src/lib/attendance-utils
 
 ### Relevant existing state (confirmed by exploration)
 - `/dashboard` and `/dashboard/people/[id]` are **100% mock-data-driven** (`src/lib/people-mock.ts`, `dashboard-mock.ts`, `alerts-mock.ts`) — no DB access anywhere in that chain.
-- The real Neon DB (`employees`, `pointEvents`, `warnings`, `policyThresholds` tables — see `docs/database.md`) already has matching rows for the same 11 demo employee IDs (`e01`..`e11`), seeded by `src/db/seed.ts` from the same mock source data. DB-backed reads/writes for a specific employee ID are already possible with zero new migrations.
-- **No API routes exist anywhere in the app** (`src/app/api/` is empty). Phase 2 of `docs/points-system-brd.md` already earmarked `src/app/api/point-events/route.ts` and `src/app/api/warnings/route.ts` for exactly this kind of work — this plan builds those rather than inventing new paths.
+- The real Neon DB (`employees`, `pointEvents`, `warnings`, `policyThresholds` tables — see `docs/database/database.md`) already has matching rows for the same 11 demo employee IDs (`e01`..`e11`), seeded by `src/db/seed.ts` from the same mock source data. DB-backed reads/writes for a specific employee ID are already possible with zero new migrations.
+- **No API routes exist anywhere in the app** (`src/app/api/` is empty). Phase 2 of `docs/planning/points-system-brd.md` already earmarked `src/app/api/point-events/route.ts` and `src/app/api/warnings/route.ts` for exactly this kind of work — this plan builds those rather than inventing new paths.
 - **No role/permission system exists anywhere.** Auth is a single `hasDemoSession()` boolean cookie check (`src/lib/auth-mock.ts`), used identically on every page. There is no manager/admin/employee distinction.
 
 ## 2. Score-Display Fix (no DB dependency, ships first)
@@ -54,7 +54,7 @@ A new section on the existing person profile page (`/dashboard/people/[id]`) —
 
 ## 4. Status-Change Action (generalized 2026-09-08)
 
-A manager can move an employee to **any** of the four statuses (Clear / Watch / At Risk / PIP) — not just clear a PIP — and the system adds or deducts whatever points that requires, logged as an auditable action, never a silent DB edit. Same "ledger it, don't erase it" pattern as the still-unbuilt anniversary reset described in `docs/points-system-brd.md` Phase 5.
+A manager can move an employee to **any** of the four statuses (Clear / Watch / At Risk / PIP) — not just clear a PIP — and the system adds or deducts whatever points that requires, logged as an auditable action, never a silent DB edit. Same "ledger it, don't erase it" pattern as the still-unbuilt anniversary reset described in `docs/planning/points-system-brd.md` Phase 5.
 
 - **New function** — `setEmployeeStatus(employeeId, targetStatus, note?)` in `src/lib/policy-queries.ts`:
   1. Compute the target point value: the chosen band's lower boundary — 0 for Clear, the verbal-warning threshold for Watch, the manager-meeting threshold for At Risk, the employee's policy cap for PIP (all read live from `getPolicyThresholds()`, so admin-edited thresholds are respected).

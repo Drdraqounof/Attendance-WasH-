@@ -37,7 +37,7 @@ const ESCALATION_RULE_CODES: EscalationRuleCode[] = [
  * All three thresholds are editable from Settings. Editing "pip" also
  * bulk-updates every employee's `policyCap` to match — PIP *is* the
  * policy cap, so the two are kept in sync rather than letting them
- * drift apart. See docs/policy-thresholds-editing.md.
+ * drift apart. See docs/policy/policy-thresholds-editing.md.
  */
 const EDITABLE_THRESHOLD_KEYS: PolicyThresholdKey[] = [
   "verbal_warning",
@@ -121,7 +121,7 @@ export type UpdatePolicyThresholdResult = {
  * so the tiers can never cross each other: 0 < verbal_warning <
  * manager_meeting < pip. Editing "pip" additionally bulk-updates every
  * employee's `policyCap` to the new value, since PIP is defined as the
- * policy cap — see docs/policy-thresholds-editing.md.
+ * policy cap — see docs/policy/policy-thresholds-editing.md.
  */
 export async function updatePolicyThreshold(
   key: PolicyThresholdKey,
@@ -309,7 +309,7 @@ export type EmployeePolicySnapshot = {
 /**
  * The employee's *real* (DB-backed) current points/band — distinct
  * from the mock-driven `points` shown elsewhere on
- * /dashboard/people/[id] today. See docs/employee-track-record-plan.md.
+ * /dashboard/people/[id] today. See docs/planning/employee-track-record-plan.md.
  */
 export async function getEmployeePolicySnapshot(
   employeeId: string,
@@ -428,7 +428,7 @@ export type SetEmployeeStatusResult = {
  * band — the lower boundary, since a band is a range and the boundary
  * is the only unambiguous single point within it. "clear" is always 0;
  * "pip_flag" is always the employee's policy cap (see
- * docs/policy-thresholds-editing.md's PIP↔cap coupling).
+ * docs/policy/policy-thresholds-editing.md's PIP↔cap coupling).
  */
 function pointsForTargetStatus(
   targetStatus: RiskLevel,
@@ -462,7 +462,7 @@ const TARGET_STATUS_LABELS: Record<RiskLevel, string> = {
  * many points are needed to land at that band's boundary, logged as
  * one auditable ledger entry (never a silent edit) — same "ledger it,
  * don't erase it" shape as the (still-unbuilt) anniversary reset
- * described in docs/points-system-brd.md Phase 5.
+ * described in docs/planning/points-system-brd.md Phase 5.
  *
  * Moving points up fires the same threshold-crossing/warnings logic as
  * a real infraction (see recordPointEvent). Moving points down

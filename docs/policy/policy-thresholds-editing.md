@@ -24,7 +24,7 @@ PIP isn't an independent number — it's the point total at which an employee is
 
 ## How it works
 
-- **Schema**: no migration needed — `policy_thresholds` (`key`, `point_value`, `label`, `active`) already existed from Phase 1 of `docs/points-system-brd.md`. The descriptive "action" text (what happens when a threshold fires) isn't a DB column; it's merged in from a small static lookup in `policy-queries.ts` keyed by threshold `key`, so edits don't require a schema change just to keep that copy showing.
+- **Schema**: no migration needed — `policy_thresholds` (`key`, `point_value`, `label`, `active`) already existed from Phase 1 of `docs/planning/points-system-brd.md`. The descriptive "action" text (what happens when a threshold fires) isn't a DB column; it's merged in from a small static lookup in `policy-queries.ts` keyed by threshold `key`, so edits don't require a schema change just to keep that copy showing.
 - **Read**: `getPolicyThresholds()` in `src/lib/policy-queries.ts` — reads the three rows, ordered by point value, falling back to the static `POLICY_THRESHOLDS` constant if the table is ever empty.
 - **Write**: `updatePolicyThreshold(key, pointValue)` — validates the key is one of the two editable ones and the ordering rule above, then updates the row.
 - **API**: `src/app/api/policy-thresholds/route.ts` — `GET` (current thresholds) and `PATCH { key, pointValue }` (apply an edit), gated by `hasDemoSession()` like every other action in the app today (no manager/admin role system exists yet).
@@ -40,7 +40,7 @@ PIP isn't an independent number — it's the point total at which an employee is
 
 ### Where edits do *not* take effect (known limitation)
 
-The legacy mock-driven pages (`/dashboard`'s roster/alerts, `/analytics`, the person profile page's *displayed* points and risk label) still call `riskLevelFromPoints`/`thresholdsCrossed` with no override, so they keep using the static `POLICY_THRESHOLDS` defaults regardless of what's been edited in Settings. This is the same mock-vs-DB divergence already documented in `docs/employee-track-record-plan.md` — not resolved here, just not made worse.
+The legacy mock-driven pages (`/dashboard`'s roster/alerts, `/analytics`, the person profile page's *displayed* points and risk label) still call `riskLevelFromPoints`/`thresholdsCrossed` with no override, so they keep using the static `POLICY_THRESHOLDS` defaults regardless of what's been edited in Settings. This is the same mock-vs-DB divergence already documented in `docs/planning/employee-track-record-plan.md` — not resolved here, just not made worse.
 
 ## Part 2 — Escalation schedule
 

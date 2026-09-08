@@ -1,5 +1,5 @@
 /**
- * The 16-point escalating attendance policy — see docs/points-system-brd.md.
+ * The 16-point escalating attendance policy — see docs/planning/points-system-brd.md.
  *
  * Pure calculation only (no DB access, no I/O) so the rules are easy to
  * unit test in isolation. src/lib/policy-queries.ts wraps these functions
@@ -28,7 +28,7 @@ export type EscalationRule = {
   points: number;
 };
 
-/** The four-tier escalation schedule from docs/points-system-brd.md §1. */
+/** The four-tier escalation schedule from docs/planning/points-system-brd.md §1. */
 export const ESCALATION_RULES: EscalationRule[] = [
   { code: "minor_tardy", label: "Minor tardy / minor infraction", points: 1 },
   {
@@ -57,7 +57,7 @@ export type PolicyThreshold = {
   action: string;
 };
 
-/** The three automated-workflow thresholds from docs/points-system-brd.md §2. */
+/** The three automated-workflow thresholds from docs/planning/points-system-brd.md §2. */
 export const POLICY_THRESHOLDS: PolicyThreshold[] = [
   {
     key: "verbal_warning",

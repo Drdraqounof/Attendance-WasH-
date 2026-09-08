@@ -15,7 +15,7 @@ import {
  * (people-mock.ts, dashboard-mock.ts, alerts-mock.ts, manager-mock.ts,
  * settings-mock.ts). The app still reads from those mock files —
  * this schema/seed only stands up the real Neon Postgres tables
- * alongside them. See docs/database.md.
+ * alongside them. See docs/database/database.md.
  */
 
 export const scheduleStatusEnum = pgEnum("schedule_status", [
@@ -72,7 +72,7 @@ export const employees = pgTable("employees", {
   team: text("team").notNull(),
   hireDate: date("hire_date").notNull(),
   phoneMasked: text("phone_masked").notNull(),
-  // 16-point escalating policy cap — see docs/points-system-brd.md.
+  // 16-point escalating policy cap — see docs/planning/points-system-brd.md.
   policyCap: integer("policy_cap").notNull().default(16),
   points: integer("points").notNull().default(0),
   lastSignal: text("last_signal").notNull(),
@@ -131,7 +131,7 @@ export const pointRules = pgTable("point_rules", {
  * Admin-editable point thresholds that trigger an automated workflow
  * (verbal warning / action plan / final review). See
  * src/lib/policy-engine.ts's POLICY_THRESHOLDS for the seeded defaults
- * and docs/points-system-brd.md for the business rules.
+ * and docs/planning/points-system-brd.md for the business rules.
  */
 export const policyThresholds = pgTable("policy_thresholds", {
   key: text("key").primaryKey(), // e.g. "verbal_warning", "manager_meeting", "pip"
@@ -143,7 +143,7 @@ export const policyThresholds = pgTable("policy_thresholds", {
 /**
  * Stateful record of a threshold crossing (distinct from the raw
  * attendance_alerts feed below) — backs the "active warning" / "action
- * plan status" KPIs in docs/points-system-brd.md's analytics section.
+ * plan status" KPIs in docs/planning/points-system-brd.md's analytics section.
  */
 export const warnings = pgTable("warnings", {
   id: serial("id").primaryKey(),

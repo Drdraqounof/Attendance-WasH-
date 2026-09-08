@@ -10,12 +10,12 @@ import type { TrendDirection } from "@/lib/ai-analysis-mock";
  * `/insights` sections that used to read from ai-analysis-mock.ts +
  * people-mock.ts — driven by a `days` time window instead of a
  * hardcoded 30, and querying `employees` / `point_events` directly.
- * See docs/database.md for the schema these read from.
+ * See docs/database/database.md for the schema these read from.
  *
  * `AtRiskRow`/`ReliabilityRow` show raw points + a policy-engine risk
  * band (see src/lib/policy-engine.ts), not the old 0-100
  * attendanceScoreFromPoints() percentage — see
- * docs/employee-track-record-plan.md.
+ * docs/planning/employee-track-record-plan.md.
  *
  * The mock files are untouched — /analytics still uses them.
  */
@@ -120,7 +120,7 @@ export type AtRiskRow = {
  * "Employees at risk of attendance problems" — watch band (the lowest
  * automated-workflow threshold, 2 points) and above, worst first.
  * Employees who've reached the 16-point cap (`isPipFlag: true`) sort to
- * the top, per docs/points-system-brd.md's escalation policy.
+ * the top, per docs/planning/points-system-brd.md's escalation policy.
  */
 export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
   const since = isoDateDaysAgo(days);

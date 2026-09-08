@@ -488,7 +488,7 @@ export function teamRiskBreakdown(roster: RosterEmployee[]): TeamRiskRow[] {
     const level = riskLevelFromPoints(row.points);
     // Fold "pip_flag" (the most severe band) into the "at risk" tally —
     // this legacy 3-column breakdown hasn't been redesigned with a
-    // dedicated PIP column yet (see docs/points-system-brd.md Phase 6).
+    // dedicated PIP column yet (see docs/planning/points-system-brd.md Phase 6).
     if (level === "pip_flag" || level === "at_risk") current.atRisk += 1;
     else if (level === "watch") current.watch += 1;
     else current.clear += 1;

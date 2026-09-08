@@ -6,7 +6,7 @@ import type { EscalationRule, EscalationRuleCode } from "@/lib/policy-engine";
 
 /**
  * Lets a signed-in user retune how many points each escalation tier is
- * worth. See docs/policy-thresholds-editing.md.
+ * worth. See docs/policy/policy-thresholds-editing.md.
  */
 export function EscalationEditor({
   initialRules,

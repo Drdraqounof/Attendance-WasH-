@@ -8,7 +8,7 @@
  * "positive points" + "deduction" model) has been retired — the
  * Settings page now renders the real 16-point escalation schedule and
  * automated thresholds directly from src/lib/policy-engine.ts, the
- * same source of truth /insights uses. See docs/points-system-brd.md.
+ * same source of truth /insights uses. See docs/planning/points-system-brd.md.
  */
 
 /** localStorage key the settings page writes toggle state to (read by
