@@ -15,6 +15,13 @@
       "when": 1788465831313,
       "tag": "0001_open_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788889885774,
+      "tag": "0002_chemical_the_renegades",
+      "breakpoints": true
     }
   ]
 }

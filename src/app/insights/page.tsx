@@ -13,6 +13,7 @@ import {
   signalTypeBreakdown,
 } from "@/lib/insights-queries";
 import { AiSummaryCard, AiSummaryCardSkeleton } from "./ai-summary-card";
+import { AtRiskCard, AtRiskCardWithRecommendations } from "./at-risk-card";
 
 export const metadata: Metadata = {
   title: "AI Attendance Analysis",
@@ -193,58 +194,10 @@ export default async function InsightsPage({
             </ul>
           </section>
 
-          {/* At-risk employees */}
-          <section aria-labelledby="at-risk-heading">
-            <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2
-                id="at-risk-heading"
-                className="font-display text-lg font-semibold tracking-tight text-ink"
-              >
-                Employees at risk
-              </h2>
-              <p className="text-sm tracking-wide text-slate/55 uppercase">
-                {atRisk.length} flagged
-              </p>
-            </div>
-            {atRisk.length === 0 ? (
-              <div className="border border-line bg-white/60 px-5 py-6 text-sm text-slate/65">
-                No employees flagged as at risk right now.
-              </div>
-            ) : (
-              <ul className="divide-y divide-line/70 border border-line bg-white/65">
-                {atRisk.map((row) => (
-                  <li key={row.employeeId}>
-                    <Link
-                      href={`/dashboard/people/${row.employeeId}`}
-                      className="flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-5"
-                    >
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-2">
-                          <span className="block truncate font-medium text-ink">
-                            {row.name}
-                          </span>
-                          {row.isPipFlag && (
-                            <span className="shrink-0 border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
-                              On PIP
-                            </span>
-                          )}
-                        </span>
-                        <span className="block truncate text-sm text-slate/55">
-                          {row.reason}
-                        </span>
-                      </span>
-                      <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-danger-soft">
-                        {row.points} pts
-                        <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                          · {RISK_LABELS[row.riskLevel]}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {/* At-risk employees — recommendation line streams in independently */}
+          <Suspense fallback={<AtRiskCard atRisk={atRisk} />}>
+            <AtRiskCardWithRecommendations atRisk={atRisk} days={days} />
+          </Suspense>
         </div>
 
         {/* Attendance points & improvement trends */}

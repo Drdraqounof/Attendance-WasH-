@@ -163,6 +163,42 @@ export function applyPointEvent(
   };
 }
 
+export type RiskRecommendation = {
+  /** The highest threshold currently crossed, or null if none. */
+  thresholdKey: PolicyThresholdKey | null;
+  /** Deterministic, template-built sentence grounded in real point values — safe to show without AI. */
+  text: string;
+};
+
+/**
+ * Deterministic "what to do next" for an employee, built from the same
+ * threshold `.action` copy already shown elsewhere — never generated
+ * text. This is both the fallback and the grounding fact set for the
+ * optional AI rewrite in src/lib/ai-recommendations.ts.
+ */
+export function recommendedNextStep(
+  points: number,
+  cap: number = POLICY_CAP,
+  thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
+): RiskRecommendation {
+  const crossed = thresholds
+    .filter((t) => points >= t.pointValue)
+    .sort((a, b) => b.pointValue - a.pointValue);
+  const highest = crossed[0];
+
+  if (!highest) {
+    return {
+      thresholdKey: null,
+      text: `No corrective action required at ${points} pts.`,
+    };
+  }
+
+  return {
+    thresholdKey: highest.key,
+    text: `At ${points} pts (crossed the ${highest.label} threshold at ${highest.pointValue}), ${highest.action}`,
+  };
+}
+
 export type RiskLevel = "clear" | "watch" | "at_risk" | "pip_flag";
 
 /**

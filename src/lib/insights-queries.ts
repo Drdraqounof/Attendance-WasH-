@@ -109,6 +109,8 @@ export type AtRiskRow = {
   name: string;
   /** Raw open points (16-point policy) — the display field, not a 0-100 score. */
   points: number;
+  /** This employee's policy cap (usually 16) — needed to ground recommendedNextStep(). */
+  policyCap: number;
   reason: string;
   /** How close this employee is to the 16-point cap — see policy-engine.ts. */
   riskLevel: RiskLevel;
@@ -156,6 +158,7 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
         employeeId: row.id,
         name: row.name,
         points: row.points,
+        policyCap: row.policyCap,
         reason:
           incidentCount > 0
             ? `${incidentCount} incident${incidentCount === 1 ? "" : "s"} in the last ${days} days`
