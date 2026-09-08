@@ -131,9 +131,9 @@ export default async function SettingsPage() {
             0 points is perfect attendance — every employee starts there and
             only accrues points through the escalation schedule below.
             Crossing a threshold above drives the dashboard, analytics, and
-            alert severity across the app. The verbal warning and required
-            manager meeting thresholds are editable above; PIP is fixed at
-            the 16-point policy cap.
+            alert severity across the app. All three thresholds are editable
+            above — changing PIP also updates every employee's point cap,
+            since PIP is defined as the cap.
           </p>
         </section>
 

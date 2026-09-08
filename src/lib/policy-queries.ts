@@ -18,14 +18,15 @@ import {
 } from "@/lib/policy-engine";
 
 /**
- * The two thresholds an admin can retune from Settings. "pip" is
- * intentionally excluded — it's defined as the employee's policy cap
- * (employees.policyCap), not an independently editable trigger; see
- * docs/policy-thresholds-editing.md.
+ * All three thresholds are editable from Settings. Editing "pip" also
+ * bulk-updates every employee's `policyCap` to match — PIP *is* the
+ * policy cap, so the two are kept in sync rather than letting them
+ * drift apart. See docs/policy-thresholds-editing.md.
  */
 const EDITABLE_THRESHOLD_KEYS: PolicyThresholdKey[] = [
   "verbal_warning",
   "manager_meeting",
+  "pip",
 ];
 
 /**
@@ -100,19 +101,18 @@ export type UpdatePolicyThresholdResult = {
 };
 
 /**
- * Admin edit: retune one of the two editable thresholds (verbal
- * warning / required manager meeting). Validates ordering so the
- * three tiers can never cross each other or the policy cap:
- * 0 < verbal_warning < manager_meeting < POLICY_CAP.
+ * Admin edit: retune any of the three thresholds. Validates ordering
+ * so the tiers can never cross each other: 0 < verbal_warning <
+ * manager_meeting < pip. Editing "pip" additionally bulk-updates every
+ * employee's `policyCap` to the new value, since PIP is defined as the
+ * policy cap — see docs/policy-thresholds-editing.md.
  */
 export async function updatePolicyThreshold(
   key: PolicyThresholdKey,
   pointValue: number,
 ): Promise<UpdatePolicyThresholdResult> {
   if (!EDITABLE_THRESHOLD_KEYS.includes(key)) {
-    throw new Error(
-      `"${key}" isn't editable — it's fixed at the policy cap (${POLICY_CAP}).`,
-    );
+    throw new Error(`"${key}" isn't a recognized threshold.`);
   }
   if (!Number.isInteger(pointValue) || pointValue <= 0) {
     throw new Error("Threshold must be a positive whole number of points.");
@@ -135,6 +135,16 @@ export async function updatePolicyThreshold(
     .update(policyThresholds)
     .set({ pointValue })
     .where(eq(policyThresholds.key, key));
+
+  if (key === "pip") {
+    // PIP *is* the policy cap — keep every employee's cap in sync
+    // rather than letting the displayed threshold and the actual
+    // clamp/pip-flag behavior (which reads employees.policyCap) drift
+    // apart. Org-wide bulk update: every employee shares one cap today
+    // (see src/db/seed.ts::POLICY_CAP), there's no per-employee
+    // override to preserve.
+    await db.update(employees).set({ policyCap: pointValue });
+  }
 
   return { thresholds: next };
 }
