@@ -6,6 +6,7 @@ import {
   type RosterEmployee,
 } from "@/lib/dashboard-mock";
 import Link from "next/link";
+import { AttendanceImportButton } from "./attendance-import-button";
 
 function riskTone(level: RiskLevel): string {
   switch (level) {
@@ -109,13 +110,16 @@ export function PriorityRoster({ roster }: { roster: RosterEmployee[] }) {
 
   return (
     <div className="border border-line bg-white/65">
-      <div className="flex items-baseline justify-between gap-4 border-b border-line/80 px-4 py-3 sm:px-5">
-        <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-          Priority roster
-        </h2>
-        <p className="text-sm tracking-wide text-slate/55 uppercase">
-          Highest risk first · click a row
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 px-4 py-3 sm:px-5">
+        <div>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
+            Priority roster
+          </h2>
+          <p className="text-sm tracking-wide text-slate/55 uppercase">
+            Highest risk first · click a row
+          </p>
+        </div>
+        <AttendanceImportButton />
       </div>
 
       <div

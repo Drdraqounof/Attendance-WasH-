@@ -1,27 +1,54 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ALERT_SEVERITY_LABELS, type AttendanceAlert } from "@/lib/alerts-mock";
+import type { NotificationRow } from "@/lib/notifications-queries";
 
 const MAX_VISIBLE = 5;
 
-function severityDot(severity: AttendanceAlert["severity"]): string {
+const SEVERITY_LABELS: Record<NotificationRow["severity"], string> = {
+  critical: "Critical",
+  warning: "Warning",
+};
+
+function severityDot(severity: NotificationRow["severity"]): string {
   return severity === "critical" ? "bg-danger-soft" : "bg-danger-soft/55";
 }
 
+async function markRead(payload: { id: number } | { all: true }) {
+  try {
+    await fetch("/api/notifications/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Best-effort — a failed mark-read shouldn't block navigation or
+    // the dropdown from closing.
+  }
+}
+
 /**
- * Header notification bell. Renders a floating overlay panel — it's
- * `absolute` inside a `relative` wrapper with a high z-index, so it
- * layers on top of the page instead of pushing content down, and
- * closes on outside click, Escape, or picking an alert.
+ * Header notification bell — DB-backed via notifications-queries.ts
+ * (see src/lib/policy-queries.ts::notifyIfPipCrossed for how rows get
+ * created). Renders a floating overlay panel — it's `absolute` inside
+ * a `relative` wrapper with a high z-index, so it layers on top of the
+ * page instead of pushing content down, and closes on outside click,
+ * Escape, or picking a notification.
  */
-export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
+export function NotificationBell({
+  notifications,
+  unreadCount,
+}: {
+  notifications: NotificationRow[];
+  unreadCount: number;
+}) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-  const criticalCount = alerts.filter((a) => a.severity === "critical").length;
-  const visible = alerts.slice(0, MAX_VISIBLE);
+  const visible = notifications.slice(0, MAX_VISIBLE);
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +70,11 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
     };
   }, [open]);
 
+  async function handleMarkAllRead() {
+    await markRead({ all: true });
+    router.refresh();
+  }
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
@@ -50,7 +82,7 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Notifications${alerts.length > 0 ? `, ${alerts.length} open` : ""}`}
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         className="relative flex h-9 w-9 items-center justify-center text-slate/70 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         <svg
@@ -68,14 +100,12 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
           />
           <path strokeLinecap="round" d="M9.5 18.5a2.5 2.5 0 0 0 5 0" />
         </svg>
-        {alerts.length > 0 ? (
+        {unreadCount > 0 ? (
           <span
-            className={`absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[10px] font-semibold text-white tabular-nums ${
-              criticalCount > 0 ? "bg-danger-soft" : "bg-accent-deep"
-            }`}
+            className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center bg-danger-soft px-1 text-[10px] font-semibold text-white tabular-nums"
             aria-hidden
           >
-            {alerts.length > 9 ? "9+" : alerts.length}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
       </button>
@@ -90,38 +120,63 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
             <p className="font-display text-sm font-semibold tracking-tight text-ink">
               Notifications
             </p>
-            <p className="text-sm tracking-wide text-slate/55 uppercase">
-              {alerts.length} open
-            </p>
+            {unreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="text-sm font-medium text-accent-deep transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Mark all as read
+              </button>
+            ) : (
+              <p className="text-sm tracking-wide text-slate/55 uppercase">
+                All read
+              </p>
+            )}
           </div>
 
           {visible.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate/65">
-              No active warnings. All signals within policy.
+              No notifications yet.
             </p>
           ) : (
             <ul className="max-h-96 divide-y divide-line/70 overflow-y-auto">
-              {visible.map((alert) => (
-                <li key={alert.id}>
+              {visible.map((notification) => (
+                <li key={notification.id}>
                   <Link
-                    href={`/dashboard/people/${alert.personId}`}
-                    onClick={() => setOpen(false)}
+                    href={`/dashboard/people/${notification.employeeId}`}
+                    onClick={() => {
+                      setOpen(false);
+                      if (notification.status === "unread") {
+                        void markRead({ id: notification.id });
+                      }
+                    }}
                     className="block px-4 py-3 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
                   >
                     <div className="flex items-center gap-2.5">
                       <span
-                        className={`h-1.5 w-1.5 shrink-0 ${severityDot(alert.severity)}`}
+                        className={`h-1.5 w-1.5 shrink-0 ${
+                          notification.status === "unread"
+                            ? severityDot(notification.severity)
+                            : "bg-slate/25"
+                        }`}
                         aria-hidden
                       />
-                      <span className="truncate font-medium text-ink">
-                        {alert.employee}
+                      <span
+                        className={`truncate ${
+                          notification.status === "unread"
+                            ? "font-medium text-ink"
+                            : "text-slate/60"
+                        }`}
+                      >
+                        {notification.employeeName}
                       </span>
                       <span className="ml-auto shrink-0 text-sm font-medium text-danger-soft">
-                        {ALERT_SEVERITY_LABELS[alert.severity]}
+                        {SEVERITY_LABELS[notification.severity]}
                       </span>
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate/65 pl-4">
-                      {alert.issue}
+                    <p className="mt-1 truncate pl-4 text-sm text-slate/65">
+                      {notification.title}
                     </p>
                   </Link>
                 </li>

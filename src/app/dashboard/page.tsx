@@ -11,8 +11,10 @@ import {
   riskLevelFromPoints,
   summarizeRoster,
 } from "@/lib/dashboard-mock";
+import { getNotifications } from "@/lib/notifications-queries";
 import { employeeOfTheMonth } from "@/lib/people-mock";
 import { AttendanceAlerts } from "./attendance-alerts";
+import { PipNotificationsBanner } from "./pip-notifications-banner";
 import {
   dashboardRoster,
   InterveneNow,
@@ -33,6 +35,10 @@ export default async function DashboardPage() {
   const intervene = interventionTargets(dashboardRoster, 3);
   const alerts = generateAttendanceAlerts();
   const nominee = employeeOfTheMonth();
+  const recentNotifications = await getNotifications(5);
+  const pipNotifications = recentNotifications.filter(
+    (n) => n.thresholdKey === "pip",
+  );
 
   const metrics = [
     {
@@ -133,6 +139,12 @@ export default async function DashboardPage() {
         <div className="animate-fade-up-delay-3 mt-8">
           <InterveneNow targets={intervene} />
         </div>
+
+        {pipNotifications.length > 0 && (
+          <div className="animate-fade-up-delay-3 mt-8">
+            <PipNotificationsBanner notifications={pipNotifications} />
+          </div>
+        )}
 
         <div className="animate-fade-up-delay-3 mt-8">
           <AttendanceAlerts alerts={alerts} />

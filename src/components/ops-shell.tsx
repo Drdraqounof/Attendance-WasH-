@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationBell } from "@/components/notification-bell";
-import { generateAttendanceAlerts } from "@/lib/alerts-mock";
+import { getNotifications, getUnreadNotificationCount } from "@/lib/notifications-queries";
 
 type OpsNavActive =
   | "dashboard"
@@ -30,14 +30,17 @@ const navLink = (
   </Link>
 );
 
-export function OpsHeader({
+export async function OpsHeader({
   active,
   crumb,
 }: {
   active: OpsNavActive;
   crumb?: string;
 }) {
-  const alerts = generateAttendanceAlerts();
+  const [notifications, unreadCount] = await Promise.all([
+    getNotifications(10),
+    getUnreadNotificationCount(),
+  ]);
 
   return (
     <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
@@ -83,7 +86,7 @@ export function OpsHeader({
             {navLink("/insights", "AI", active === "insights")}
             {navLink("/settings", "Settings", active === "settings")}
           </nav>
-          <NotificationBell alerts={alerts} />
+          <NotificationBell notifications={notifications} unreadCount={unreadCount} />
           {navLink("/profile", "Profile", active === "profile")}
           <SignOutButton />
         </div>
