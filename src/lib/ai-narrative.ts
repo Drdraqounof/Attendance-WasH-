@@ -140,3 +140,51 @@ export const generateInsightsNarrative = unstable_cache(
   ["insights-narrative"],
   { revalidate: 3600, tags: ["insights-narrative"] },
 );
+
+/**
+ * Rewrites an existing summary per a manager's feedback (e.g. "make it
+ * shorter", "call out the PIP employees first"). Used by the "Build
+ * report" flow on /insights (src/app/insights/report-builder.tsx) —
+ * deliberately uncached, since it's a one-off, request-specific
+ * revision rather than the standard per-window summary.
+ */
+export async function refineInsightsNarrative(input: {
+  currentText: string;
+  feedback: string;
+}): Promise<InsightsNarrative> {
+  const client = getOpenAIClient();
+  if (!client) {
+    return { text: input.currentText, source: "fallback" };
+  }
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: OPENAI_MODEL,
+      temperature: 0.4,
+      max_tokens: 220,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are revising an attendance executive summary for a manager dashboard, " +
+            "based on the manager's requested changes. Never invent data not present in " +
+            "the original summary — only rephrase, reorder, or emphasize it. Professional, " +
+            "direct tone, 3-5 sentences.",
+        },
+        {
+          role: "user",
+          content: `Current summary:\n${input.currentText}\n\nRequested changes:\n${input.feedback}\n\nRewrite the summary incorporating this feedback.`,
+        },
+      ],
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim();
+    if (!text) {
+      return { text: input.currentText, source: "fallback" };
+    }
+    return { text, source: "openai" };
+  } catch (error) {
+    console.error("[ai-narrative] refine request failed:", error);
+    return { text: input.currentText, source: "fallback" };
+  }
+}
