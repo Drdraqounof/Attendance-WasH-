@@ -6,6 +6,7 @@ import { OpsShell } from "@/components/ops-shell";
 import { TREND_LABELS, type TrendDirection } from "@/lib/ai-analysis-mock";
 import { hasDemoSession } from "@/lib/auth-mock";
 import { RISK_LABELS } from "@/lib/dashboard-mock";
+import { DAY_WINDOWS, parseDays } from "@/lib/insights-days";
 import {
   employeesAtRisk,
   frequentLatenessPatterns,
@@ -26,16 +27,7 @@ const CAPABILITIES = [
   "Attendance points & policy status",
 ] as const;
 
-const DAY_WINDOWS = [7, 30, 90] as const;
-const DEFAULT_DAYS = 30;
 const RELIABILITY_LIMIT = 10;
-
-function parseDays(raw: string | undefined): number {
-  const parsed = Number(raw);
-  return DAY_WINDOWS.includes(parsed as (typeof DAY_WINDOWS)[number])
-    ? parsed
-    : DEFAULT_DAYS;
-}
 
 function trendTone(trend: TrendDirection): string {
   if (trend === "improving") return "text-accent-deep";
