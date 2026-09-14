@@ -713,6 +713,10 @@ export const PEOPLE_COPY: Record<
     noteLabel: string;
     notePlaceholder: string;
     noteHint: string;
+    errorNoteRequired: string;
+    changeStatusModalHeading: string;
+    cancelButton: string;
+    confirmButton: string;
   }
 > = {
   en: {
@@ -758,9 +762,13 @@ export const PEOPLE_COPY: Record<
     changeStatus: "Change status",
     errorStatusChangeFailed: "Status change failed.",
     targetStatusLabel: "Target status",
-    noteLabel: "Note (optional)",
+    noteLabel: "Reason for change",
     notePlaceholder: "Why is this changing? e.g. \"Cleared after doctor's note on file.\"",
-    noteHint: "Saved with this change and visible in the track record below.",
+    noteHint: "Required — saved with this change and visible in the track record below.",
+    errorNoteRequired: "Enter a reason for this status change before applying it.",
+    changeStatusModalHeading: "Change status",
+    cancelButton: "Cancel",
+    confirmButton: "Confirm change",
   },
   es: {
     backToDashboard: "Volver al panel",
@@ -806,10 +814,16 @@ export const PEOPLE_COPY: Record<
     changeStatus: "Cambiar estado",
     errorStatusChangeFailed: "El cambio de estado falló.",
     targetStatusLabel: "Estado objetivo",
-    noteLabel: "Nota (opcional)",
+    noteLabel: "Motivo del cambio",
     notePlaceholder:
       "¿Por qué se hace este cambio? p. ej. \"Se levantó tras justificante médico archivado.\"",
-    noteHint: "Se guarda con este cambio y es visible en el historial de desempeño.",
+    noteHint:
+      "Obligatorio — se guarda con este cambio y es visible en el historial de desempeño.",
+    errorNoteRequired:
+      "Ingresa un motivo para este cambio de estado antes de aplicarlo.",
+    changeStatusModalHeading: "Cambiar estado",
+    cancelButton: "Cancelar",
+    confirmButton: "Confirmar cambio",
   },
 };
 
