@@ -4,6 +4,7 @@ import {
   riskLevelFromPoints,
   type RosterEmployee,
 } from "@/lib/dashboard-mock";
+import { localizeRoster, nomineeReason, type Lang } from "@/lib/i18n";
 
 export type ScheduleStatus =
   | "scheduled"
@@ -412,21 +413,23 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
   },
 };
 
-export function getPersonById(id: string): PersonProfile | null {
+export function getPersonById(id: string, lang: Lang = "en"): PersonProfile | null {
   const base = DEMO_ROSTER.find((row) => row.id === id);
   const extra = profiles[id];
   if (!base || !extra) return null;
-  return { ...base, ...extra };
+  const person: PersonProfile = { ...base, ...extra };
+  return localizeRoster([person], lang)[0]!;
 }
 
-export function getAllPeople(): PersonProfile[] {
-  return DEMO_ROSTER.map((row) => {
+export function getAllPeople(lang: Lang = "en"): PersonProfile[] {
+  const people = DEMO_ROSTER.map((row) => {
     const extra = profiles[row.id];
     if (!extra) {
       throw new Error(`Missing profile for ${row.id}`);
     }
     return { ...row, ...extra };
   });
+  return localizeRoster(people, lang);
 }
 
 export function pointsTowardCap(person: PersonProfile): number {
@@ -512,8 +515,8 @@ export function signalTypeBreakdown(): SignalTypeRow[] {
     .slice(0, 6);
 }
 
-export function topPointHolders(limit = 5): PersonProfile[] {
-  return [...getAllPeople()]
+export function topPointHolders(limit = 5, lang: Lang = "en"): PersonProfile[] {
+  return [...getAllPeople(lang)]
     .sort((a, b) => b.points - a.points)
     .slice(0, limit);
 }
@@ -642,21 +645,18 @@ export type MonthlyNominee = {
 };
 
 /** Best-attendance nominations for manager recognition (demo: current cycle). */
-export function attendanceNominees(limit = 3): MonthlyNominee[] {
-  return [...getAllPeople()]
+export function attendanceNominees(limit = 3, lang: Lang = "en"): MonthlyNominee[] {
+  return [...getAllPeople(lang)]
     .sort((a, b) => a.points - b.points || a.name.localeCompare(b.name))
     .slice(0, limit)
     .map((person) => ({
       person,
       score: attendanceScoreFromPoints(person.points, person.policyCap),
-      reason:
-        person.pointLedger.length === 0
-          ? "Zero attendance incidents this cycle — perfect attendance."
-          : `Lowest open points on the floor (${person.points}) with a clean recent trend.`,
+      reason: nomineeReason(person.pointLedger.length === 0, person.points, lang),
     }));
 }
 
 /** Top nominee for "Employee of the month" recognition (demo: current cycle). */
-export function employeeOfTheMonth(): MonthlyNominee | null {
-  return attendanceNominees(1)[0] ?? null;
+export function employeeOfTheMonth(lang: Lang = "en"): MonthlyNominee | null {
+  return attendanceNominees(1, lang)[0] ?? null;
 }

@@ -22,7 +22,7 @@ import {
  *
  * `narrativeOverride` lets the caller embed a summary the manager has
  * already reviewed/refined on the page (see
- * src/app/insights/report-builder.tsx +
+ * src/app/insights/report/report-builder.tsx +
  * src/app/api/insights/summary/refine/route.ts) instead of
  * re-fetching the cached per-window default.
  */

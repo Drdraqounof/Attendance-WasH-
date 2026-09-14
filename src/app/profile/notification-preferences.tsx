@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { PROFILE_COPY } from "@/lib/i18n";
 import {
   AUTOMATION_TOGGLES,
   AUTOMATION_TOGGLES_STORAGE_KEY,
@@ -46,7 +47,11 @@ function defaultToggleState(): Record<AutomationToggleKey, boolean> {
   return defaults;
 }
 
-export function NotificationPreferences() {
+export function NotificationPreferences({
+  copy = PROFILE_COPY.en,
+}: {
+  copy?: (typeof PROFILE_COPY)[keyof typeof PROFILE_COPY];
+}) {
   const [catalog, setCatalog] = useState<"short" | "long">("short");
   const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -72,13 +77,13 @@ export function NotificationPreferences() {
           id="notifications-heading"
           className="font-display text-xl font-semibold tracking-tight text-ink"
         >
-          Notification preferences
+          {copy.heading}
         </h2>
         <Link
           href="/settings"
           className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         >
-          Manage automation
+          {copy.manageAutomation}
         </Link>
       </div>
 
@@ -106,7 +111,7 @@ export function NotificationPreferences() {
                         : "text-slate/45"
                   }`}
                 >
-                  {def.locked ? "Not connected" : on ? "On" : "Off"}
+                  {def.locked ? copy.notConnected : on ? copy.on : copy.off}
                 </span>
               </li>
             );
@@ -114,9 +119,7 @@ export function NotificationPreferences() {
         </ul>
       ) : (
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/70">
-          Manager alerts, 30-day trend analysis, and recognition
-          automations are configured on the settings page and apply across
-          every floor you supervise.
+          {copy.shortSummary}
         </p>
       )}
 
@@ -127,8 +130,8 @@ export function NotificationPreferences() {
         className="mt-4 text-sm font-medium text-slate/60 underline decoration-line underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         {isLong
-          ? "Show summary"
-          : `Show full catalog (${AUTOMATION_TOGGLES.length} automations)`}
+          ? copy.showSummary
+          : `${copy.showFullCatalog} (${AUTOMATION_TOGGLES.length})`}
       </button>
     </section>
   );

@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
 import {
-  DEMO_ROSTER,
-  RISK_LABELS,
+  localizedRoster,
   riskLevelFromPoints,
   summarizeRoster,
 } from "@/lib/dashboard-mock";
+import { ANALYTICS_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import {
   ANALYTICS_TREND,
   analyticsSummary,
@@ -28,32 +29,37 @@ export default async function AnalyticsPage() {
     redirect("/login");
   }
 
-  const summary = analyticsSummary(DEMO_ROSTER);
-  const risk = summarizeRoster(DEMO_ROSTER);
-  const teams = teamRiskBreakdown(DEMO_ROSTER);
+  const lang = await getLang();
+  const copy = ANALYTICS_COPY[lang];
+  const riskLabels = RISK_LABELS_BY_LANG[lang];
+
+  const roster = localizedRoster(lang);
+  const summary = analyticsSummary(roster);
+  const risk = summarizeRoster(roster);
+  const teams = teamRiskBreakdown(roster);
   const signals = signalTypeBreakdown();
-  const leaders = topPointHolders(5);
-  const nominees = attendanceNominees(3);
+  const leaders = topPointHolders(5, lang);
+  const nominees = attendanceNominees(3, lang);
   const maxTrend = Math.max(...ANALYTICS_TREND.map((d) => d.points), 1);
 
   const metrics = [
     {
-      label: "Open points",
+      label: copy.metricOpenPoints,
       value: summary.openPoints,
       tone: "text-ink",
     },
     {
-      label: "At risk now",
+      label: copy.metricAtRiskNow,
       value: summary.atRisk,
       tone: "text-danger-soft",
     },
     {
-      label: "7-day points",
+      label: copy.metric7DayPoints,
       value: summary.weekPoints,
       tone: "text-ink",
     },
     {
-      label: "Avg points / person",
+      label: copy.metricAvgPoints,
       value: summary.avgPoints,
       tone: "text-accent-deep",
     },
@@ -65,14 +71,13 @@ export default async function AnalyticsPage() {
         <div className="animate-fade-up">
           <div className="live-pulse mb-4 h-[3px] w-14 sm:w-20" aria-hidden />
           <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-            Floor analytics
+            {copy.eyebrow}
           </p>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            Attendance analytics
+            {copy.heading}
           </h1>
           <p className="mt-3 max-w-lg text-base leading-relaxed text-slate/75">
-            Point load, signal mix, and team risk — so supervisors see patterns
-            before the next shift.
+            {copy.subheading}
           </p>
         </div>
 
@@ -106,10 +111,10 @@ export default async function AnalyticsPage() {
                 id="trend-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                Points trend
+                {copy.trendHeading}
               </h2>
               <p className="text-sm tracking-wide text-slate/55 uppercase">
-                Last 7 days · {summary.weekSignals} signals
+                {copy.trendWindowLabel} · {summary.weekSignals} {copy.signalsWord}
               </p>
             </div>
             <div className="border border-line bg-white/65 px-4 py-5 sm:px-5">
@@ -149,10 +154,10 @@ export default async function AnalyticsPage() {
                 id="risk-dist-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                Risk distribution
+                {copy.riskDistHeading}
               </h2>
               <p className="text-sm tracking-wide text-slate/55 uppercase">
-                {summary.headcount} on roster
+                {summary.headcount} {copy.onRosterWord}
               </p>
             </div>
             <div className="border border-line bg-white/65 px-4 py-5 sm:px-5">
@@ -183,21 +188,21 @@ export default async function AnalyticsPage() {
                 {(
                   [
                     {
-                      label: "At risk",
+                      label: copy.riskAtRisk,
                       value: risk.atRisk,
                       mark: "bg-danger-soft",
                     },
                     {
-                      label: "Watch",
+                      label: copy.riskWatch,
                       value: risk.watch,
                       mark: "bg-danger-soft/50",
                     },
                     {
-                      label: "Clear",
+                      label: copy.riskClear,
                       value: risk.clear,
                       mark: "bg-accent",
                     },
-                  ] as const
+                  ]
                 ).map((row) => (
                   <li
                     key={row.label}
@@ -228,22 +233,22 @@ export default async function AnalyticsPage() {
                 id="team-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                Risk by team
+                {copy.teamHeading}
               </h2>
               <p className="text-sm tracking-wide text-slate/55 uppercase">
-                Open points
+                {copy.teamSubheading}
               </p>
             </div>
             <div className="overflow-x-auto border border-line bg-white/65">
               <table className="w-full min-w-[20rem] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-line/80 text-sm tracking-[0.12em] text-slate/60 uppercase">
-                    <th className="px-4 py-2.5 font-semibold sm:px-5">Team</th>
-                    <th className="px-2 py-2.5 font-semibold">At risk</th>
-                    <th className="px-2 py-2.5 font-semibold">Watch</th>
-                    <th className="px-2 py-2.5 font-semibold">Clear</th>
+                    <th className="px-4 py-2.5 font-semibold sm:px-5">{copy.thTeam}</th>
+                    <th className="px-2 py-2.5 font-semibold">{copy.thAtRisk}</th>
+                    <th className="px-2 py-2.5 font-semibold">{copy.thWatch}</th>
+                    <th className="px-2 py-2.5 font-semibold">{copy.thClear}</th>
                     <th className="px-4 py-2.5 text-right font-semibold sm:px-5">
-                      Points
+                      {copy.thPoints}
                     </th>
                   </tr>
                 </thead>
@@ -283,10 +288,10 @@ export default async function AnalyticsPage() {
                   id="signals-heading"
                   className="font-display text-lg font-semibold tracking-tight text-ink"
                 >
-                  Signal mix
+                  {copy.signalsHeading}
                 </h2>
                 <p className="text-sm tracking-wide text-slate/55 uppercase">
-                  From point ledger
+                  {copy.signalsSubheading}
                 </p>
               </div>
               <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -321,13 +326,13 @@ export default async function AnalyticsPage() {
                   id="leaders-heading"
                   className="font-display text-lg font-semibold tracking-tight text-ink"
                 >
-                  Highest open points
+                  {copy.leadersHeading}
                 </h2>
                 <Link
                   href="/dashboard"
                   className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
-                  Open console
+                  {copy.leadersOpenConsole}
                 </Link>
               </div>
               <ol className="divide-y divide-line/70 border border-line bg-white/65">
@@ -371,10 +376,10 @@ export default async function AnalyticsPage() {
               id="recognition-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Employee of the month — nominees
+              {copy.recognitionHeading}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Recognition · current cycle
+              {copy.recognitionSubheading}
             </p>
           </div>
           <ol className="divide-y divide-line/70 border border-line bg-white/65">
@@ -401,7 +406,7 @@ export default async function AnalyticsPage() {
                   <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
                     {nominee.person.points} pts
                     <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                      · {RISK_LABELS[riskLevelFromPoints(nominee.person.points)]}
+                      · {riskLabels[riskLevelFromPoints(nominee.person.points)]}
                     </span>
                   </p>
                 </Link>
@@ -411,7 +416,7 @@ export default async function AnalyticsPage() {
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Demo data · SMS intake not connected
+          {copy.footer}
         </p>
       </main>
     </OpsShell>

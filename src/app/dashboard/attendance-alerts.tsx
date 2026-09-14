@@ -1,9 +1,11 @@
 import Link from "next/link";
+import type { AlertSeverity, AttendanceAlert } from "@/lib/alerts-mock";
+import type { RiskLevel } from "@/lib/dashboard-mock";
 import {
-  ALERT_SEVERITY_LABELS,
-  type AttendanceAlert,
-} from "@/lib/alerts-mock";
-import { RISK_LABELS } from "@/lib/dashboard-mock";
+  ALERT_SEVERITY_LABELS_BY_LANG,
+  DASHBOARD_COPY,
+  RISK_LABELS_BY_LANG,
+} from "@/lib/i18n";
 
 function severityTone(severity: AttendanceAlert["severity"]): string {
   return severity === "critical" ? "text-danger-soft" : "text-danger-soft/80";
@@ -13,16 +15,24 @@ function severityMark(severity: AttendanceAlert["severity"]): string {
   return severity === "critical" ? "bg-danger-soft" : "bg-danger-soft/55";
 }
 
-export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
+export function AttendanceAlerts({
+  alerts,
+  copy = DASHBOARD_COPY.en,
+  riskLabels = RISK_LABELS_BY_LANG.en,
+  severityLabels = ALERT_SEVERITY_LABELS_BY_LANG.en,
+}: {
+  alerts: AttendanceAlert[];
+  copy?: (typeof DASHBOARD_COPY)[keyof typeof DASHBOARD_COPY];
+  riskLabels?: Record<RiskLevel, string>;
+  severityLabels?: Record<AlertSeverity, string>;
+}) {
   if (alerts.length === 0) {
     return (
       <section className="border border-line/80 bg-white/40 px-5 py-6">
         <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-          Attendance alerts
+          {copy.alertsHeading}
         </h2>
-        <p className="mt-2 text-sm text-slate/65">
-          No active warnings. All signals within policy.
-        </p>
+        <p className="mt-2 text-sm text-slate/65">{copy.alertsEmpty}</p>
       </section>
     );
   }
@@ -34,10 +44,10 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
           id="alerts-heading"
           className="font-display text-lg font-semibold tracking-tight text-ink"
         >
-          Attendance alerts
+          {copy.alertsHeading}
         </h2>
         <p className="text-sm tracking-wide text-slate/55 uppercase">
-          Automated warnings · {alerts.length} open
+          {copy.alertsAutomated} · {alerts.length} {copy.openWord}
         </p>
       </div>
       <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -58,7 +68,7 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
                   <span
                     className={`text-sm font-medium ${severityTone(alert.severity)}`}
                   >
-                    {ALERT_SEVERITY_LABELS[alert.severity]}
+                    {severityLabels[alert.severity]}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-slate/65 sm:pl-6">
@@ -71,7 +81,7 @@ export function AttendanceAlerts({ alerts }: { alerts: AttendanceAlert[] }) {
                 <p className="font-display text-sm font-semibold tabular-nums text-ink">
                   {alert.points} pts
                   <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                    · {RISK_LABELS[alert.riskLevel]}
+                    · {riskLabels[alert.riskLevel]}
                   </span>
                 </p>
                 <p className="text-sm font-medium text-accent-deep">

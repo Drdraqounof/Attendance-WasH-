@@ -2,6 +2,7 @@
 // see src/lib/policy-engine.ts. Re-exported here so existing imports of
 // `RiskLevel`/`riskLevelFromPoints` from this file keep working.
 export { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
+import { localizeRoster, type Lang } from "@/lib/i18n";
 import { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
 
 export type RosterEmployee = {
@@ -135,6 +136,11 @@ export const DEMO_ROSTER: RosterEmployee[] = [
     suggestedAction: "None — clear",
   },
 ];
+
+/** DEMO_ROSTER with its role/team/last-signal/suggested-action text translated (see i18n.ts's ROSTER_TEXT_ES). */
+export function localizedRoster(lang: Lang = "en"): RosterEmployee[] {
+  return localizeRoster(DEMO_ROSTER, lang);
+}
 
 export const DEMO_SHIFT_META = {
   floor: "Demo floor",

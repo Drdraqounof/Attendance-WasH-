@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
+import { SETTINGS_COPY } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
 import { getEscalationRules, getPolicyThresholds } from "@/lib/policy-queries";
 import { AutomationToggles } from "./automation-toggles";
@@ -12,15 +14,23 @@ export const metadata: Metadata = {
   title: "Settings & automation",
 };
 
-function StaticEscalationTable({ rules }: { rules: typeof ESCALATION_RULES }) {
+type SettingsCopy = (typeof SETTINGS_COPY)[keyof typeof SETTINGS_COPY];
+
+function StaticEscalationTable({
+  rules,
+  copy,
+}: {
+  rules: typeof ESCALATION_RULES;
+  copy: SettingsCopy;
+}) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-          Attendance escalation schedule
+          {copy.escalationHeading}
         </h2>
         <p className="text-sm tracking-wide text-danger-soft uppercase">
-          Read-only — live rules unavailable
+          {copy.escalationReadOnly}
         </p>
       </div>
       <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
@@ -45,6 +55,9 @@ export default async function SettingsPage() {
   if (!signedIn) {
     redirect("/login");
   }
+
+  const lang = await getLang();
+  const copy = SETTINGS_COPY[lang];
 
   // Thresholds are DB-backed and editable (see
   // docs/policy/policy-thresholds-editing.md) — degrade to the static
@@ -72,14 +85,13 @@ export default async function SettingsPage() {
         <div className="animate-fade-up">
           <div className="live-pulse mb-4 h-[3px] w-14 sm:w-20" aria-hidden />
           <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-            Settings
+            {copy.eyebrow}
           </p>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            Settings &amp; automation
+            {copy.heading}
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/75">
-            Policy rules behind the point system, plus which automations are
-            active for this floor.
+            {copy.subheading}
           </p>
         </div>
 
@@ -93,13 +105,13 @@ export default async function SettingsPage() {
               id="automation-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Automation
+              {copy.automationHeading}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Saved to this browser
+              {copy.automationSavedBrowser}
             </p>
           </div>
-          <AutomationToggles />
+          <AutomationToggles copy={copy} />
         </section>
 
         {/* Automated policy thresholds */}
@@ -112,17 +124,17 @@ export default async function SettingsPage() {
               id="thresholds-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Automated policy thresholds
+              {copy.thresholdsHeading}
             </h2>
             {!thresholdsEditable && (
               <p className="text-sm tracking-wide text-danger-soft uppercase">
-                Read-only — live thresholds unavailable
+                {copy.thresholdsReadOnly}
               </p>
             )}
           </div>
 
           {thresholdsEditable ? (
-            <ThresholdEditor initialThresholds={thresholds} />
+            <ThresholdEditor initialThresholds={thresholds} copy={copy} />
           ) : (
             <div className="mt-3 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
               {thresholds.map((threshold) => (
@@ -142,27 +154,21 @@ export default async function SettingsPage() {
           )}
 
           <p className="mt-3 text-sm text-slate/65">
-            0 points is perfect attendance — every employee starts there and
-            only accrues points through the escalation schedule below.
-            Crossing a threshold above drives the dashboard, analytics, and
-            alert severity across the app. All three thresholds are editable
-            above — changing PIP also updates every employee's point cap,
-            since PIP is defined as the cap.
+            {copy.thresholdsNote}
           </p>
         </section>
 
         {/* Escalation schedule */}
         <div className="animate-fade-up-delay-3 mt-10">
           {escalationEditable ? (
-            <EscalationEditor initialRules={escalationRules} />
+            <EscalationEditor initialRules={escalationRules} copy={copy} />
           ) : (
-            <StaticEscalationTable rules={escalationRules} />
+            <StaticEscalationTable rules={escalationRules} copy={copy} />
           )}
         </div>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Demo data · toggles persist to this browser only, not a backend ·
-          SMS intake not connected
+          {copy.footer}
         </p>
       </main>
     </OpsShell>

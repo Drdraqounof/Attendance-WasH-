@@ -3,6 +3,9 @@ import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationBell } from "@/components/notification-bell";
 import { generateAttendanceAlerts } from "@/lib/alerts-mock";
+import { ALERT_SEVERITY_LABELS_BY_LANG, CHROME_COPY } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
+import { getAllPeople } from "@/lib/people-mock";
 
 type OpsNavActive =
   | "dashboard"
@@ -30,14 +33,16 @@ const navLink = (
   </Link>
 );
 
-export function OpsHeader({
+export async function OpsHeader({
   active,
   crumb,
 }: {
   active: OpsNavActive;
   crumb?: string;
 }) {
-  const alerts = generateAttendanceAlerts();
+  const lang = await getLang();
+  const copy = CHROME_COPY[lang];
+  const alerts = generateAttendanceAlerts(getAllPeople(lang));
 
   return (
     <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
@@ -56,10 +61,10 @@ export function OpsHeader({
             className="hidden items-center gap-5 sm:flex"
             aria-label="Ops navigation"
           >
-            {navLink("/dashboard", "Dashboard", active === "dashboard")}
-            {navLink("/analytics", "Analytics", active === "analytics")}
-            {navLink("/insights", "AI Insights", active === "insights")}
-            {navLink("/settings", "Settings", active === "settings")}
+            {navLink("/dashboard", copy.navDashboard, active === "dashboard")}
+            {navLink("/analytics", copy.navAnalytics, active === "analytics")}
+            {navLink("/insights", copy.navInsights, active === "insights")}
+            {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           {crumb ? (
             <>
@@ -78,21 +83,25 @@ export function OpsHeader({
             className="flex items-center gap-4 sm:hidden"
             aria-label="Ops navigation mobile"
           >
-            {navLink("/dashboard", "Dash", active === "dashboard")}
-            {navLink("/analytics", "Analytics", active === "analytics")}
-            {navLink("/insights", "AI", active === "insights")}
-            {navLink("/settings", "Settings", active === "settings")}
+            {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
+            {navLink("/analytics", copy.navAnalytics, active === "analytics")}
+            {navLink("/insights", copy.navInsightsShort, active === "insights")}
+            {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
-          <NotificationBell alerts={alerts} />
-          {navLink("/profile", "Profile", active === "profile")}
-          <SignOutButton />
+          <NotificationBell
+            alerts={alerts}
+            copy={copy}
+            severityLabels={ALERT_SEVERITY_LABELS_BY_LANG[lang]}
+          />
+          {navLink("/profile", copy.navProfile, active === "profile")}
+          <SignOutButton label={copy.signOut} />
         </div>
       </div>
     </header>
   );
 }
 
-export function OpsShell({
+export async function OpsShell({
   active,
   crumb,
   children,

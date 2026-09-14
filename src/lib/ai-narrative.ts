@@ -144,7 +144,7 @@ export const generateInsightsNarrative = unstable_cache(
 /**
  * Rewrites an existing summary per a manager's feedback (e.g. "make it
  * shorter", "call out the PIP employees first"). Used by the "Build
- * report" flow on /insights (src/app/insights/report-builder.tsx) —
+ * report" flow on /insights (src/app/insights/report/report-builder.tsx) —
  * deliberately uncached, since it's a one-off, request-specific
  * revision rather than the standard per-window summary.
  */

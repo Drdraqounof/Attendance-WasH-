@@ -3,17 +3,19 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { hasDemoSession } from "@/lib/auth-mock";
+import { riskLevelFromPoints } from "@/lib/dashboard-mock";
 import {
-  RISK_LABELS,
-  riskLevelFromPoints,
-} from "@/lib/dashboard-mock";
+  PEOPLE_COPY,
+  RISK_LABELS_BY_LANG,
+  SCHEDULE_STATUS_LABELS_BY_LANG,
+} from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import {
   attendanceTrendNarrative,
   employeeOfTheMonth,
   getPersonById,
   incidentSummary,
   pointsTowardCap,
-  SCHEDULE_STATUS_LABELS,
   type ScheduleStatus,
 } from "@/lib/people-mock";
 import {
@@ -36,12 +38,6 @@ export async function generateMetadata({
     title: person ? person.name : "Person",
   };
 }
-
-const WARNING_STATUS_LABELS = {
-  open: "Open",
-  acknowledged: "Acknowledged",
-  resolved: "Resolved",
-} as const;
 
 function warningStatusTone(status: "open" | "acknowledged" | "resolved"): string {
   switch (status) {
@@ -77,17 +73,27 @@ export default async function PersonDetailPage({ params }: PageProps) {
   }
 
   const { id } = await params;
-  const person = getPersonById(id);
+  const lang = await getLang();
+  const person = getPersonById(id, lang);
   if (!person) {
     notFound();
   }
+
+  const copy = PEOPLE_COPY[lang];
+  const riskLabels = RISK_LABELS_BY_LANG[lang];
+  const scheduleStatusLabels = SCHEDULE_STATUS_LABELS_BY_LANG[lang];
+  const WARNING_STATUS_LABELS = {
+    open: copy.openStatus,
+    acknowledged: copy.acknowledgedStatus,
+    resolved: copy.resolvedStatus,
+  } as const;
 
   const level = riskLevelFromPoints(person.points);
   const towardCap = pointsTowardCap(person);
   const capPct = Math.round((towardCap / person.policyCap) * 100);
   const trend = incidentSummary(person, 30);
   const narrative = attendanceTrendNarrative(person, 30);
-  const isNominee = employeeOfTheMonth()?.person.id === person.id;
+  const isNominee = employeeOfTheMonth(lang)?.person.id === person.id;
 
   // Track record + status-change action read/write the real Neon DB
   // (see docs/planning/employee-track-record-plan.md) — everything else on this
@@ -102,7 +108,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
       getEmployeePolicySnapshot(person.id),
     ]);
   } catch {
-    historyError = "Live track record is unavailable right now.";
+    historyError = copy.trackRecordUnavailable;
   }
 
   return (
@@ -114,20 +120,20 @@ export default async function PersonDetailPage({ params }: PageProps) {
             className="inline-flex h-10 items-center gap-2 border border-line bg-white/70 px-4 text-sm font-medium text-ink transition-colors hover:border-accent/40 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
             <span aria-hidden>←</span>
-            Back to dashboard
+            {copy.backToDashboard}
           </Link>
 
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-                Employee profile
+                {copy.eyebrow}
               </p>
               <h1 className="font-display mt-2 flex flex-wrap items-center gap-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 {person.name}
                 {isNominee ? (
                   <span className="inline-flex items-center gap-1.5 border border-accent/40 bg-accent/10 px-2.5 py-1 text-sm font-semibold tracking-wide text-accent-deep uppercase">
                     <span aria-hidden>★</span>
-                    Employee of the month
+                    {copy.employeeOfMonthBadge}
                   </span>
                 ) : null}
               </h1>
@@ -142,7 +148,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
             <div className="flex flex-wrap gap-6 text-sm text-slate/65">
               <div>
                 <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
-                  Risk
+                  {copy.riskLabel}
                 </p>
                 <p
                   className={`mt-1 flex items-center gap-2 font-medium ${
@@ -151,23 +157,23 @@ export default async function PersonDetailPage({ params }: PageProps) {
                       : "text-danger-soft"
                   }`}
                 >
-                  {RISK_LABELS[level]}
+                  {riskLabels[level]}
                   {level === "pip_flag" && (
                     <span className="border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
-                      PIP
+                      {copy.pipBadge}
                     </span>
                   )}
                 </p>
               </div>
               <div>
                 <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
-                  Phone
+                  {copy.phoneLabel}
                 </p>
                 <p className="mt-1 font-medium text-ink">{person.phoneMasked}</p>
               </div>
               <div>
                 <p className="text-sm tracking-[0.12em] text-slate/50 uppercase">
-                  Hire date
+                  {copy.hireDateLabel}
                 </p>
                 <p className="mt-1 font-medium text-ink">{person.hireDate}</p>
               </div>
@@ -182,24 +188,24 @@ export default async function PersonDetailPage({ params }: PageProps) {
         >
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              Open points
+              {copy.openPointsLabel}
             </p>
             <p className="font-display mt-2 text-4xl font-bold tabular-nums text-ink">
               {person.points}
             </p>
             <p className="mt-2 text-sm text-slate/65">
-              Suggested: {person.suggestedAction}
+              {copy.suggestedPrefix} {person.suggestedAction}
             </p>
           </div>
           <div className="bg-white/80 px-5 py-5 sm:col-span-2">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-                Toward policy cap
+                {copy.towardCapLabel}
               </p>
               <p className="font-display text-sm font-semibold tabular-nums text-ink">
                 {towardCap} / {person.policyCap}
                 <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                  · {RISK_LABELS[level]}
+                  · {riskLabels[level]}
                 </span>
               </p>
             </div>
@@ -223,7 +229,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
               />
             </div>
             <p className="mt-3 text-sm text-slate/65">
-              Last signal: {person.lastSignal} ({person.lastSignalAgo})
+              {copy.lastSignalPrefix} {person.lastSignal} ({person.lastSignalAgo})
             </p>
           </div>
         </section>
@@ -238,16 +244,16 @@ export default async function PersonDetailPage({ params }: PageProps) {
               id="trend-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Last {trend.windowDays} days
+              {copy.lastWord} {trend.windowDays} {copy.daysWord}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Incident history
+              {copy.incidentHistoryLabel}
             </p>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-px border border-line bg-line">
             <div className="bg-white/80 px-4 py-3">
               <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
-                Late arrivals
+                {copy.lateArrivals}
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
                 {trend.lateCount}
@@ -255,7 +261,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
             </div>
             <div className="bg-white/80 px-4 py-3">
               <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
-                Absences
+                {copy.absences}
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
                 {trend.absentCount}
@@ -263,7 +269,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
             </div>
             <div className="bg-white/80 px-4 py-3">
               <p className="text-sm font-semibold tracking-[0.12em] text-slate/55 uppercase">
-                Other incidents
+                {copy.otherIncidents}
               </p>
               <p className="font-display mt-1 text-2xl font-bold tabular-nums text-ink">
                 {trend.otherCount}
@@ -283,7 +289,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                 id="schedule-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                This week&apos;s schedule
+                {copy.scheduleHeading}
               </h2>
               <p className="text-sm tracking-wide text-slate/55 uppercase">
                 Jul 27 – Aug 2
@@ -311,7 +317,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                   <p
                     className={`shrink-0 text-sm font-medium ${statusTone(day.status)}`}
                   >
-                    {SCHEDULE_STATUS_LABELS[day.status]}
+                    {scheduleStatusLabels[day.status]}
                   </p>
                 </li>
               ))}
@@ -325,15 +331,15 @@ export default async function PersonDetailPage({ params }: PageProps) {
                 id="ledger-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                Points ledger
+                {copy.ledgerHeading}
               </h2>
               <p className="text-sm tracking-wide text-slate/55 uppercase">
-                Demo history
+                {copy.ledgerDemoHistory}
               </p>
             </div>
             {person.pointLedger.length === 0 ? (
               <div className="border border-line bg-white/60 px-5 py-8 text-sm text-slate/65">
-                No point events on record. Clear standing.
+                {copy.ledgerEmpty}
               </div>
             ) : (
               <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -372,10 +378,10 @@ export default async function PersonDetailPage({ params }: PageProps) {
               id="track-record-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Track record
+              {copy.trackRecordHeading}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Live data
+              {copy.trackRecordLiveData}
             </p>
           </div>
 
@@ -388,22 +394,24 @@ export default async function PersonDetailPage({ params }: PageProps) {
               {dbSnapshot ? (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-line bg-surface-2/60 px-4 py-3">
                   <p className="text-sm text-slate/70">
-                    Current standing:{" "}
+                    {copy.currentStanding}{" "}
                     <span className="font-display font-semibold text-ink">
                       {dbSnapshot.points} / {dbSnapshot.policyCap} pts
                     </span>{" "}
-                    · {RISK_LABELS[dbSnapshot.riskLevel]}
+                    · {riskLabels[dbSnapshot.riskLevel]}
                   </p>
                   <StatusChanger
                     employeeId={person.id}
                     currentStatus={dbSnapshot.riskLevel}
+                    copy={copy}
+                    riskLabels={riskLabels}
                   />
                 </div>
               ) : null}
 
               {history.length === 0 ? (
                 <div className="border border-line bg-white/60 px-5 py-8 text-sm text-slate/65">
-                  No history recorded yet.
+                  {copy.noHistory}
                 </div>
               ) : (
                 <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -439,12 +447,12 @@ export default async function PersonDetailPage({ params }: PageProps) {
                         <>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-ink">
-                              Crossed threshold: {entry.label}
+                              {copy.crossedThreshold} {entry.label}
                             </p>
                             <p className="mt-0.5 text-sm text-slate/55">
                               {entry.date}
                               <span className="text-slate/35"> · </span>
-                              {entry.pointsAtTrigger} pts at trigger
+                              {entry.pointsAtTrigger} {copy.pointsAtTrigger}
                             </p>
                           </div>
                           <span
@@ -461,14 +469,12 @@ export default async function PersonDetailPage({ params }: PageProps) {
             </>
           )}
           <p className="mt-3 text-sm text-slate/65">
-            Sourced from the live database — may differ from the demo
-            points ledger above until the rest of this page is migrated
-            off mock data.
+            {copy.trackRecordFooter}
           </p>
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Demo data · SMS intake not connected
+          {copy.footer}
         </p>
       </main>
     </OpsShell>

@@ -7,17 +7,19 @@ import { hasDemoSession } from "@/lib/auth-mock";
 import {
   DEMO_SHIFT_META,
   interventionTargets,
-  RISK_LABELS,
+  localizedRoster,
   riskLevelFromPoints,
   summarizeRoster,
 } from "@/lib/dashboard-mock";
-import { employeeOfTheMonth } from "@/lib/people-mock";
-import { AttendanceAlerts } from "./attendance-alerts";
 import {
-  dashboardRoster,
-  InterveneNow,
-  PriorityRoster,
-} from "./priority-roster";
+  ALERT_SEVERITY_LABELS_BY_LANG,
+  DASHBOARD_COPY,
+  RISK_LABELS_BY_LANG,
+} from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
+import { employeeOfTheMonth, getAllPeople } from "@/lib/people-mock";
+import { AttendanceAlerts } from "./attendance-alerts";
+import { InterveneNow, PriorityRoster } from "./priority-roster";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -29,34 +31,41 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const summary = summarizeRoster(dashboardRoster);
-  const intervene = interventionTargets(dashboardRoster, 3);
-  const alerts = generateAttendanceAlerts();
-  const nominee = employeeOfTheMonth();
+  const lang = await getLang();
+  const copy = DASHBOARD_COPY[lang];
+
+  const riskLabels = RISK_LABELS_BY_LANG[lang];
+  const severityLabels = ALERT_SEVERITY_LABELS_BY_LANG[lang];
+
+  const roster = localizedRoster(lang);
+  const summary = summarizeRoster(roster);
+  const intervene = interventionTargets(roster, 3);
+  const alerts = generateAttendanceAlerts(getAllPeople(lang));
+  const nominee = employeeOfTheMonth(lang);
 
   const metrics = [
     {
-      label: "On PIP",
+      label: copy.metricPip,
       value: summary.pip,
       tone: "text-danger-soft",
     },
     {
-      label: "At risk",
+      label: copy.metricAtRisk,
       value: summary.atRisk,
       tone: "text-danger-soft",
     },
     {
-      label: "Watch",
+      label: copy.metricWatch,
       value: summary.watch,
       tone: "text-danger-soft/80",
     },
     {
-      label: "Clear",
+      label: copy.metricClear,
       value: summary.clear,
       tone: "text-accent-deep",
     },
     {
-      label: "Open points today",
+      label: copy.metricOpenPointsToday,
       value: summary.openPointsToday,
       tone: "text-ink",
     },
@@ -73,21 +82,20 @@ export default async function DashboardPage() {
                 className="inline-block h-1.5 w-1.5 bg-accent"
                 aria-hidden
               />
-              Live · Shift open
+              {copy.liveShiftOpen}
             </p>
           </div>
 
           <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-xl">
               <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-                Live attendance risk
+                {copy.eyebrow}
               </p>
               <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-                Shift risk console
+                {copy.heading}
               </h1>
               <p className="mt-3 max-w-lg text-base leading-relaxed text-slate/75">
-                SMS signals scored against policy — act before the floor slips.
-                Select a name for schedule and points detail.
+                {copy.subheading}
               </p>
             </div>
             <p className="shrink-0 text-sm text-slate/55">
@@ -127,15 +135,20 @@ export default async function DashboardPage() {
         </div>
 
         <div className="animate-fade-up-delay-2 mt-8">
-          <PriorityRoster roster={dashboardRoster} />
+          <PriorityRoster roster={roster} copy={copy} riskLabels={riskLabels} />
         </div>
 
         <div className="animate-fade-up-delay-3 mt-8">
-          <InterveneNow targets={intervene} />
+          <InterveneNow targets={intervene} copy={copy} />
         </div>
 
         <div className="animate-fade-up-delay-3 mt-8">
-          <AttendanceAlerts alerts={alerts} />
+          <AttendanceAlerts
+            alerts={alerts}
+            copy={copy}
+            riskLabels={riskLabels}
+            severityLabels={severityLabels}
+          />
         </div>
 
         <section
@@ -147,13 +160,13 @@ export default async function DashboardPage() {
               id="recognition-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Employee of the month
+              {copy.recognitionHeading}
             </h2>
             <Link
               href="/analytics"
               className="text-sm font-medium tracking-wide text-accent-deep uppercase transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
-              Full recognition list
+              {copy.recognitionFullList}
             </Link>
           </div>
           {nominee ? (
@@ -170,19 +183,19 @@ export default async function DashboardPage() {
               <p className="font-display shrink-0 text-sm font-semibold tabular-nums text-accent-deep">
                 {nominee.person.points} pts
                 <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                  · {RISK_LABELS[riskLevelFromPoints(nominee.person.points)]}
+                  · {riskLabels[riskLevelFromPoints(nominee.person.points)]}
                 </span>
               </p>
             </div>
           ) : (
             <p className="mt-3 text-sm text-slate/65">
-              No nominee yet this cycle.
+              {copy.recognitionEmpty}
             </p>
           )}
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Demo data · SMS intake not connected
+          {copy.footer}
         </p>
       </main>
     </OpsShell>

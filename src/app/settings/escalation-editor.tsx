@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SETTINGS_COPY } from "@/lib/i18n";
 import type { EscalationRule, EscalationRuleCode } from "@/lib/policy-engine";
 
 /**
@@ -10,8 +11,10 @@ import type { EscalationRule, EscalationRuleCode } from "@/lib/policy-engine";
  */
 export function EscalationEditor({
   initialRules,
+  copy = SETTINGS_COPY.en,
 }: {
   initialRules: EscalationRule[];
+  copy?: (typeof SETTINGS_COPY)[keyof typeof SETTINGS_COPY];
 }) {
   const router = useRouter();
   const [rules, setRules] = useState(initialRules);
@@ -25,7 +28,7 @@ export function EscalationEditor({
     const draft = drafts[code];
     const points = Number(draft);
     if (!Number.isInteger(points) || points <= 0) {
-      setError("Enter a positive whole number of points.");
+      setError(copy.errorPositiveInt);
       return;
     }
 
@@ -39,12 +42,12 @@ export function EscalationEditor({
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(body?.error ?? "Update failed.");
+        throw new Error(body?.error ?? copy.errorUpdateFailed);
       }
       setRules(body.rules);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed.");
+      setError(err instanceof Error ? err.message : copy.errorUpdateFailed);
     } finally {
       setPendingCode(null);
     }
@@ -53,7 +56,7 @@ export function EscalationEditor({
   return (
     <section>
       <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-        Attendance escalation schedule
+        {copy.escalationHeading}
       </h2>
       <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
         {rules.map((rule) => (
@@ -82,7 +85,7 @@ export function EscalationEditor({
                 disabled={pendingCode === rule.code}
                 className="inline-flex h-8 items-center border border-accent-deep/40 bg-accent-deep/10 px-3 text-sm font-semibold text-accent-deep transition-colors hover:bg-accent-deep/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {pendingCode === rule.code ? "Saving…" : "Save"}
+                {pendingCode === rule.code ? copy.saving : copy.save}
               </button>
             </div>
           </li>

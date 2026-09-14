@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ALERT_SEVERITY_LABELS, type AttendanceAlert } from "@/lib/alerts-mock";
+import type { AlertSeverity, AttendanceAlert } from "@/lib/alerts-mock";
+import { ALERT_SEVERITY_LABELS_BY_LANG, CHROME_COPY } from "@/lib/i18n";
 
 const MAX_VISIBLE = 5;
 
@@ -16,7 +17,15 @@ function severityDot(severity: AttendanceAlert["severity"]): string {
  * layers on top of the page instead of pushing content down, and
  * closes on outside click, Escape, or picking an alert.
  */
-export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
+export function NotificationBell({
+  alerts,
+  copy = CHROME_COPY.en,
+  severityLabels = ALERT_SEVERITY_LABELS_BY_LANG.en,
+}: {
+  alerts: AttendanceAlert[];
+  copy?: (typeof CHROME_COPY)[keyof typeof CHROME_COPY];
+  severityLabels?: Record<AlertSeverity, string>;
+}) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +59,7 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Notifications${alerts.length > 0 ? `, ${alerts.length} open` : ""}`}
+        aria-label={`${copy.notificationsLabel}${alerts.length > 0 ? `, ${alerts.length} ${copy.notificationsOpen}` : ""}`}
         className="relative flex h-9 w-9 items-center justify-center text-slate/70 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         <svg
@@ -83,21 +92,21 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
       {open ? (
         <div
           role="dialog"
-          aria-label="Notifications"
+          aria-label={copy.notificationsLabel}
           className="absolute top-full right-0 z-50 mt-3 w-80 border border-line bg-white shadow-lg sm:w-96"
         >
           <div className="flex items-baseline justify-between gap-3 border-b border-line/70 px-4 py-3">
             <p className="font-display text-sm font-semibold tracking-tight text-ink">
-              Notifications
+              {copy.notificationsLabel}
             </p>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              {alerts.length} open
+              {alerts.length} {copy.notificationsOpen}
             </p>
           </div>
 
           {visible.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate/65">
-              No active warnings. All signals within policy.
+              {copy.notificationsEmpty}
             </p>
           ) : (
             <ul className="max-h-96 divide-y divide-line/70 overflow-y-auto">
@@ -117,7 +126,7 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
                         {alert.employee}
                       </span>
                       <span className="ml-auto shrink-0 text-sm font-medium text-danger-soft">
-                        {ALERT_SEVERITY_LABELS[alert.severity]}
+                        {severityLabels[alert.severity]}
                       </span>
                     </div>
                     <p className="mt-1 truncate text-sm text-slate/65 pl-4">
@@ -134,7 +143,7 @@ export function NotificationBell({ alerts }: { alerts: AttendanceAlert[] }) {
             onClick={() => setOpen(false)}
             className="block border-t border-line/70 px-4 py-3 text-center text-sm font-medium text-accent-deep transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           >
-            View all on dashboard
+            {copy.notificationsViewAll}
           </Link>
         </div>
       ) : null}

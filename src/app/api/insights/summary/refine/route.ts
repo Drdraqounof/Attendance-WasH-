@@ -4,7 +4,7 @@ import { refineInsightsNarrative } from "@/lib/ai-narrative";
 
 /**
  * Powers the "Any improvements before I build the report?" step in
- * src/app/insights/report-builder.tsx — takes the summary currently
+ * src/app/insights/report/report-builder.tsx — takes the summary currently
  * shown on /insights plus free-text feedback from the manager, and
  * returns a revised version to preview (and, if they proceed, embed
  * in the PDF via POST /api/insights/report).
