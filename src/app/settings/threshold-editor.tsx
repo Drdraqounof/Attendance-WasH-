@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SETTINGS_COPY } from "@/lib/i18n";
 import type { PolicyThreshold, PolicyThresholdKey } from "@/lib/policy-engine";
 
 /**
@@ -13,8 +14,10 @@ import type { PolicyThreshold, PolicyThresholdKey } from "@/lib/policy-engine";
  */
 export function ThresholdEditor({
   initialThresholds,
+  copy = SETTINGS_COPY.en,
 }: {
   initialThresholds: PolicyThreshold[];
+  copy?: (typeof SETTINGS_COPY)[keyof typeof SETTINGS_COPY];
 }) {
   const router = useRouter();
   const [thresholds, setThresholds] = useState(initialThresholds);
@@ -30,13 +33,13 @@ export function ThresholdEditor({
     const draft = drafts[key];
     const pointValue = Number(draft);
     if (!Number.isInteger(pointValue) || pointValue <= 0) {
-      setError("Enter a positive whole number of points.");
+      setError(copy.errorPositiveInt);
       return;
     }
     if (
       key === "pip" &&
       !window.confirm(
-        `This also sets every employee's policy cap to ${pointValue} points. Continue?`,
+        `${copy.pipConfirmLead} ${pointValue} ${copy.pipConfirmTrail}`,
       )
     ) {
       return;
@@ -52,12 +55,12 @@ export function ThresholdEditor({
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(body?.error ?? "Update failed.");
+        throw new Error(body?.error ?? copy.errorUpdateFailed);
       }
       setThresholds(body.thresholds);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed.");
+      setError(err instanceof Error ? err.message : copy.errorUpdateFailed);
     } finally {
       setPendingKey(null);
     }
@@ -82,22 +85,21 @@ export function ThresholdEditor({
               className="font-display w-20 border border-line bg-white px-2 py-1 text-xl font-bold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label={`${threshold.label} point value`}
             />
-            <span className="text-sm text-slate/65">pts</span>
+            <span className="text-sm text-slate/65">{copy.ptsWord}</span>
             <button
               type="button"
               onClick={() => handleSave(threshold.key)}
               disabled={pendingKey === threshold.key}
               className="ml-auto inline-flex h-8 items-center border border-accent-deep/40 bg-accent-deep/10 px-3 text-sm font-semibold text-accent-deep transition-colors hover:bg-accent-deep/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {pendingKey === threshold.key ? "Saving…" : "Save"}
+              {pendingKey === threshold.key ? copy.saving : copy.save}
             </button>
           </div>
 
           <p className="mt-1 text-sm text-slate/65">{threshold.action}</p>
           {threshold.key === "pip" ? (
             <p className="mt-1 text-sm text-slate/50">
-              This is the policy cap — changing it updates every
-              employee's point cap too.
+              {copy.pipCapNote}
             </p>
           ) : null}
         </div>

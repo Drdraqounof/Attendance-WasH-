@@ -2,7 +2,12 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationBell } from "@/components/notification-bell";
-import { getNotifications, getUnreadNotificationCount } from "@/lib/notifications-queries";
+import { CHROME_COPY } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+} from "@/lib/notifications-queries";
 
 type OpsNavActive =
   | "dashboard"
@@ -37,6 +42,8 @@ export async function OpsHeader({
   active: OpsNavActive;
   crumb?: string;
 }) {
+  const lang = await getLang();
+  const copy = CHROME_COPY[lang];
   const [notifications, unreadCount] = await Promise.all([
     getNotifications(10),
     getUnreadNotificationCount(),
@@ -59,10 +66,10 @@ export async function OpsHeader({
             className="hidden items-center gap-5 sm:flex"
             aria-label="Ops navigation"
           >
-            {navLink("/dashboard", "Dashboard", active === "dashboard")}
-            {navLink("/analytics", "Analytics", active === "analytics")}
-            {navLink("/insights", "AI Insights", active === "insights")}
-            {navLink("/settings", "Settings", active === "settings")}
+            {navLink("/dashboard", copy.navDashboard, active === "dashboard")}
+            {navLink("/analytics", copy.navAnalytics, active === "analytics")}
+            {navLink("/insights", copy.navInsights, active === "insights")}
+            {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           {crumb ? (
             <>
@@ -81,21 +88,25 @@ export async function OpsHeader({
             className="flex items-center gap-4 sm:hidden"
             aria-label="Ops navigation mobile"
           >
-            {navLink("/dashboard", "Dash", active === "dashboard")}
-            {navLink("/analytics", "Analytics", active === "analytics")}
-            {navLink("/insights", "AI", active === "insights")}
-            {navLink("/settings", "Settings", active === "settings")}
+            {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
+            {navLink("/analytics", copy.navAnalytics, active === "analytics")}
+            {navLink("/insights", copy.navInsightsShort, active === "insights")}
+            {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
-          <NotificationBell notifications={notifications} unreadCount={unreadCount} />
-          {navLink("/profile", "Profile", active === "profile")}
-          <SignOutButton />
+          <NotificationBell
+            notifications={notifications}
+            unreadCount={unreadCount}
+            copy={copy}
+          />
+          {navLink("/profile", copy.navProfile, active === "profile")}
+          <SignOutButton label={copy.signOut} />
         </div>
       </div>
     </header>
   );
 }
 
-export function OpsShell({
+export async function OpsShell({
   active,
   crumb,
   children,

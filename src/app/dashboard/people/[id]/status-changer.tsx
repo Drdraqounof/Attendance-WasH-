@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { RISK_LABELS } from "@/lib/dashboard-mock";
+import { PEOPLE_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
 import type { RiskLevel } from "@/lib/policy-engine";
 
 const STATUS_OPTIONS: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
@@ -16,12 +16,17 @@ const STATUS_OPTIONS: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
 export function StatusChanger({
   employeeId,
   currentStatus,
+  copy = PEOPLE_COPY.en,
+  riskLabels = RISK_LABELS_BY_LANG.en,
 }: {
   employeeId: string;
   currentStatus: RiskLevel;
+  copy?: (typeof PEOPLE_COPY)[keyof typeof PEOPLE_COPY];
+  riskLabels?: Record<RiskLevel, string>;
 }) {
   const router = useRouter();
   const [targetStatus, setTargetStatus] = useState<RiskLevel>(currentStatus);
+  const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +35,7 @@ export function StatusChanger({
   async function handleApply() {
     if (
       !window.confirm(
-        `Change this employee's status from ${RISK_LABELS[currentStatus]} to ${RISK_LABELS[targetStatus]}? Points will be added or deducted to match.`,
+        `${copy.confirmChangeLead} ${riskLabels[currentStatus]} ${copy.confirmChangeMid} ${riskLabels[targetStatus]}${copy.confirmChangeTrail}`,
       )
     ) {
       return;
@@ -42,15 +47,20 @@ export function StatusChanger({
       const response = await fetch("/api/warnings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, targetStatus }),
+        body: JSON.stringify({
+          employeeId,
+          targetStatus,
+          note: note.trim() || undefined,
+        }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(body?.error ?? "Status change failed.");
+        throw new Error(body?.error ?? copy.errorStatusChangeFailed);
       }
+      setNote("");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Status change failed.");
+      setError(err instanceof Error ? err.message : copy.errorStatusChangeFailed);
     } finally {
       setPending(false);
     }
@@ -58,16 +68,27 @@ export function StatusChanger({
 
   return (
     <div className="flex flex-col items-end gap-1.5">
+      <label className="sr-only" htmlFor={`${employeeId}-status-note`}>
+        {copy.noteLabel}
+      </label>
+      <input
+        id={`${employeeId}-status-note`}
+        type="text"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder={copy.notePlaceholder}
+        className="h-9 w-56 max-w-full border border-line bg-white px-2 text-sm text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      />
       <div className="flex items-center gap-2">
         <select
           value={targetStatus}
           onChange={(e) => setTargetStatus(e.target.value as RiskLevel)}
           className="h-9 border border-line bg-white px-2 text-sm font-medium text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          aria-label="Target status"
+          aria-label={copy.targetStatusLabel}
         >
           {STATUS_OPTIONS.map((status) => (
             <option key={status} value={status}>
-              {RISK_LABELS[status]}
+              {riskLabels[status]}
             </option>
           ))}
         </select>
@@ -77,9 +98,10 @@ export function StatusChanger({
           disabled={pending || unchanged}
           className="inline-flex h-9 items-center border border-accent-deep/40 bg-accent-deep/10 px-3.5 text-sm font-semibold text-accent-deep transition-colors hover:bg-accent-deep/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pending ? "Applying…" : "Change status"}
+          {pending ? copy.applying : copy.changeStatus}
         </button>
       </div>
+      <p className="max-w-56 text-right text-sm text-slate/50">{copy.noteHint}</p>
       {error ? <p className="text-sm text-danger-soft">{error}</p> : null}
     </div>
   );

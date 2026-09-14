@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 /**
  * Used once the manager has reviewed (and optionally refined via
  * /api/insights/summary/refine) the summary in
- * src/app/insights/report-builder.tsx — embeds that exact summary in
+ * src/app/insights/report/report-builder.tsx — embeds that exact summary in
  * the PDF instead of re-fetching the default cached one.
  */
 export async function POST(request: Request) {

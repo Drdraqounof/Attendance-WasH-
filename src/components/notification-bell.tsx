@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { CHROME_COPY } from "@/lib/i18n";
 import type { NotificationRow } from "@/lib/notifications-queries";
 
 const MAX_VISIBLE = 5;
-
-const SEVERITY_LABELS: Record<NotificationRow["severity"], string> = {
-  critical: "Critical",
-  warning: "Warning",
-};
 
 function severityDot(severity: NotificationRow["severity"]): string {
   return severity === "critical" ? "bg-danger-soft" : "bg-danger-soft/55";
@@ -40,13 +36,20 @@ async function markRead(payload: { id: number } | { all: true }) {
 export function NotificationBell({
   notifications,
   unreadCount,
+  copy = CHROME_COPY.en,
 }: {
   notifications: NotificationRow[];
   unreadCount: number;
+  copy?: (typeof CHROME_COPY)[keyof typeof CHROME_COPY];
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const severityLabels: Record<NotificationRow["severity"], string> = {
+    critical: copy.notificationsSeverityCritical,
+    warning: copy.notificationsSeverityWarning,
+  };
 
   const visible = notifications.slice(0, MAX_VISIBLE);
 
@@ -82,7 +85,7 @@ export function NotificationBell({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+        aria-label={`${copy.notificationsLabel}${unreadCount > 0 ? `, ${unreadCount} ${copy.notificationsUnread}` : ""}`}
         className="relative flex h-9 w-9 items-center justify-center text-slate/70 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         <svg
@@ -113,12 +116,12 @@ export function NotificationBell({
       {open ? (
         <div
           role="dialog"
-          aria-label="Notifications"
+          aria-label={copy.notificationsLabel}
           className="absolute top-full right-0 z-50 mt-3 w-80 border border-line bg-white shadow-lg sm:w-96"
         >
           <div className="flex items-baseline justify-between gap-3 border-b border-line/70 px-4 py-3">
             <p className="font-display text-sm font-semibold tracking-tight text-ink">
-              Notifications
+              {copy.notificationsLabel}
             </p>
             {unreadCount > 0 ? (
               <button
@@ -126,18 +129,18 @@ export function NotificationBell({
                 onClick={handleMarkAllRead}
                 className="text-sm font-medium text-accent-deep transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                Mark all as read
+                {copy.notificationsMarkAllRead}
               </button>
             ) : (
               <p className="text-sm tracking-wide text-slate/55 uppercase">
-                All read
+                {copy.notificationsAllRead}
               </p>
             )}
           </div>
 
           {visible.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate/65">
-              No notifications yet.
+              {copy.notificationsEmpty}
             </p>
           ) : (
             <ul className="max-h-96 divide-y divide-line/70 overflow-y-auto">
@@ -172,7 +175,7 @@ export function NotificationBell({
                         {notification.employeeName}
                       </span>
                       <span className="ml-auto shrink-0 text-sm font-medium text-danger-soft">
-                        {SEVERITY_LABELS[notification.severity]}
+                        {severityLabels[notification.severity]}
                       </span>
                     </div>
                     <p className="mt-1 truncate pl-4 text-sm text-slate/65">
@@ -189,7 +192,7 @@ export function NotificationBell({
             onClick={() => setOpen(false)}
             className="block border-t border-line/70 px-4 py-3 text-center text-sm font-medium text-accent-deep transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           >
-            View all on dashboard
+            {copy.notificationsViewAll}
           </Link>
         </div>
       ) : null}

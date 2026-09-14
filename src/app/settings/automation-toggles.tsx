@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SETTINGS_COPY } from "@/lib/i18n";
 import {
   AUTOMATION_TOGGLES,
   AUTOMATION_TOGGLES_STORAGE_KEY as STORAGE_KEY,
@@ -26,7 +27,11 @@ function loadState(): Record<AutomationToggleKey, boolean> {
   }
 }
 
-export function AutomationToggles() {
+export function AutomationToggles({
+  copy = SETTINGS_COPY.en,
+}: {
+  copy?: (typeof SETTINGS_COPY)[keyof typeof SETTINGS_COPY];
+}) {
   const [state, setState] = useState<Record<AutomationToggleKey, boolean>>(
     defaultState,
   );
@@ -68,7 +73,7 @@ export function AutomationToggles() {
                 {def.label}
                 {disabled ? (
                   <span className="ml-2 text-sm font-medium tracking-wide text-slate/50 uppercase">
-                    Not connected
+                    {copy.notConnected}
                   </span>
                 ) : null}
               </p>

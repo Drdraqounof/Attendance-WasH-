@@ -3,9 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { OpsShell } from "@/components/ops-shell";
-import { TREND_LABELS, type TrendDirection } from "@/lib/ai-analysis-mock";
+import type { TrendDirection } from "@/lib/ai-analysis-mock";
 import { hasDemoSession } from "@/lib/auth-mock";
-import { RISK_LABELS } from "@/lib/dashboard-mock";
+import {
+  INSIGHTS_COPY,
+  RISK_LABELS_BY_LANG,
+  TREND_LABELS_BY_LANG,
+} from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import { DAY_WINDOWS, parseDays } from "@/lib/insights-days";
 import {
   employeesAtRisk,
@@ -19,14 +24,6 @@ import { AtRiskCard, AtRiskCardWithRecommendations } from "./at-risk-card";
 export const metadata: Metadata = {
   title: "AI Attendance Analysis",
 };
-
-const CAPABILITIES = [
-  "Frequent lateness patterns",
-  "Common causes of attendance issues",
-  "Employees at risk of attendance problems",
-  "Improvement trends",
-  "Attendance points & policy status",
-] as const;
 
 const RELIABILITY_LIMIT = 10;
 
@@ -45,6 +42,18 @@ export default async function InsightsPage({
   if (!signedIn) {
     redirect("/login");
   }
+
+  const lang = await getLang();
+  const copy = INSIGHTS_COPY[lang];
+  const riskLabels = RISK_LABELS_BY_LANG[lang];
+  const trendLabels = TREND_LABELS_BY_LANG[lang];
+  const CAPABILITIES = [
+    copy.capability1,
+    copy.capability2,
+    copy.capability3,
+    copy.capability4,
+    copy.capability5,
+  ] as const;
 
   const days = parseDays((await searchParams)?.days);
 
@@ -66,11 +75,11 @@ export default async function InsightsPage({
         <div className="animate-fade-up">
           <div className="live-pulse mb-4 h-[3px] w-14 sm:w-20" aria-hidden />
           <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-            AI attendance analysis
+            {copy.eyebrow}
           </p>
           <div className="mt-2 flex flex-wrap items-baseline justify-between gap-4">
             <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              Patterns, causes, and risk — surfaced automatically
+              {copy.heading}
             </h1>
             <nav
               className="flex items-center gap-1 border border-line bg-white/60 p-1 text-sm"
@@ -93,7 +102,7 @@ export default async function InsightsPage({
             </nav>
           </div>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/75">
-            The attendance system continuously analyzes signals to identify:
+            {copy.intro}
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {CAPABILITIES.map((item) => (
@@ -110,7 +119,7 @@ export default async function InsightsPage({
 
         {/* AI-generated executive summary — streams in independently */}
         <Suspense fallback={<AiSummaryCardSkeleton />}>
-          <AiSummaryCard days={days} />
+          <AiSummaryCard days={days} copy={copy} />
         </Suspense>
 
         {/* Frequent lateness patterns */}
@@ -123,16 +132,15 @@ export default async function InsightsPage({
               id="lateness-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Frequent lateness patterns
+              {copy.latenessHeading}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              3+ late arrivals · last {days} days
+              {copy.latenessSubLead} {days} {copy.daysWord}
             </p>
           </div>
           {lateness.length === 0 ? (
             <div className="border border-line bg-white/60 px-5 py-6 text-sm text-slate/65">
-              No employee has crossed the frequent-lateness threshold this
-              cycle.
+              {copy.latenessEmpty}
             </div>
           ) : (
             <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -161,7 +169,7 @@ export default async function InsightsPage({
                 id="causes-heading"
                 className="font-display text-lg font-semibold tracking-tight text-ink"
               >
-                Common causes of attendance issues
+                {copy.causesHeading}
               </h2>
             </div>
             <ul className="divide-y divide-line/70 border border-line bg-white/65">
@@ -187,8 +195,17 @@ export default async function InsightsPage({
           </section>
 
           {/* At-risk employees — recommendation line streams in independently */}
-          <Suspense fallback={<AtRiskCard atRisk={atRisk} />}>
-            <AtRiskCardWithRecommendations atRisk={atRisk} days={days} />
+          <Suspense
+            fallback={
+              <AtRiskCard atRisk={atRisk} copy={copy} riskLabels={riskLabels} />
+            }
+          >
+            <AtRiskCardWithRecommendations
+              atRisk={atRisk}
+              days={days}
+              copy={copy}
+              riskLabels={riskLabels}
+            />
           </Suspense>
         </div>
 
@@ -202,10 +219,10 @@ export default async function InsightsPage({
               id="reliability-heading"
               className="font-display text-lg font-semibold tracking-tight text-ink"
             >
-              Attendance points &amp; improvement trends
+              {copy.reliabilityHeading}
             </h2>
             <p className="text-sm tracking-wide text-slate/55 uppercase">
-              Top {RELIABILITY_LIMIT} · vs. prior {days} days
+              {copy.reliabilityTop} {RELIABILITY_LIMIT} · {copy.reliabilityVsPrior} {days} {copy.daysWord}
             </p>
           </div>
           <div className="overflow-x-auto border border-line bg-white/65">
@@ -213,13 +230,13 @@ export default async function InsightsPage({
               <thead>
                 <tr className="border-b border-line/80 text-sm tracking-[0.12em] text-slate/60 uppercase">
                   <th className="px-4 py-2.5 font-semibold sm:px-5">
-                    Employee
+                    {copy.thEmployee}
                   </th>
                   <th className="px-2 py-2.5 text-right font-semibold">
-                    Points · Status
+                    {copy.thPointsStatus}
                   </th>
                   <th className="px-4 py-2.5 text-right font-semibold sm:px-5">
-                    Trend
+                    {copy.thTrend}
                   </th>
                 </tr>
               </thead>
@@ -240,13 +257,13 @@ export default async function InsightsPage({
                     <td className="px-2 py-3 text-right font-display font-semibold tabular-nums text-ink">
                       {row.points} pts
                       <span className="ml-1.5 font-sans text-sm font-medium text-slate/55">
-                        · {RISK_LABELS[row.riskLevel]}
+                        · {riskLabels[row.riskLevel]}
                       </span>
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium sm:px-5 ${trendTone(row.trend)}`}
                     >
-                      {TREND_LABELS[row.trend]}
+                      {trendLabels[row.trend]}
                     </td>
                   </tr>
                 ))}
@@ -256,8 +273,7 @@ export default async function InsightsPage({
         </section>
 
         <p className="mt-10 border-t border-line/70 pt-5 text-sm tracking-wide text-slate/50">
-          Live query · reads from Neon (schema in docs/database/database.md) · SMS
-          intake not connected
+          {copy.footer}
         </p>
       </main>
     </OpsShell>

@@ -4,6 +4,8 @@ import { OpsShell } from "@/components/ops-shell";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationPreferences } from "@/app/profile/notification-preferences";
 import { hasDemoSession } from "@/lib/auth-mock";
+import { PROFILE_COPY } from "@/lib/i18n";
+import { getLang } from "@/lib/i18n-server";
 import { DEMO_MANAGER } from "@/lib/manager-mock";
 
 export const metadata: Metadata = {
@@ -16,6 +18,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
+  const lang = await getLang();
+  const copy = PROFILE_COPY[lang];
   const manager = DEMO_MANAGER;
 
   return (
@@ -23,7 +27,7 @@ export default async function ProfilePage() {
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-6 py-8 sm:px-8 sm:py-10">
         <div className="animate-fade-up">
           <p className="text-sm font-semibold tracking-[0.16em] text-slate/55 uppercase">
-            Manager profile
+            {copy.eyebrow}
           </p>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             {manager.name}
@@ -37,7 +41,7 @@ export default async function ProfilePage() {
         >
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              Email
+              {copy.labelEmail}
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
               {manager.email}
@@ -45,7 +49,7 @@ export default async function ProfilePage() {
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              Phone
+              {copy.labelPhone}
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
               {manager.phoneMasked}
@@ -53,7 +57,7 @@ export default async function ProfilePage() {
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              Floor
+              {copy.labelFloor}
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
               {manager.floor}
@@ -61,7 +65,7 @@ export default async function ProfilePage() {
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              Manager since
+              {copy.labelManagerSince}
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
               {manager.joined}
@@ -69,11 +73,11 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <NotificationPreferences />
+        <NotificationPreferences copy={copy} />
 
         <div className="animate-fade-up-delay-3 mt-10 flex items-center justify-between border-t border-line/70 pt-6">
           <p className="text-sm tracking-wide text-slate/50">
-            Demo account · not connected to a real identity provider
+            {copy.footer}
           </p>
           <SignOutButton />
         </div>

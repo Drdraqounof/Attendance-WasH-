@@ -9,9 +9,11 @@ function setDemoCookie() {
   document.cookie = `${DEMO_COOKIE}=1; path=/; max-age=86400; SameSite=Lax`;
 }
 
-function goToDashboard() {
+function goToLanguage() {
   // Full navigation so the cookie is always picked up by the next request.
-  window.location.assign("/dashboard");
+  // Language choice happens next, at /login/language, before landing on
+  // the dashboard — see src/app/login/language/page.tsx.
+  window.location.assign("/login/language");
 }
 
 export function LoginForm() {
@@ -32,7 +34,7 @@ export function LoginForm() {
     setError("");
     startTransition(() => {
       setDemoCookie();
-      goToDashboard();
+      goToLanguage();
     });
   }
 
@@ -40,7 +42,7 @@ export function LoginForm() {
     setError("");
     startTransition(() => {
       setDemoCookie();
-      goToDashboard();
+      goToLanguage();
     });
   }
 
