@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   employees,
+  notifications,
   policyThresholds,
   pointEvents,
   pointRules,
@@ -235,18 +236,50 @@ export async function updateEscalationRule(
 }
 
 /**
+ * Inserts one `notifications` row when a PIP-threshold `warnings` row
+ * was just created — shared by recordPointEvent and setEmployeeStatus
+ * so PIP-crossing detection stays in one place rather than duplicated.
+ * No-op if "pip" isn't among the newly inserted warnings (verbal
+ * warning / required manager meeting crossings don't notify in this
+ * phase). See docs/planning/pip-notifications.md.
+ */
+async function notifyIfPipCrossed(
+  employeeId: string,
+  employeeName: string,
+  insertedWarnings: { id: number; thresholdKey: string; pointsAtTrigger: number }[],
+): Promise<void> {
+  const pip = insertedWarnings.find((w) => w.thresholdKey === "pip");
+  if (!pip) return;
+
+  await db.insert(notifications).values({
+    employeeId,
+    warningId: pip.id,
+    thresholdKey: "pip",
+    pointsAtTrigger: pip.pointsAtTrigger,
+    title: `${employeeName} reached the PIP threshold`,
+    body: `${employeeName} crossed ${pip.pointsAtTrigger} points and is now on a Performance Improvement Plan. Notify HR.`,
+    severity: "critical",
+  });
+}
+
+/**
  * Records one infraction: inserts the ledger row, updates the
  * employee's running point total, and opens a `warnings` row for every
  * threshold the event just crossed (verbal warning, required manager
  * meeting, PIP — using the live, possibly admin-edited threshold and
- * escalation-rule values, not the static defaults).
+ * escalation-rule values, not the static defaults). A PIP crossing
+ * also inserts a `notifications` row — see notifyIfPipCrossed above.
  */
 export async function recordPointEvent(
   input: RecordPointEventInput,
 ): Promise<RecordPointEventResult> {
   const [employee, thresholds, escalationRules] = await Promise.all([
     db
-      .select({ points: employees.points, policyCap: employees.policyCap })
+      .select({
+        name: employees.name,
+        points: employees.points,
+        policyCap: employees.policyCap,
+      })
       .from(employees)
       .where(eq(employees.id, input.employeeId))
       .then((rows) => rows[0]),
@@ -282,14 +315,23 @@ export async function recordPointEvent(
     .where(eq(employees.id, input.employeeId));
 
   if (result.crossedThresholds.length > 0) {
-    await db.insert(warnings).values(
-      result.crossedThresholds.map((threshold) => ({
-        employeeId: input.employeeId,
-        thresholdKey: threshold.key,
-        pointsAtTrigger: result.newPoints,
-        status: "open" as const,
-      })),
-    );
+    const inserted = await db
+      .insert(warnings)
+      .values(
+        result.crossedThresholds.map((threshold) => ({
+          employeeId: input.employeeId,
+          thresholdKey: threshold.key,
+          pointsAtTrigger: result.newPoints,
+          status: "open" as const,
+        })),
+      )
+      .returning({
+        id: warnings.id,
+        thresholdKey: warnings.thresholdKey,
+        pointsAtTrigger: warnings.pointsAtTrigger,
+      });
+
+    await notifyIfPipCrossed(input.employeeId, employee.name, inserted);
   }
 
   return {
@@ -476,7 +518,11 @@ export async function setEmployeeStatus(
 ): Promise<SetEmployeeStatusResult> {
   const [[employee], thresholds] = await Promise.all([
     db
-      .select({ points: employees.points, policyCap: employees.policyCap })
+      .select({
+        name: employees.name,
+        points: employees.points,
+        policyCap: employees.policyCap,
+      })
       .from(employees)
       .where(eq(employees.id, employeeId)),
     getPolicyThresholds(),
@@ -518,15 +564,24 @@ export async function setEmployeeStatus(
   if (delta > 0) {
     const crossed = thresholdsCrossed(employee.points, targetPoints, thresholds);
     if (crossed.length > 0) {
-      await db.insert(warnings).values(
-        crossed.map((threshold) => ({
-          employeeId,
-          thresholdKey: threshold.key,
-          pointsAtTrigger: targetPoints,
-          status: "open" as const,
-        })),
-      );
+      const inserted = await db
+        .insert(warnings)
+        .values(
+          crossed.map((threshold) => ({
+            employeeId,
+            thresholdKey: threshold.key,
+            pointsAtTrigger: targetPoints,
+            status: "open" as const,
+          })),
+        )
+        .returning({
+          id: warnings.id,
+          thresholdKey: warnings.thresholdKey,
+          pointsAtTrigger: warnings.pointsAtTrigger,
+        });
       crossedThresholdKeys = crossed.map((t) => t.key);
+
+      await notifyIfPipCrossed(employeeId, employee.name, inserted);
     }
   } else if (delta < 0) {
     const noLongerApplicable = thresholds

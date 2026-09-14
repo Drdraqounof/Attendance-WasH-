@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationBell } from "@/components/notification-bell";
-import { generateAttendanceAlerts } from "@/lib/alerts-mock";
-import { ALERT_SEVERITY_LABELS_BY_LANG, CHROME_COPY } from "@/lib/i18n";
+import { CHROME_COPY } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
-import { getAllPeople } from "@/lib/people-mock";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+} from "@/lib/notifications-queries";
 
 type OpsNavActive =
   | "dashboard"
@@ -42,7 +44,10 @@ export async function OpsHeader({
 }) {
   const lang = await getLang();
   const copy = CHROME_COPY[lang];
-  const alerts = generateAttendanceAlerts(getAllPeople(lang));
+  const [notifications, unreadCount] = await Promise.all([
+    getNotifications(10),
+    getUnreadNotificationCount(),
+  ]);
 
   return (
     <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
@@ -89,9 +94,9 @@ export async function OpsHeader({
             {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           <NotificationBell
-            alerts={alerts}
+            notifications={notifications}
+            unreadCount={unreadCount}
             copy={copy}
-            severityLabels={ALERT_SEVERITY_LABELS_BY_LANG[lang]}
           />
           {navLink("/profile", copy.navProfile, active === "profile")}
           <SignOutButton label={copy.signOut} />

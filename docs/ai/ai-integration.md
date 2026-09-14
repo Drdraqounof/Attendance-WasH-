@@ -1,7 +1,7 @@
 # AI Integration — OpenAI Narrative Layer
 
-**Date added:** 2026-08-10 · **Updated:** 2026-08-11 (streaming + caching + DB-backed queries)
-**Status:** Connected (live), narrative layer only
+**Date added:** 2026-08-10 · **Updated:** 2026-09-08 (per-employee recommendations)
+**Status:** Connected (live), narrative + per-employee recommendation layers
 **Provider:** OpenAI (`gpt-4o-mini`)
 
 ## What this is
@@ -36,7 +36,10 @@ real AI-written summary on top.
 | `src/lib/insights-queries.ts` | Drizzle queries (`frequentLatenessPatterns`, `signalTypeBreakdown`, `employeesAtRisk`, `reliabilityRanking`) that feed both the page's deterministic sections and the AI prompt, parameterized by a `days` window. |
 | `src/lib/ai-narrative.ts` | Calls the four query functions above to build a prompt, then calls `gpt-4o-mini` (chat.completions) to produce a 3–5 sentence summary. Wrapped in `unstable_cache` (1-hour revalidate, keyed by `days`). Falls back to a static message on missing key or request failure — never throws. |
 | `src/app/insights/ai-summary-card.tsx` | `AiSummaryCard` (calls `generateInsightsNarrative`) + `AiSummaryCardSkeleton`, isolated so the card can stream independently. |
-| `src/app/insights/page.tsx` | Reads `?days=` from `searchParams`, awaits the deterministic sections directly, and renders `AiSummaryCard` inside a `<Suspense>` boundary. |
+| `src/app/insights/page.tsx` | Reads `?days=` from `searchParams`, awaits the deterministic sections directly, and renders `AiSummaryCard`/`AtRiskCardWithRecommendations` each inside their own `<Suspense>` boundary. |
+| `src/lib/policy-engine.ts` | `recommendedNextStep(points, cap, thresholds)` — deterministic, non-AI "what to do next" text built from the same threshold `.action` copy shown elsewhere. This is the grounding fact set (and fallback) for the OpenAI rewrite below. |
+| `src/lib/ai-recommendations.ts` | `generateAtRiskRecommendations(days)` — one JSON-mode `gpt-4o-mini` call that rewrites each at-risk employee's `recommendedNextStep()` text into a punchier sentence, fed only the already-computed facts. Wrapped in `unstable_cache` (1-hour revalidate, keyed by `days`). Any employee missing/malformed in the response falls back to their deterministic text individually. |
+| `src/app/insights/at-risk-card.tsx` | `AtRiskCard` (sync, no recommendation line — the Suspense fallback) + `AtRiskCardWithRecommendations` (async, awaits `generateAtRiskRecommendations`). |
 
 ## How the connection works
 
@@ -79,6 +82,27 @@ real AI-written summary on top.
   `?days=` query param into both the deterministic queries and the
   cache key, so cached summaries are correctly scoped per window.
 
+## 2026-09-08 changes — per-employee recommendations
+
+- **New layer, not a replacement**: `AiSummaryCard`'s executive-summary
+  paragraph is unchanged. A second, independent OpenAI call
+  (`generateAtRiskRecommendations`) now also runs per page load, turning
+  each row in the "Employees at risk" section into one specific,
+  actionable sentence instead of just a reason string.
+- **Grounded by construction, not by prompt instruction alone**: the
+  fact fed to the model for each employee is `recommendedNextStep()`'s
+  deterministic output (real points, the real threshold crossed, its
+  real `.action` copy) — the model is only asked to rephrase it, and
+  its JSON response is matched back to each employee by `employeeId`.
+  Any employee the model omits or answers malformed for still gets its
+  deterministic text — this is a real per-row fallback, not all-or-nothing.
+- **No `OPENAI_API_KEY` configured**: the recommendation line still
+  renders (the deterministic template text), unlike the executive
+  summary which shows a generic "unavailable" fallback sentence. Zero
+  network calls when there are no at-risk employees.
+- **Caching**: same `unstable_cache` pattern, tag
+  `"insights-recommendations"`, revalidate 3600s, keyed by `days`.
+
 ## Verification performed
 
 **2026-08-10** (initial connection):
@@ -96,11 +120,17 @@ real AI-written summary on top.
   same `narrative.source`, confirming the cache is being hit rather
   than re-calling OpenAI.
 
+**2026-09-08** (per-employee recommendations):
+- `npx vitest run` (53/53, including new `recommendedNextStep` cases in
+  `policy-engine.test.ts`) and `npx tsc --noEmit` both pass.
+
 ## Operational notes
 
-- **Cost**: one small chat completion (`max_tokens: 220`) per unique
-  `days` window per hour, thanks to the `unstable_cache` revalidation —
-  not per page load.
+- **Cost**: two small chat completions per unique `days` window per
+  hour (the `max_tokens: 220` executive summary, plus the at-risk
+  recommendations call capped at `60 * atRisk.length` tokens, skipped
+  entirely when there are zero at-risk employees), thanks to the
+  `unstable_cache` revalidation on both — not per page load.
 - **Secrets**: `.env` is git-ignored (`.gitignore` → `.env*`). Never log
   or print `OPENAI_API_KEY` in full; `openai-client.ts` never surfaces it
   to the client bundle since it's only imported from server components.

@@ -117,8 +117,12 @@ export const CHROME_COPY: Record<
     navProfile: string;
     signOut: string;
     notificationsLabel: string;
-    notificationsOpen: string;
+    notificationsUnread: string;
+    notificationsMarkAllRead: string;
+    notificationsAllRead: string;
     notificationsEmpty: string;
+    notificationsSeverityCritical: string;
+    notificationsSeverityWarning: string;
     notificationsViewAll: string;
   }
 > = {
@@ -132,8 +136,12 @@ export const CHROME_COPY: Record<
     navProfile: "Profile",
     signOut: "Sign out",
     notificationsLabel: "Notifications",
-    notificationsOpen: "open",
-    notificationsEmpty: "No active warnings. All signals within policy.",
+    notificationsUnread: "unread",
+    notificationsMarkAllRead: "Mark all as read",
+    notificationsAllRead: "All read",
+    notificationsEmpty: "No notifications yet.",
+    notificationsSeverityCritical: "Critical",
+    notificationsSeverityWarning: "Warning",
     notificationsViewAll: "View all on dashboard",
   },
   es: {
@@ -146,8 +154,12 @@ export const CHROME_COPY: Record<
     navProfile: "Perfil",
     signOut: "Cerrar sesión",
     notificationsLabel: "Notificaciones",
-    notificationsOpen: "abiertas",
-    notificationsEmpty: "Sin advertencias activas. Todo dentro de la política.",
+    notificationsUnread: "sin leer",
+    notificationsMarkAllRead: "Marcar todas como leídas",
+    notificationsAllRead: "Todas leídas",
+    notificationsEmpty: "Aún no hay notificaciones.",
+    notificationsSeverityCritical: "Crítico",
+    notificationsSeverityWarning: "Advertencia",
     notificationsViewAll: "Ver todo en el panel",
   },
 };

@@ -17,8 +17,10 @@ import {
   RISK_LABELS_BY_LANG,
 } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
+import { getNotifications } from "@/lib/notifications-queries";
 import { employeeOfTheMonth, getAllPeople } from "@/lib/people-mock";
 import { AttendanceAlerts } from "./attendance-alerts";
+import { PipNotificationsBanner } from "./pip-notifications-banner";
 import { InterveneNow, PriorityRoster } from "./priority-roster";
 
 export const metadata: Metadata = {
@@ -42,6 +44,10 @@ export default async function DashboardPage() {
   const intervene = interventionTargets(roster, 3);
   const alerts = generateAttendanceAlerts(getAllPeople(lang));
   const nominee = employeeOfTheMonth(lang);
+  const recentNotifications = await getNotifications(5);
+  const pipNotifications = recentNotifications.filter(
+    (n) => n.thresholdKey === "pip",
+  );
 
   const metrics = [
     {
@@ -141,6 +147,12 @@ export default async function DashboardPage() {
         <div className="animate-fade-up-delay-3 mt-8">
           <InterveneNow targets={intervene} copy={copy} />
         </div>
+
+        {pipNotifications.length > 0 && (
+          <div className="animate-fade-up-delay-3 mt-8">
+            <PipNotificationsBanner notifications={pipNotifications} />
+          </div>
+        )}
 
         <div className="animate-fade-up-delay-3 mt-8">
           <AttendanceAlerts

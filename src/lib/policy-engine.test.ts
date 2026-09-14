@@ -6,6 +6,7 @@ import {
   POLICY_CAP,
   POLICY_THRESHOLDS,
   pointsForRule,
+  recommendedNextStep,
   riskLevelFromPoints,
   thresholdsCrossed,
   type EscalationRule,
@@ -170,6 +171,41 @@ describe("policy-engine", () => {
           riskLevelFromPoints(points, POLICY_CAP, POLICY_THRESHOLDS),
         );
       }
+    });
+  });
+
+  describe("recommendedNextStep", () => {
+    it("requires no action below the first threshold", () => {
+      const result = recommendedNextStep(0);
+      expect(result.thresholdKey).toBeNull();
+      expect(result.text).toContain("No corrective action required");
+    });
+
+    it("recommends the highest crossed threshold's action, grounded in real points", () => {
+      const result = recommendedNextStep(11);
+      expect(result.thresholdKey).toBe("manager_meeting");
+      expect(result.text).toContain("11 pts");
+      expect(result.text).toContain("Required Manager Meeting");
+      expect(result.text).toContain(
+        POLICY_THRESHOLDS.find((t) => t.key === "manager_meeting")!.action,
+      );
+    });
+
+    it("recommends the pip action once at the cap, not the lower thresholds", () => {
+      const result = recommendedNextStep(16);
+      expect(result.thresholdKey).toBe("pip");
+      expect(result.text).toContain("Performance Improvement Plan");
+    });
+
+    it("respects admin-edited thresholds instead of the defaults", () => {
+      const customThresholds: PolicyThreshold[] = [
+        { key: "verbal_warning", pointValue: 3, label: "Verbal Warning", action: "Custom verbal action." },
+        { key: "manager_meeting", pointValue: 8, label: "Required Manager Meeting", action: "Custom meeting action." },
+        { key: "pip", pointValue: POLICY_CAP, label: "PIP", action: "Custom PIP action." },
+      ];
+      const result = recommendedNextStep(8, POLICY_CAP, customThresholds);
+      expect(result.thresholdKey).toBe("manager_meeting");
+      expect(result.text).toContain("Custom meeting action.");
     });
   });
 

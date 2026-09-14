@@ -49,6 +49,11 @@ export const warningStatusEnum = pgEnum("warning_status", [
   "resolved",
 ]);
 
+export const notificationStatusEnum = pgEnum("notification_status", [
+  "unread",
+  "read",
+]);
+
 /** Signed-in manager accounts. Demo: no real identity provider yet. */
 export const managers = pgTable("managers", {
   id: serial("id").primaryKey(),
@@ -158,6 +163,41 @@ export const warnings = pgTable("warnings", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+/**
+ * Persisted in-app notification feed, generated whenever a `warnings`
+ * row is inserted for the "pip" threshold (see recordPointEvent /
+ * setEmployeeStatus in policy-queries.ts) — covers both an automated
+ * infraction pushing points to the cap and a manager manually setting
+ * status to PIP. Append-only — "read" is tracked via `status`/`readAt`
+ * rather than deleting rows, same ledger-it-don't-erase-it pattern as
+ * `pointEvents`/`warnings`. No manager FK: there's no manager/employee
+ * identity link or role system yet (every route is gated by
+ * hasDemoSession() only), so notifications are broadcast to any
+ * signed-in user for now. Distinct from `attendanceAlerts` below,
+ * which is a regenerate-and-replace snapshot, not an event log.
+ */
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id")
+    .notNull()
+    .references(() => employees.id, { onDelete: "cascade" }),
+  warningId: integer("warning_id")
+    .notNull()
+    .references(() => warnings.id, { onDelete: "cascade" }),
+  thresholdKey: text("threshold_key")
+    .notNull()
+    .references(() => policyThresholds.key),
+  pointsAtTrigger: integer("points_at_trigger").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  severity: alertSeverityEnum("severity").notNull(),
+  status: notificationStatusEnum("status").notNull().default("unread"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  readAt: timestamp("read_at", { withTimezone: true }),
 });
 
 /** Automation toggle definitions (AutomationToggleDef from settings-mock.ts). */

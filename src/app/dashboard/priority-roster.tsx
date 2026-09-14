@@ -6,6 +6,7 @@ import {
 } from "@/lib/dashboard-mock";
 import { DASHBOARD_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
 import Link from "next/link";
+import { AttendanceImportButton } from "./attendance-import-button";
 
 type DashboardCopy = (typeof DASHBOARD_COPY)[keyof typeof DASHBOARD_COPY];
 type RiskLabels = Record<RiskLevel, string>;
@@ -124,13 +125,16 @@ export function PriorityRoster({
 
   return (
     <div className="border border-line bg-white/65">
-      <div className="flex items-baseline justify-between gap-4 border-b border-line/80 px-4 py-3 sm:px-5">
-        <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
-          {copy.rosterHeading}
-        </h2>
-        <p className="text-sm tracking-wide text-slate/55 uppercase">
-          {copy.rosterSubheading}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 px-4 py-3 sm:px-5">
+        <div>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
+            {copy.rosterHeading}
+          </h2>
+          <p className="text-sm tracking-wide text-slate/55 uppercase">
+            {copy.rosterSubheading}
+          </p>
+        </div>
+        <AttendanceImportButton />
       </div>
 
       <div
