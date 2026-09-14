@@ -127,7 +127,7 @@ export function StatusChanger({
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 px-4 py-8"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-4 sm:p-8"
           onClick={closeModal}
         >
           <div
@@ -135,11 +135,11 @@ export function StatusChanger({
             aria-modal="true"
             aria-labelledby={modalHeadingId}
             onClick={(e) => e.stopPropagation()}
-            className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto border border-line bg-white p-8 shadow-xl"
+            className="flex h-[88vh] w-full max-w-4xl flex-col border border-line bg-white p-8 shadow-xl sm:p-10"
           >
             <h2
               id={modalHeadingId}
-              className="font-display text-xl font-semibold tracking-tight text-ink"
+              className="font-display text-2xl font-semibold tracking-tight text-ink"
             >
               {copy.changeStatusModalHeading}
             </h2>
@@ -151,7 +151,7 @@ export function StatusChanger({
 
             <label
               htmlFor={noteId}
-              className="mt-6 block text-sm font-medium text-ink"
+              className="mt-6 block text-base font-medium text-ink"
             >
               {copy.noteLabel}
             </label>
@@ -159,7 +159,6 @@ export function StatusChanger({
               ref={textareaRef}
               id={noteId}
               required
-              rows={12}
               value={note}
               onChange={(e) => {
                 setNote(e.target.value);
@@ -168,11 +167,11 @@ export function StatusChanger({
               placeholder={copy.notePlaceholder}
               aria-required="true"
               aria-invalid={Boolean(error)}
-              className="mt-2 min-h-64 w-full resize-y border border-line bg-white px-4 py-3 text-base text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:border-danger-soft"
+              className="mt-3 w-full flex-1 resize-none border border-line bg-white px-5 py-4 text-lg leading-relaxed text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:border-danger-soft"
             />
-            <p className="mt-1.5 text-sm text-slate/50">{copy.noteHint}</p>
+            <p className="mt-2 text-sm text-slate/50">{copy.noteHint}</p>
             {error ? (
-              <p className="mt-1.5 text-sm text-danger-soft">{error}</p>
+              <p className="mt-2 text-sm text-danger-soft">{error}</p>
             ) : null}
 
             <div className="mt-6 flex items-center justify-end gap-3">
