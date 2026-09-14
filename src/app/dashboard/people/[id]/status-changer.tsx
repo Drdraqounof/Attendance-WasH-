@@ -12,6 +12,11 @@ const STATUS_OPTIONS: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
  * PIP) — adds or deducts whatever points that takes, logged as an
  * auditable ledger entry. See docs/planning/employee-track-record-plan.md and
  * src/lib/policy-queries.ts::setEmployeeStatus.
+ *
+ * A reason note is required — checked here before the confirm dialog
+ * even opens, and re-checked by the API route (src/app/api/warnings/route.ts)
+ * since a manual status change is a historical artifact worth being
+ * able to explain later.
  */
 export function StatusChanger({
   employeeId,
@@ -31,8 +36,14 @@ export function StatusChanger({
   const [error, setError] = useState<string | null>(null);
 
   const unchanged = targetStatus === currentStatus;
+  const noteMissing = note.trim().length === 0;
 
   async function handleApply() {
+    if (noteMissing) {
+      setError(copy.errorNoteRequired);
+      return;
+    }
+
     if (
       !window.confirm(
         `${copy.confirmChangeLead} ${riskLabels[currentStatus]} ${copy.confirmChangeMid} ${riskLabels[targetStatus]}${copy.confirmChangeTrail}`,
@@ -74,10 +85,16 @@ export function StatusChanger({
       <input
         id={`${employeeId}-status-note`}
         type="text"
+        required
         value={note}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={(e) => {
+          setNote(e.target.value);
+          if (error) setError(null);
+        }}
         placeholder={copy.notePlaceholder}
-        className="h-9 w-56 max-w-full border border-line bg-white px-2 text-sm text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        aria-required="true"
+        aria-invalid={Boolean(error) && noteMissing}
+        className="h-9 w-56 max-w-full border border-line bg-white px-2 text-sm text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:border-danger-soft"
       />
       <div className="flex items-center gap-2">
         <select

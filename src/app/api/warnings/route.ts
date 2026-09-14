@@ -8,11 +8,17 @@ import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
  * docs/planning/employee-track-record-plan.md and docs/planning/points-system-brd.md's
  * Phase 2 ("list/update warning & action-plan status").
  *
- * POST { employeeId, targetStatus, note? } -> moves the employee to
+ * POST { employeeId, targetStatus, note } -> moves the employee to
  * the chosen status (Clear / Watch / At Risk / PIP), adding or
  * deducting whatever points that takes — logged as an auditable
  * ledger entry, with warnings opened/resolved to match. See
  * src/lib/policy-queries.ts::setEmployeeStatus.
+ *
+ * `note` is required (not just enforced client-side in
+ * src/app/dashboard/people/[id]/status-changer.tsx) — a manual status
+ * change is a historical artifact worth being able to explain later,
+ * so this route rejects the request rather than silently recording an
+ * unexplained change.
  *
  * Gated the same way as every other page in this demo: any signed-in
  * user (hasDemoSession()) — there is no manager/admin role system yet
@@ -59,13 +65,15 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  if (typeof note !== "string" || note.trim().length === 0) {
+    return NextResponse.json(
+      { error: "A reason (note) is required for a manual status change." },
+      { status: 400 },
+    );
+  }
 
   try {
-    const result = await setEmployeeStatus(
-      employeeId,
-      targetStatus as RiskLevel,
-      typeof note === "string" ? note : undefined,
-    );
+    const result = await setEmployeeStatus(employeeId, targetStatus as RiskLevel, note);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Update failed.";
