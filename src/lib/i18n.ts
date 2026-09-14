@@ -710,6 +710,9 @@ export const PEOPLE_COPY: Record<
     changeStatus: string;
     errorStatusChangeFailed: string;
     targetStatusLabel: string;
+    noteLabel: string;
+    notePlaceholder: string;
+    noteHint: string;
   }
 > = {
   en: {
@@ -755,6 +758,9 @@ export const PEOPLE_COPY: Record<
     changeStatus: "Change status",
     errorStatusChangeFailed: "Status change failed.",
     targetStatusLabel: "Target status",
+    noteLabel: "Note (optional)",
+    notePlaceholder: "Why is this changing? e.g. \"Cleared after doctor's note on file.\"",
+    noteHint: "Saved with this change and visible in the track record below.",
   },
   es: {
     backToDashboard: "Volver al panel",
@@ -800,6 +806,10 @@ export const PEOPLE_COPY: Record<
     changeStatus: "Cambiar estado",
     errorStatusChangeFailed: "El cambio de estado falló.",
     targetStatusLabel: "Estado objetivo",
+    noteLabel: "Nota (opcional)",
+    notePlaceholder:
+      "¿Por qué se hace este cambio? p. ej. \"Se levantó tras justificante médico archivado.\"",
+    noteHint: "Se guarda con este cambio y es visible en el historial de desempeño.",
   },
 };
 
@@ -817,78 +827,78 @@ const ROSTER_TEXT_ES: Record<
   Pick<RosterEmployee, "role" | "team" | "lastSignal" | "lastSignalAgo" | "suggestedAction">
 > = {
   e01: {
-    role: "Recolector",
-    team: "Muelle A",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Primer turno",
     lastSignal: "No se presentó ni avisó — inicio de turno",
     lastSignalAgo: "Hace 12 min",
     suggestedAction: "En el tope de la política — colocar en PIP formal",
   },
   e02: {
     role: "Líder de equipo",
-    team: "Línea de empaque",
+    team: "Líderes de equipo",
     lastSignal: "Con retraso de 45 min — tráfico",
     lastSignalAgo: "Hace 28 min",
     suggestedAction: "Programar reunión obligatoria con el gerente",
   },
   e03: {
-    role: "Cargador",
-    team: "Muelle B",
+    role: "Conductor de reparto",
+    team: "Conductores de reparto",
     lastSignal: "Ausente por enfermedad — fiebre",
     lastSignalAgo: "Hace 1 h",
-    suggestedAction: "Reasignar cobertura de la bahía",
+    suggestedAction: "Reasignar cobertura de la ruta de reparto",
   },
   e04: {
-    role: "Clasificadora",
-    team: "Centro de clasificación",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Segundo turno",
     lastSignal: "Se retira antes — cuidado de hijos",
     lastSignalAgo: "Hace 2 h",
     suggestedAction: "Verificar el relevo con el suplente",
   },
   e05: {
-    role: "Montacarguista",
-    team: "Patio",
+    role: "Técnico de mantenimiento",
+    team: "Técnicos de mantenimiento",
     lastSignal: "Con retraso de 20 min",
     lastSignalAgo: "Hace 45 min",
     suggestedAction: "Vigilar la ventana de marcaje de entrada",
   },
   e06: {
-    role: "Técnica de control de calidad",
-    team: "Línea de empaque",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Primer turno",
     lastSignal: "Cubriendo con retraso — cambio de turno aprobado",
     lastSignalAgo: "Hace 3 h",
     suggestedAction: "Anotar el cambio de turno en el tablero",
   },
   e07: {
-    role: "Recolector",
-    team: "Muelle A",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Primer turno",
     lastSignal: "En el piso — marcó entrada",
     lastSignalAgo: "Hace 4 h",
     suggestedAction: "Ninguna — solo vigilar",
   },
   e08: {
-    role: "Despachadora",
-    team: "Patio",
+    role: "Conductor de reparto",
+    team: "Conductores de reparto",
     lastSignal: "Regreso de descanso confirmado",
     lastSignalAgo: "Hace 90 min",
     suggestedAction: "Ninguna — sin riesgo",
   },
   e09: {
-    role: "Cargador",
-    team: "Muelle B",
-    lastSignal: "A tiempo — muelle listo",
+    role: "Supervisor de producción",
+    team: "Supervisores de producción",
+    lastSignal: "A tiempo — línea lista",
     lastSignalAgo: "Hace 5 h",
     suggestedAction: "Ninguna — sin riesgo",
   },
   e10: {
-    role: "Clasificadora",
-    team: "Centro de clasificación",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Segundo turno",
     lastSignal: "Inicio de turno confirmado",
     lastSignalAgo: "Hace 5 h",
     suggestedAction: "Ninguna — sin riesgo",
   },
   e11: {
-    role: "Recolector",
-    team: "Muelle A",
+    role: "Miembro del equipo de lavandería",
+    team: "Miembros del equipo de lavandería – Primer turno",
     lastSignal: "En el piso — marcó entrada",
     lastSignalAgo: "Hace 5 h",
     suggestedAction: "Ninguna — sin riesgo",

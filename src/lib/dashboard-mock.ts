@@ -23,13 +23,28 @@ export const RISK_LABELS: Record<RiskLevel, string> = {
   clear: "Clear",
 };
 
+/**
+ * The org's team structure. Freeform text in the `team` column (not
+ * an enum) — this is the reference list managers pick from when
+ * assigning/reassigning an employee's team, and what DEMO_ROSTER below
+ * is built from.
+ */
+export const TEAMS = [
+  "Laundry Team Members – First Shift",
+  "Laundry Team Members – Second Shift",
+  "Delivery Drivers",
+  "Team Leads",
+  "Maintenance Technicians",
+  "Production Supervisors",
+] as const;
+
 /** Demo floor roster — highest risk first. SMS intake not connected. */
 export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e01",
     name: "Marcus Hale",
-    role: "Picker",
-    team: "Dock A",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – First Shift",
     points: 16,
     lastSignal: "No-call no-show — shift start",
     lastSignalAgo: "12 min ago",
@@ -38,8 +53,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e02",
     name: "Priya Nandakumar",
-    role: "Team lead",
-    team: "Pack line",
+    role: "Team Lead",
+    team: "Team Leads",
     points: 12,
     lastSignal: "Running late 45 min — traffic",
     lastSignalAgo: "28 min ago",
@@ -48,18 +63,18 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e03",
     name: "Devon Briggs",
-    role: "Loader",
-    team: "Dock B",
+    role: "Delivery Driver",
+    team: "Delivery Drivers",
     points: 7,
     lastSignal: "Out sick — fever",
     lastSignalAgo: "1 hr ago",
-    suggestedAction: "Reassign bay coverage",
+    suggestedAction: "Reassign delivery route coverage",
   },
   {
     id: "e04",
     name: "Elena Soto",
-    role: "Sorter",
-    team: "Sort hub",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – Second Shift",
     points: 5,
     lastSignal: "Leaving early — childcare",
     lastSignalAgo: "2 hr ago",
@@ -68,8 +83,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e05",
     name: "Jamal Okonkwo",
-    role: "Forklift",
-    team: "Yard",
+    role: "Maintenance Technician",
+    team: "Maintenance Technicians",
     points: 4,
     lastSignal: "Running late 20 min",
     lastSignalAgo: "45 min ago",
@@ -78,8 +93,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e06",
     name: "Sarah Chen",
-    role: "QC tech",
-    team: "Pack line",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – First Shift",
     points: 3,
     lastSignal: "Covering late — swap approved",
     lastSignalAgo: "3 hr ago",
@@ -88,8 +103,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e07",
     name: "Theo Ramirez",
-    role: "Picker",
-    team: "Dock A",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – First Shift",
     points: 2,
     lastSignal: "On floor — clocked in",
     lastSignalAgo: "4 hr ago",
@@ -98,8 +113,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e08",
     name: "Aisha Rahman",
-    role: "Dispatcher",
-    team: "Yard",
+    role: "Delivery Driver",
+    team: "Delivery Drivers",
     points: 1,
     lastSignal: "Break return confirmed",
     lastSignalAgo: "90 min ago",
@@ -108,18 +123,18 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e09",
     name: "Chris Novak",
-    role: "Loader",
-    team: "Dock B",
+    role: "Production Supervisor",
+    team: "Production Supervisors",
     points: 1,
-    lastSignal: "On time — dock ready",
+    lastSignal: "On time — line ready",
     lastSignalAgo: "5 hr ago",
     suggestedAction: "None — clear",
   },
   {
     id: "e10",
     name: "Maya Patel",
-    role: "Sorter",
-    team: "Sort hub",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – Second Shift",
     points: 0,
     lastSignal: "Shift start confirmed",
     lastSignalAgo: "5 hr ago",
@@ -128,8 +143,8 @@ export const DEMO_ROSTER: RosterEmployee[] = [
   {
     id: "e11",
     name: "Luis Ortega",
-    role: "Picker",
-    team: "Dock A",
+    role: "Laundry Team Member",
+    team: "Laundry Team Members – First Shift",
     points: 0,
     lastSignal: "On floor — clocked in",
     lastSignalAgo: "5 hr ago",

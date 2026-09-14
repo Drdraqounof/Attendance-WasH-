@@ -26,6 +26,7 @@ export function StatusChanger({
 }) {
   const router = useRouter();
   const [targetStatus, setTargetStatus] = useState<RiskLevel>(currentStatus);
+  const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,12 +47,17 @@ export function StatusChanger({
       const response = await fetch("/api/warnings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, targetStatus }),
+        body: JSON.stringify({
+          employeeId,
+          targetStatus,
+          note: note.trim() || undefined,
+        }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(body?.error ?? copy.errorStatusChangeFailed);
       }
+      setNote("");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.errorStatusChangeFailed);
@@ -62,6 +68,17 @@ export function StatusChanger({
 
   return (
     <div className="flex flex-col items-end gap-1.5">
+      <label className="sr-only" htmlFor={`${employeeId}-status-note`}>
+        {copy.noteLabel}
+      </label>
+      <input
+        id={`${employeeId}-status-note`}
+        type="text"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder={copy.notePlaceholder}
+        className="h-9 w-56 max-w-full border border-line bg-white px-2 text-sm text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      />
       <div className="flex items-center gap-2">
         <select
           value={targetStatus}
@@ -84,6 +101,7 @@ export function StatusChanger({
           {pending ? copy.applying : copy.changeStatus}
         </button>
       </div>
+      <p className="max-w-56 text-right text-sm text-slate/50">{copy.noteHint}</p>
       {error ? <p className="text-sm text-danger-soft">{error}</p> : null}
     </div>
   );
