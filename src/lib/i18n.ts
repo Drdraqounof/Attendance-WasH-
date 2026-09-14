@@ -714,6 +714,9 @@ export const PEOPLE_COPY: Record<
     notePlaceholder: string;
     noteHint: string;
     errorNoteRequired: string;
+    changeStatusModalHeading: string;
+    cancelButton: string;
+    confirmButton: string;
   }
 > = {
   en: {
@@ -763,6 +766,9 @@ export const PEOPLE_COPY: Record<
     notePlaceholder: "Why is this changing? e.g. \"Cleared after doctor's note on file.\"",
     noteHint: "Required — saved with this change and visible in the track record below.",
     errorNoteRequired: "Enter a reason for this status change before applying it.",
+    changeStatusModalHeading: "Change status",
+    cancelButton: "Cancel",
+    confirmButton: "Confirm change",
   },
   es: {
     backToDashboard: "Volver al panel",
@@ -815,6 +821,9 @@ export const PEOPLE_COPY: Record<
       "Obligatorio — se guarda con este cambio y es visible en el historial de desempeño.",
     errorNoteRequired:
       "Ingresa un motivo para este cambio de estado antes de aplicarlo.",
+    changeStatusModalHeading: "Cambiar estado",
+    cancelButton: "Cancelar",
+    confirmButton: "Confirmar cambio",
   },
 };
 
