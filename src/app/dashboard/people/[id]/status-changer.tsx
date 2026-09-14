@@ -135,15 +135,15 @@ export function StatusChanger({
             aria-modal="true"
             aria-labelledby={modalHeadingId}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg border border-line bg-white p-6 shadow-xl"
+            className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto border border-line bg-white p-8 shadow-xl"
           >
             <h2
               id={modalHeadingId}
-              className="font-display text-lg font-semibold tracking-tight text-ink"
+              className="font-display text-xl font-semibold tracking-tight text-ink"
             >
               {copy.changeStatusModalHeading}
             </h2>
-            <p className="mt-1.5 text-sm text-slate/70">
+            <p className="mt-2 text-base text-slate/70">
               {copy.confirmChangeLead} {riskLabels[currentStatus]}{" "}
               {copy.confirmChangeMid} {riskLabels[targetStatus]}
               {copy.confirmChangeTrail}
@@ -151,7 +151,7 @@ export function StatusChanger({
 
             <label
               htmlFor={noteId}
-              className="mt-5 block text-sm font-medium text-ink"
+              className="mt-6 block text-sm font-medium text-ink"
             >
               {copy.noteLabel}
             </label>
@@ -159,7 +159,7 @@ export function StatusChanger({
               ref={textareaRef}
               id={noteId}
               required
-              rows={6}
+              rows={12}
               value={note}
               onChange={(e) => {
                 setNote(e.target.value);
@@ -168,19 +168,19 @@ export function StatusChanger({
               placeholder={copy.notePlaceholder}
               aria-required="true"
               aria-invalid={Boolean(error)}
-              className="mt-2 w-full resize-none border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:border-danger-soft"
+              className="mt-2 min-h-64 w-full resize-y border border-line bg-white px-4 py-3 text-base text-ink placeholder:text-slate/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:border-danger-soft"
             />
             <p className="mt-1.5 text-sm text-slate/50">{copy.noteHint}</p>
             {error ? (
               <p className="mt-1.5 text-sm text-danger-soft">{error}</p>
             ) : null}
 
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={pending}
-                className="px-3.5 py-2 text-sm font-medium text-slate/70 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-4 py-2.5 text-sm font-medium text-slate/70 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {copy.cancelButton}
               </button>
@@ -188,7 +188,7 @@ export function StatusChanger({
                 type="button"
                 onClick={handleConfirm}
                 disabled={pending}
-                className="inline-flex h-10 items-center bg-accent-deep px-4 text-sm font-semibold text-white transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center bg-accent-deep px-5 text-sm font-semibold text-white transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {pending ? copy.applying : copy.confirmButton}
               </button>
