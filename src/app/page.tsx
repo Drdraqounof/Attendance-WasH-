@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MarketingCtaBand } from "@/components/marketing-cta-band";
+import { MarketingFooter } from "@/components/marketing-footer";
 
 const CAPABILITIES = [
   {
@@ -82,18 +84,18 @@ export default function HomePage() {
             className="hidden items-center gap-8 sm:flex"
             aria-label="Primary"
           >
-            <a
-              href="#capabilities"
+            <Link
+              href="/capabilities"
               className="text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               Capabilities
-            </a>
-            <a
-              href="#how-it-works"
+            </Link>
+            <Link
+              href="/how-it-works"
               className="text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               How it works
-            </a>
+            </Link>
             <Link
               href="/login"
               className="text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -156,12 +158,12 @@ export default function HomePage() {
             >
               Manager sign in
             </Link>
-            <a
-              href="#capabilities"
+            <Link
+              href="/capabilities"
               className="inline-flex h-12 items-center justify-center border border-white/30 px-7 text-sm font-medium text-white/85 transition-colors hover:border-white/55 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
               Explore capabilities
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -172,17 +174,27 @@ export default function HomePage() {
       >
         <div className="ops-grid absolute inset-0 opacity-60" aria-hidden />
         <div className="relative mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-24">
-          <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
-            Capabilities
-          </p>
-          <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            One system, from signal to intervention.
-          </h2>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
-            Policy rules, risk bands, and manager workflows live in one
-            place — configurable, auditable, and grounded in real numbers
-            at every step.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
+                Capabilities
+              </p>
+              <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                One system, from signal to intervention.
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
+                Policy rules, risk bands, and manager workflows live in one
+                place — configurable, auditable, and grounded in real
+                numbers at every step.
+              </p>
+            </div>
+            <Link
+              href="/capabilities"
+              className="shrink-0 text-sm font-medium text-accent-deep transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+              See all capabilities →
+            </Link>
+          </div>
 
           <div className="mt-12 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2">
             {CAPABILITIES.map((item) => (
@@ -213,12 +225,22 @@ export default function HomePage() {
         className="relative border-t border-line bg-surface"
       >
         <div className="mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-24">
-          <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
-            How it works
-          </p>
-          <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Signal in. Risk out.
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
+                How it works
+              </p>
+              <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                Signal in. Risk out.
+              </h2>
+            </div>
+            <Link
+              href="/how-it-works"
+              className="shrink-0 text-sm font-medium text-accent-deep transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+              See the full walkthrough →
+            </Link>
+          </div>
 
           <ol className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
             {STEPS.map((step, index) => (
@@ -244,55 +266,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="relative border-t border-line bg-ink">
-        <div className="ops-grid absolute inset-0 opacity-[0.08] mix-blend-soft-light" aria-hidden />
-        <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-6 py-16 sm:px-8 sm:py-20 md:flex-row md:items-center">
-          <div className="max-w-xl">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Bring your floor's attendance data into one console.
-            </h2>
-            <p className="mt-3 text-base leading-relaxed text-white/70">
-              Sign in to see the risk console, policy settings, and AI
-              insights running against live demo data.
-            </p>
-          </div>
-          <Link
-            href="/login"
-            className="inline-flex h-12 shrink-0 items-center justify-center bg-accent px-7 text-sm font-semibold tracking-wide text-white transition-[background-color,transform] duration-200 hover:bg-accent-deep hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white active:translate-y-0"
-          >
-            Manager sign in
-          </Link>
-        </div>
-      </section>
-
-      <footer className="border-t border-line bg-surface-2">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <div>
-            <span className="font-display font-semibold tracking-wide text-slate/80">
-              AttendPoint
-            </span>
-            <p className="mt-1 text-sm text-slate/55">
-              Automated attendance notification &amp; attendance point
-              system.
-            </p>
-          </div>
-          <div className="flex items-center gap-6 text-sm text-slate/60">
-            <a
-              href="#capabilities"
-              className="transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              Capabilities
-            </a>
-            <Link
-              href="/login"
-              className="transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              Sign in
-            </Link>
-            <span className="text-slate/40">Demo build</span>
-          </div>
-        </div>
-      </footer>
+      <MarketingCtaBand />
+      <MarketingFooter />
     </div>
   );
 }

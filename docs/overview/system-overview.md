@@ -18,6 +18,8 @@ Frontline teams often report attendance by SMS. AttendPoint converts those messa
 | Route                      | Role                                                                 |
 | -------------------------- | -------------------------------------------------------------------- |
 | `/`                        | Marketing homepage                                                   |
+| `/capabilities`            | Public capabilities page — core features plus the live policy-engine point matrix/risk bands (reads `ESCALATION_RULES`/`POLICY_THRESHOLDS` directly) |
+| `/how-it-works`            | Public page walking through the 5-step signal → risk → action flow, plus an FAQ |
 | `/login`                   | Mock manager sign-in (demo credentials)                              |
 | `/dashboard`               | Demo shift risk console (mock roster, metrics, intervene targets)    |
 | `/dashboard/people/[id]`   | Employee profile: schedule, open points, points ledger               |
