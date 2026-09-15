@@ -14,12 +14,12 @@ const STEPS = [
   {
     number: "01",
     title: "A signal comes in",
-    body: "An attendance event — a manager entry, an imported CSV row, or (on the roadmap) an inbound SMS — reaches the engine tagged with its duration and whether notice was given.",
+    body: "An attendance event — a manager entry, an imported CSV row, or (on the roadmap) an inbound SMS — reaches the engine tagged with whatever details your rules care about.",
   },
   {
     number: "02",
-    title: "Policy scores it",
-    body: "The event maps to one rule in the escalation schedule — duration and notice status together decide the point value — and adds to the employee's rolling 12-month ledger.",
+    title: "Your rules score it",
+    body: "The event maps to one of the point rules you've defined and adds to the employee's rolling 12-month ledger. You decide what each rule is worth.",
   },
   {
     number: "03",
@@ -40,16 +40,16 @@ const STEPS = [
 
 const FAQ = [
   {
-    q: "What decides whether an event counts as “with notice”?",
-    a: "Whether the employee notified the floor before the scheduled shift started. It's one of the two axes (with duration) that decide how many points an event is worth.",
+    q: "How do I decide how many points something is worth?",
+    a: "You set it. Every event type gets a point value you define — weight it by duration, by notice, by severity, or by whatever matters to how your team runs.",
   },
   {
-    q: "What happens at 16 points?",
-    a: "16 points is the policy's termination threshold — the system flags it and notifies, but it never takes an automated termination action itself. That decision stays with a manager.",
+    q: "What happens when someone crosses a threshold?",
+    a: "Whatever you've set up for that threshold — a check-in, a formal meeting, an escalation review. The system flags the crossing and notifies automatically; it never takes action on its own.",
   },
   {
     q: "Can the point values or thresholds be changed?",
-    a: "Yes — every escalation rule and risk-band threshold is editable from Settings, and every page that scores against them reads the live, current values, not a hardcoded copy.",
+    a: "Yes — every point rule and every threshold is editable from Settings, and every page that scores against them reads the live, current values, not a hardcoded copy.",
   },
   {
     q: "Does an edited threshold rewrite history?",
@@ -129,8 +129,7 @@ export default function HowItWorksPage() {
           </dl>
 
           <p className="mt-8 text-sm text-slate/60">
-            For the exact point values and thresholds these answers refer
-            to, see{" "}
+            See example point configurations on{" "}
             <Link
               href="/capabilities"
               className="font-medium text-accent-deep underline decoration-accent-deep/30 underline-offset-2 transition-colors hover:text-ink"

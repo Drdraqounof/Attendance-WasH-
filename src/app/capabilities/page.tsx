@@ -2,18 +2,17 @@ import type { Metadata } from "next";
 import { MarketingCtaBand } from "@/components/marketing-cta-band";
 import { MarketingFooter } from "@/components/marketing-footer";
 import { MarketingHeader } from "@/components/marketing-header";
-import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
 
 export const metadata: Metadata = {
   title: "Capabilities",
   description:
-    "What AttendPoint does today: live risk scoring, a configurable policy engine, manager alerts, analytics, and AI insights.",
+    "What AttendPoint does today: live risk scoring, configurable point rules, manager alerts, analytics, and AI insights.",
 };
 
 const CORE_CAPABILITIES = [
   {
     title: "Live risk scoring",
-    body: "Attendance signals are scored against policy the moment they arrive, so every employee's standing is current — not a end-of-week recalculation.",
+    body: "Attendance signals are scored against your point rules the moment they arrive, so every employee's standing is current — not a end-of-week recalculation.",
     icon: (
       <path
         d="M4 19V5m5 14V9m5 10V7m5 12V11"
@@ -24,8 +23,8 @@ const CORE_CAPABILITIES = [
     ),
   },
   {
-    title: "Rolling policy engine",
-    body: "A configurable escalation schedule and risk-band thresholds evaluate points on a rolling 12-month window — tuned from Settings, not hardcoded.",
+    title: "Configurable point rules",
+    body: "Decide what each type of event is worth and where the thresholds sit. Points accrue on a rolling 12-month window, tuned from Settings — never hardcoded.",
     icon: (
       <path
         d="M12 3a9 9 0 1 0 9 9M12 3v6m0-6a9 9 0 0 1 9 9m0 0h-6"
@@ -37,7 +36,7 @@ const CORE_CAPABILITIES = [
   },
   {
     title: "Manager alerts",
-    body: "Threshold crossings open an auditable warning and notify the floor, so intervention happens before a pattern becomes a policy action.",
+    body: "Crossing a threshold opens an auditable warning and notifies the floor, so intervention happens before a pattern becomes a bigger problem.",
     icon: (
       <path
         d="M12 4a5 5 0 0 0-5 5v3.2c0 .5-.18.99-.5 1.38L5 15.5h14l-1.5-2.02a2.2 2.2 0 0 1-.5-1.38V9a5 5 0 0 0-5-5Zm-2.4 15a2.4 2.4 0 0 0 4.8 0"
@@ -85,6 +84,33 @@ const CORE_CAPABILITIES = [
   },
 ] as const;
 
+const EXAMPLE_POINT_SETS = [
+  {
+    title: "Simple lateness scale",
+    rows: [
+      { label: "Clocked in late", points: 1 },
+      { label: "Left early, unapproved", points: 2 },
+      { label: "No call, no show", points: 5 },
+    ],
+  },
+  {
+    title: "Notice-based scale",
+    rows: [
+      { label: "Called out with advance notice", points: 2 },
+      { label: "Called out same-day", points: 4 },
+      { label: "Missed shift, no notice", points: 8 },
+    ],
+  },
+  {
+    title: "Severity-weighted scale",
+    rows: [
+      { label: "Minor infraction", points: 1 },
+      { label: "Moderate infraction", points: 3 },
+      { label: "Major infraction", points: 10 },
+    ],
+  },
+] as const;
+
 export default function CapabilitiesPage() {
   return (
     <div className="flex min-h-full flex-col">
@@ -101,7 +127,7 @@ export default function CapabilitiesPage() {
             Everything a floor needs to manage attendance risk.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
-            Policy rules, risk bands, and manager workflows live in one
+            Point rules, risk bands, and manager workflows live in one
             place — configurable, auditable, and grounded in real numbers
             at every step.
           </p>
@@ -137,61 +163,45 @@ export default function CapabilitiesPage() {
       <section className="relative border-b border-line">
         <div className="mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-24">
           <p className="text-sm font-semibold tracking-[0.18em] text-accent-deep uppercase">
-            Policy engine
+            Set your own points
           </p>
           <h2 className="font-display mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            The exact rules, not a black box.
+            However you count it, you set the numbers.
           </h2>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
-            Every point value and risk band below is read live from the
-            same policy engine the app scores against — retune any of it
-            from Settings and both this page's numbers and every
-            employee's standing move together.
+            There's no fixed scoring model to work around. Give each type
+            of event whatever point value fits how your team runs things,
+            and set the thresholds that turn points into a risk band —
+            all from Settings. A few ways teams set this up:
           </p>
 
-          <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <div>
-              <h3 className="font-display text-lg font-semibold tracking-tight text-ink">
-                Escalation schedule
-              </h3>
-              <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
-                {ESCALATION_RULES.map((rule) => (
-                  <li
-                    key={rule.code}
-                    className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"
-                  >
-                    <span className="text-sm text-slate/80">{rule.label}</span>
-                    <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-danger-soft">
-                      +{rule.points}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-display text-lg font-semibold tracking-tight text-ink">
-                Risk bands
-              </h3>
-              <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
-                {POLICY_THRESHOLDS.map((threshold) => (
-                  <li key={threshold.key} className="px-4 py-3 sm:px-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-medium text-ink">
-                        {threshold.label}
+          <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {EXAMPLE_POINT_SETS.map((set) => (
+              <div key={set.title}>
+                <h3 className="font-display text-lg font-semibold tracking-tight text-ink">
+                  {set.title}
+                </h3>
+                <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
+                  {set.rows.map((row) => (
+                    <li
+                      key={row.label}
+                      className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5"
+                    >
+                      <span className="text-sm text-slate/80">{row.label}</span>
+                      <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-danger-soft">
+                        +{row.points}
                       </span>
-                      <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-ink">
-                        {threshold.pointValue}+ pts
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate/65">
-                      {threshold.action}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
+
+          <p className="mt-8 text-sm text-slate/55">
+            These are just examples — the values, labels, and number of
+            rules are entirely yours to define.
+          </p>
         </div>
       </section>
 
@@ -204,7 +214,7 @@ export default function CapabilitiesPage() {
             Live SMS and shift-system intake
           </h2>
           <p className="mt-3 max-w-xl text-base leading-relaxed text-slate/75">
-            Today, attendance events reach the policy engine through
+            Today, attendance events reach the scoring engine through
             manager entry and CSV import. Live SMS intake and direct
             shift-system ingestion are planned next — worth knowing before
             you sign in to the demo.

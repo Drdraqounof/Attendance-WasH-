@@ -6,7 +6,7 @@ import { MarketingFooter } from "@/components/marketing-footer";
 const CAPABILITIES = [
   {
     title: "Live risk scoring",
-    body: "Attendance signals are scored against policy the moment they arrive, so every employee's standing is current — not a end-of-week recalculation.",
+    body: "Attendance signals are scored against your point rules the moment they arrive, so every employee's standing is current — not a end-of-week recalculation.",
     icon: (
       <path
         d="M4 19V5m5 14V9m5 10V7m5 12V11"
@@ -17,8 +17,8 @@ const CAPABILITIES = [
     ),
   },
   {
-    title: "Rolling policy engine",
-    body: "A configurable escalation schedule and risk-band thresholds evaluate points on a rolling 12-month window — tuned from Settings, not hardcoded.",
+    title: "Configurable point rules",
+    body: "Decide what each type of event is worth and where the thresholds sit. Points accrue on a rolling 12-month window, tuned from Settings — never hardcoded.",
     icon: (
       <path
         d="M12 3a9 9 0 1 0 9 9M12 3v6m0-6a9 9 0 0 1 9 9m0 0h-6"
@@ -30,7 +30,7 @@ const CAPABILITIES = [
   },
   {
     title: "Manager alerts",
-    body: "Threshold crossings open an auditable warning and notify the floor, so intervention happens before a pattern becomes a policy action.",
+    body: "Crossing a threshold opens an auditable warning and notifies the floor, so intervention happens before a pattern becomes a bigger problem.",
     icon: (
       <path
         d="M12 4a5 5 0 0 0-5 5v3.2c0 .5-.18.99-.5 1.38L5 15.5h14l-1.5-2.02a2.2 2.2 0 0 1-.5-1.38V9a5 5 0 0 0-5-5Zm-2.4 15a2.4 2.4 0 0 0 4.8 0"
@@ -58,17 +58,17 @@ const STEPS = [
   {
     number: "01",
     title: "Signals come in",
-    body: "Attendance events — SMS, manager entries, imported records — reach the engine as they happen, each tagged with duration and notice status.",
+    body: "Attendance events — SMS, manager entries, imported records — reach the engine as they happen, each tagged with whatever details your rules care about.",
   },
   {
     number: "02",
-    title: "Policy scores them",
-    body: "Every event maps to a policy rule and adds points on a rolling 12-month ledger. Nothing is scored twice; nothing is scored silently.",
+    title: "Your rules score them",
+    body: "Every event maps to one of the point rules you've defined and adds to a rolling 12-month ledger. Nothing is scored twice; nothing is scored silently.",
   },
   {
     number: "03",
     title: "Managers act early",
-    body: "Risk bands, alerts, and a priority roster put the right names in front of the right supervisor before a shift problem becomes a policy one.",
+    body: "Risk bands, alerts, and a priority roster put the right names in front of the right supervisor before a shift problem gets bigger.",
   },
 ] as const;
 
@@ -146,7 +146,7 @@ export default function HomePage() {
           </h1>
 
           <p className="animate-fade-up-delay-2 mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-            AttendPoint turns attendance signals into policy-scored risk in
+            AttendPoint turns attendance signals into point-scored risk in
             real time, so operations managers see who needs attention — and
             why — without digging through inboxes.
           </p>
@@ -183,7 +183,7 @@ export default function HomePage() {
                 One system, from signal to intervention.
               </h2>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-slate/80 sm:text-lg">
-                Policy rules, risk bands, and manager workflows live in one
+                Point rules, risk bands, and manager workflows live in one
                 place — configurable, auditable, and grounded in real
                 numbers at every step.
               </p>

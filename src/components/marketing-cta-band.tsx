@@ -3,7 +3,7 @@ import Link from "next/link";
 /** Dark closing call-to-action band shared by the homepage and other public pages. */
 export function MarketingCtaBand({
   heading = "Bring your floor's attendance data into one console.",
-  body = "Sign in to see the risk console, policy settings, and AI insights running against live demo data.",
+  body = "Sign in to see the risk console, point rule settings, and AI insights running against live demo data.",
 }: {
   heading?: string;
   body?: string;
