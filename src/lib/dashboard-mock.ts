@@ -17,9 +17,11 @@ export type RosterEmployee = {
 };
 
 export const RISK_LABELS: Record<RiskLevel, string> = {
-  pip_flag: "On PIP",
+  termination: "Termination threshold",
+  critical: "Critical",
   at_risk: "At risk",
-  watch: "Watch",
+  elevated: "Elevated",
+  low: "Low",
   clear: "Clear",
 };
 
@@ -48,7 +50,7 @@ export const DEMO_ROSTER: RosterEmployee[] = [
     points: 16,
     lastSignal: "No-call no-show — shift start",
     lastSignalAgo: "12 min ago",
-    suggestedAction: "At policy cap — place on formal PIP",
+    suggestedAction: "At the 16-point termination threshold — notify HR",
   },
   {
     id: "e02",
@@ -58,17 +60,17 @@ export const DEMO_ROSTER: RosterEmployee[] = [
     points: 12,
     lastSignal: "Running late 45 min — traffic",
     lastSignalAgo: "28 min ago",
-    suggestedAction: "Schedule required manager meeting",
+    suggestedAction: "Critical band — written warning, suspension, termination at discretion",
   },
   {
     id: "e03",
     name: "Devon Briggs",
     role: "Delivery Driver",
     team: "Delivery Drivers",
-    points: 7,
+    points: 8,
     lastSignal: "Out sick — fever",
     lastSignalAgo: "1 hr ago",
-    suggestedAction: "Reassign delivery route coverage",
+    suggestedAction: "At-risk band — written warning and suspension eligible",
   },
   {
     id: "e04",
@@ -164,33 +166,39 @@ export const DEMO_SHIFT_META = {
 } as const;
 
 export type RosterSummary = {
-  pip: number;
+  termination: number;
+  critical: number;
   atRisk: number;
-  watch: number;
+  elevated: number;
+  low: number;
   clear: number;
   openPointsToday: number;
 };
 
 export function summarizeRoster(roster: RosterEmployee[]): RosterSummary {
-  let pip = 0;
+  let termination = 0;
+  let critical = 0;
   let atRisk = 0;
-  let watch = 0;
+  let elevated = 0;
+  let low = 0;
   let clear = 0;
   let openPointsToday = 0;
 
   for (const row of roster) {
     openPointsToday += row.points;
     const level = riskLevelFromPoints(row.points);
-    if (level === "pip_flag") pip += 1;
+    if (level === "termination") termination += 1;
+    else if (level === "critical") critical += 1;
     else if (level === "at_risk") atRisk += 1;
-    else if (level === "watch") watch += 1;
+    else if (level === "elevated") elevated += 1;
+    else if (level === "low") low += 1;
     else clear += 1;
   }
 
-  return { pip, atRisk, watch, clear, openPointsToday };
+  return { termination, critical, atRisk, elevated, low, clear, openPointsToday };
 }
 
-/** Worst-first: employees on a PIP surface before those merely at risk. */
+/** Worst-first: employees at the termination threshold surface before those merely critical/at-risk. */
 export function interventionTargets(
   roster: RosterEmployee[],
   limit = 3,
@@ -198,7 +206,7 @@ export function interventionTargets(
   return roster
     .filter((row) => {
       const level = riskLevelFromPoints(row.points);
-      return level === "pip_flag" || level === "at_risk";
+      return level === "termination" || level === "critical" || level === "at_risk";
     })
     .sort((a, b) => b.points - a.points)
     .slice(0, limit);

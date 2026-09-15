@@ -13,12 +13,14 @@ type RiskLabels = Record<RiskLevel, string>;
 
 function riskTone(level: RiskLevel): string {
   switch (level) {
-    case "pip_flag":
-      return "text-danger-soft";
+    case "termination":
+    case "critical":
     case "at_risk":
       return "text-danger-soft";
-    case "watch":
+    case "elevated":
       return "text-danger-soft/85";
+    case "low":
+      return "text-danger-soft/70";
     case "clear":
       return "text-accent-deep";
   }
@@ -26,12 +28,14 @@ function riskTone(level: RiskLevel): string {
 
 function riskMark(level: RiskLevel): string {
   switch (level) {
-    case "pip_flag":
-      return "bg-danger-soft";
+    case "termination":
+    case "critical":
     case "at_risk":
       return "bg-danger-soft";
-    case "watch":
+    case "elevated":
       return "bg-danger-soft/55";
+    case "low":
+      return "bg-danger-soft/35";
     case "clear":
       return "bg-accent";
   }

@@ -1,9 +1,11 @@
 # Attendance Points System — BRD & Implementation Roadmap
 
-Status: **Phase 1 implemented (2026-09-03), thresholds clarified (2026-09-06), legacy pages unified onto the policy engine (2026-09-06)** — the policy engine, schema, and seed data below are live, and every page in the app (not just `/insights`) now reads from it. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, a dedicated `/reports` page, CSV export) are still requirements only.
+Status: **Phase 1 implemented (2026-09-03), thresholds clarified (2026-09-06), legacy pages unified onto the policy engine (2026-09-06), superseded by the official policy PDF (2026-09-15)** — the policy engine, schema, and seed data below are live, and every page in the app (not just `/insights`) now reads from it. Phases 2–7 (notifications, Zoho, Zoom SMS, anniversary reset, a dedicated `/reports` page, CSV export) are still requirements only.
 This document has two parts: (1) the business requirements as provided, and (2) a phased engineering roadmap grounded in the app's actual current codebase (Next.js 16, Drizzle ORM, Neon Postgres).
 
-**2026-09-06 update:** the 10-point and 16-point thresholds were clarified — 10 points requires a formal **meeting** between the employee and their manager (not just a generic "action plan" flag), and 16 points places the employee on a **Performance Improvement Plan (PIP)**, not a termination/final-review flag. Part 1 §2 and the implementation below reflect this.
+**2026-09-15 update — superseded by the official policy:** `docs/WCL_Attendance_Policy_AttendPoint_Reference.pdf` (Wash Cycle Laundry's actual, effective Oct 1, 2025 policy) is now the authoritative source for point values, thresholds, and the evaluation window — it supersedes Part 1 §1 (point penalty schedule), §2 (thresholds), and §4 (anniversary reset) below. In particular: point values are a 6-way duration × notice-status matrix (not the flat 1/2/4/8 schedule in §1), risk is banded into 5 tiers (1-3/4-7/8-11/12-15/16+, not the 3 thresholds in §2), 16+ points is a termination threshold (not a PIP flag — see the 2026-09-06 note below, which this update overrides), and points are evaluated on a **rolling 12-month window**, not the one-time anniversary reset in §4. `src/lib/policy-engine.ts` implements the PDF's values directly; see `docs/policy/policy-thresholds-editing.md` for the current editable configuration. Leave-type accrual (Sick/Personal/Vacation/Bereavement, PDF §2) and the full restorative-process/PIP workflow (PDF §7) are not yet built — flagged as follow-up work.
+
+**2026-09-06 update (superseded above):** the 10-point and 16-point thresholds were clarified — 10 points requires a formal **meeting** between the employee and their manager (not just a generic "action plan" flag), and 16 points places the employee on a **Performance Improvement Plan (PIP)**, not a termination/final-review flag. Part 1 §2 and the implementation below reflect this. *(2026-09-15: this PIP framing for the 16-point threshold is itself superseded — see above.)*
 
 ---
 
@@ -48,8 +50,10 @@ This is a **deduction-only model**: points start at 0 and only increase via the 
 
 ### 4. Reset & Anniversary Rules
 
-- **1-year anniversary reset:** System automatically resets active attendance points to zero on the employee's 1-year employment anniversary date.
-- **Rolling window:** Multi-year anniversary resets must not purge historical audit logs — the point history stays intact even after a reset.
+**Superseded (2026-09-15):** the official policy PDF requires a rolling 12-month evaluation window, not a one-time anniversary reset — see `src/lib/policy-queries.ts::rollingPolicyPoints`. The requirement below is kept for historical context only.
+
+- ~~**1-year anniversary reset:** System automatically resets active attendance points to zero on the employee's 1-year employment anniversary date.~~
+- ~~**Rolling window:** Multi-year anniversary resets must not purge historical audit logs — the point history stays intact even after a reset.~~
 
 ### 5. Analytics & Managerial Reporting
 
@@ -158,7 +162,9 @@ Locked decisions for this roadmap:
 
 ### Phase 5 — Anniversary Reset Job
 
-*Goal: automatic 1-year-anniversary point reset without purging history.*
+**Superseded (2026-09-15):** the official policy PDF calls for a rolling 12-month window, not an anniversary reset — implemented directly in `src/lib/policy-queries.ts::rollingPolicyPoints` / `src/lib/insights-queries.ts`, which sum the `pointEvents` ledger over the trailing 365 days. No cron job needed — the window ages out old events automatically. This phase is no longer planned; kept for historical context.
+
+*Goal (superseded): automatic 1-year-anniversary point reset without purging history.*
 
 - Vercel Cron entry (`vercel.json` `crons`) hitting `src/app/api/jobs/anniversary-reset/route.ts` (shared-secret protected), running daily.
 - For each employee whose `hireDate` anniversary is today: insert a `pointEvents` row (`delta = -currentPoints`, `reason = "Anniversary reset"`), update `employees.points = 0`. Never deletes rows — ledger-based, audit trail preserved.

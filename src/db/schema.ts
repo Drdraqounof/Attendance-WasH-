@@ -134,12 +134,12 @@ export const pointRules = pgTable("point_rules", {
 
 /**
  * Admin-editable point thresholds that trigger an automated workflow
- * (verbal warning / action plan / final review). See
- * src/lib/policy-engine.ts's POLICY_THRESHOLDS for the seeded defaults
- * and docs/planning/points-system-brd.md for the business rules.
+ * (low / elevated / at_risk / critical / termination — the policy PDF
+ * §5 risk bands). See src/lib/policy-engine.ts's POLICY_THRESHOLDS for
+ * the seeded defaults.
  */
 export const policyThresholds = pgTable("policy_thresholds", {
-  key: text("key").primaryKey(), // e.g. "verbal_warning", "manager_meeting", "pip"
+  key: text("key").primaryKey(), // e.g. "low", "at_risk", "termination"
   pointValue: integer("point_value").notNull(),
   label: text("label").notNull(),
   active: boolean("active").notNull().default(true),
@@ -167,10 +167,10 @@ export const warnings = pgTable("warnings", {
 
 /**
  * Persisted in-app notification feed, generated whenever a `warnings`
- * row is inserted for the "pip" threshold (see recordPointEvent /
+ * row is inserted for the "termination" threshold (see recordPointEvent /
  * setEmployeeStatus in policy-queries.ts) — covers both an automated
  * infraction pushing points to the cap and a manager manually setting
- * status to PIP. Append-only — "read" is tracked via `status`/`readAt`
+ * status to the termination threshold. Append-only — "read" is tracked via `status`/`readAt`
  * rather than deleting rows, same ledger-it-don't-erase-it pattern as
  * `pointEvents`/`warnings`. No manager FK: there's no manager/employee
  * identity link or role system yet (every route is gated by

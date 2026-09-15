@@ -87,10 +87,10 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       day("Off", "off"),
       day("Off", "off"),
     ]),
-    // Retuned for the 16-point escalation schedule (1/2/4/8, see
+    // Retuned for the policy PDF's point matrix (see
     // src/lib/policy-engine.ts) — sums to 16, the policy cap, so Marcus
-    // demonstrates the "On PIP" state on the legacy dashboard/profile
-    // pages, same as the seeded /insights data.
+    // demonstrates the "Termination threshold" state on the legacy
+    // dashboard/profile pages, same as the seeded /insights data.
     pointLedger: [
       {
         id: "p01a",
@@ -136,8 +136,8 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       day("Off", "off"),
       day("Off", "off"),
     ]),
-    // Retuned to sum to 12 (the "Required Manager Meeting" band, 10-15)
-    // so Priya demonstrates that state on the legacy pages.
+    // Retuned to sum to 12 (the "Critical" band, 12-15) so Priya
+    // demonstrates that state on the legacy pages.
     pointLedger: [
       {
         id: "p02a",
@@ -183,11 +183,13 @@ const profiles: Record<string, Omit<PersonProfile, keyof RosterEmployee>> = {
       day("Off", "off"),
       day("Off", "off"),
     ]),
+    // Sums to 8 — the "At Risk" band (8-11) — matching e03's DEMO_ROSTER
+    // points in src/lib/dashboard-mock.ts.
     pointLedger: [
       {
         id: "p03a",
         date: "2026-07-30",
-        delta: 3,
+        delta: 4,
         reason: "Out sick — fever (day 1)",
         source: "SMS",
       },
@@ -438,9 +440,11 @@ export function pointsTowardCap(person: PersonProfile): number {
 
 export function riskProgressLabel(person: PersonProfile): string {
   const level = riskLevelFromPoints(person.points);
-  if (level === "pip_flag") return "On a Performance Improvement Plan";
+  if (level === "termination") return "At the termination threshold";
+  if (level === "critical") return "Critical band vs policy";
   if (level === "at_risk") return "At risk vs policy";
-  if (level === "watch") return "Watch band";
+  if (level === "elevated") return "Elevated band";
+  if (level === "low") return "Low band";
   return "Within clear band";
 }
 
@@ -489,11 +493,15 @@ export function teamRiskBreakdown(roster: RosterEmployee[]): TeamRiskRow[] {
     };
     current.openPoints += row.points;
     const level = riskLevelFromPoints(row.points);
-    // Fold "pip_flag" (the most severe band) into the "at risk" tally —
-    // this legacy 3-column breakdown hasn't been redesigned with a
-    // dedicated PIP column yet (see docs/planning/points-system-brd.md Phase 6).
-    if (level === "pip_flag" || level === "at_risk") current.atRisk += 1;
-    else if (level === "watch") current.watch += 1;
+    // Fold the 6-band policy model into this legacy 3-column
+    // breakdown, which hasn't been redesigned with dedicated
+    // low/elevated/critical/termination columns yet (see
+    // docs/planning/points-system-brd.md Phase 6): "termination",
+    // "critical", and "at_risk" all read as "at risk" here;
+    // "elevated"/"low" both read as "watch".
+    if (level === "termination" || level === "critical" || level === "at_risk")
+      current.atRisk += 1;
+    else if (level === "elevated" || level === "low") current.watch += 1;
     else current.clear += 1;
     map.set(row.team, current);
   }
@@ -527,7 +535,7 @@ export function analyticsSummary(roster: RosterEmployee[]) {
   const weekSignals = ANALYTICS_TREND.reduce((sum, d) => sum + d.signals, 0);
   const atRisk = roster.filter((r) => {
     const level = riskLevelFromPoints(r.points);
-    return level === "pip_flag" || level === "at_risk";
+    return level === "termination" || level === "critical" || level === "at_risk";
   }).length;
   return {
     openPoints,

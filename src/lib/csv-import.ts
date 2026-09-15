@@ -81,11 +81,14 @@ function splitCsvLine(line: string): string[] {
  * — same pattern as ai-recommendations.ts's per-employee fallback).
  *
  * Expected columns: employeeCode, date (YYYY-MM-DD), ruleCode (one of
- * minor_tardy / moderate_tardy / severe_late_absence / nc_ns_major),
- * plus optional reason and source (SMS/Policy/Supervisor, defaults to
- * "Policy" — a bulk file import isn't a live SMS signal or a
- * supervisor's manual click, so "Policy" best matches the existing
- * three-value enum).
+ * late_short_notice / late_short_no_notice / late_mid_notice /
+ * late_mid_no_notice / absence_notice / absence_no_notice /
+ * non_attendance_warning — see src/lib/policy-engine.ts's
+ * ESCALATION_RULES, straight from the policy PDF §4's duration ×
+ * notice-status matrix), plus optional reason and source
+ * (SMS/Policy/Supervisor, defaults to "Policy" — a bulk file import
+ * isn't a live SMS signal or a supervisor's manual click, so "Policy"
+ * best matches the existing three-value enum).
  */
 export function parseAttendanceCsv(text: string): ParsedAttendanceCsv {
   const lines = text

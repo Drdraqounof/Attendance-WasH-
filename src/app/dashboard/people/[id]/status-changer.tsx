@@ -5,7 +5,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { PEOPLE_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
 import type { RiskLevel } from "@/lib/policy-engine";
 
-const STATUS_OPTIONS: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
+const STATUS_OPTIONS: RiskLevel[] = [
+  "clear",
+  "low",
+  "elevated",
+  "at_risk",
+  "critical",
+  "termination",
+];
 
 /**
  * Lets a manager move an employee to any status (not just clearing a

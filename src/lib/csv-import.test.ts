@@ -5,8 +5,8 @@ describe("parseAttendanceCsv", () => {
   it("parses valid rows with defaults applied", () => {
     const csv = [
       "employeeCode,date,ruleCode",
-      "EMP-001,2026-08-01,minor_tardy",
-      "EMP-002,2026-08-02,nc_ns_major",
+      "EMP-001,2026-08-01,late_short_notice",
+      "EMP-002,2026-08-02,absence_no_notice",
     ].join("\n");
 
     const { rows, errors } = parseAttendanceCsv(csv);
@@ -15,16 +15,16 @@ describe("parseAttendanceCsv", () => {
     expect(rows[0]).toMatchObject({
       employeeCode: "EMP-001",
       date: "2026-08-01",
-      ruleCode: "minor_tardy",
+      ruleCode: "late_short_notice",
       source: "Policy",
     });
-    expect(rows[0].reason).toContain("minor_tardy");
+    expect(rows[0].reason).toContain("late_short_notice");
   });
 
   it("respects optional reason/source columns", () => {
     const csv = [
       "employeeCode,date,ruleCode,reason,source",
-      'EMP-001,2026-08-01,severe_late_absence,"No-call, no-show",Supervisor',
+      'EMP-001,2026-08-01,absence_notice,"No-call, no-show",Supervisor',
     ].join("\n");
 
     const { rows, errors } = parseAttendanceCsv(csv);
@@ -49,11 +49,11 @@ describe("parseAttendanceCsv", () => {
   it("validates each row independently — one bad row doesn't drop the good ones", () => {
     const csv = [
       "employeeCode,date,ruleCode",
-      "EMP-001,2026-08-01,minor_tardy",
-      "EMP-002,not-a-date,minor_tardy",
+      "EMP-001,2026-08-01,late_short_notice",
+      "EMP-002,not-a-date,late_short_notice",
       "EMP-003,2026-08-03,not_a_real_code",
-      ",2026-08-04,minor_tardy",
-      "EMP-005,2026-08-05,moderate_tardy",
+      ",2026-08-04,late_short_notice",
+      "EMP-005,2026-08-05,late_short_no_notice",
     ].join("\n");
 
     const { rows, errors } = parseAttendanceCsv(csv);
@@ -65,7 +65,7 @@ describe("parseAttendanceCsv", () => {
   it("defaults an unrecognized source to Policy and still reports it as a warning", () => {
     const csv = [
       "employeeCode,date,ruleCode,source",
-      "EMP-001,2026-08-01,minor_tardy,Carrier Pigeon",
+      "EMP-001,2026-08-01,late_short_notice,Carrier Pigeon",
     ].join("\n");
 
     const { rows, errors } = parseAttendanceCsv(csv);
@@ -77,9 +77,9 @@ describe("parseAttendanceCsv", () => {
   it("skips blank lines", () => {
     const csv = [
       "employeeCode,date,ruleCode",
-      "EMP-001,2026-08-01,minor_tardy",
+      "EMP-001,2026-08-01,late_short_notice",
       "",
-      "EMP-002,2026-08-02,minor_tardy",
+      "EMP-002,2026-08-02,late_short_notice",
     ].join("\n");
 
     const { rows, errors } = parseAttendanceCsv(csv);

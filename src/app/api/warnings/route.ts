@@ -9,8 +9,8 @@ import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
  * Phase 2 ("list/update warning & action-plan status").
  *
  * POST { employeeId, targetStatus, note } -> moves the employee to
- * the chosen status (Clear / Watch / At Risk / PIP), adding or
- * deducting whatever points that takes — logged as an auditable
+ * the chosen status (Clear / Low / Elevated / At Risk / Critical /
+ * Termination), adding or deducting whatever points that takes — logged as an auditable
  * ledger entry, with warnings opened/resolved to match. See
  * src/lib/policy-queries.ts::setEmployeeStatus.
  *

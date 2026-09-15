@@ -35,7 +35,17 @@ export default async function AnalyticsPage() {
 
   const roster = localizedRoster(lang);
   const summary = analyticsSummary(roster);
-  const risk = summarizeRoster(roster);
+  // Fold the 6-band policy model into this legacy 3-bucket
+  // distribution chart, which hasn't been redesigned with dedicated
+  // low/elevated/critical/termination segments yet (see
+  // docs/planning/points-system-brd.md Phase 6) — mirrors the same
+  // fold used by src/lib/people-mock.ts::teamRiskBreakdown.
+  const rosterSummary = summarizeRoster(roster);
+  const risk = {
+    atRisk: rosterSummary.termination + rosterSummary.critical + rosterSummary.atRisk,
+    watch: rosterSummary.elevated + rosterSummary.low,
+    clear: rosterSummary.clear,
+  };
   const teams = teamRiskBreakdown(roster);
   const signals = signalTypeBreakdown();
   const leaders = topPointHolders(5, lang);

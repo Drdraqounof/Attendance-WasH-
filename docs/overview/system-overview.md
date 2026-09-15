@@ -33,7 +33,7 @@ After demo sign-in, `/dashboard` shows an **ops floor risk console**:
 - Intervene-now list for the top at-risk employees (also links to profiles)
 - Mock data only — SMS intake is not connected yet
 
-Risk bands (demo): **At risk** ≥ 6 points, **Watch** 3–5, **Clear** 0–2.
+Risk bands (policy PDF §5, rolling 12-month points): **Clear** 0, **Low** 1–3, **Elevated** 4–7, **At risk** 8–11, **Critical** 12–15, **Termination threshold** 16+.
 
 ## Person profile (demo)
 

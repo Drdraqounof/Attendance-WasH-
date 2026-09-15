@@ -10,8 +10,8 @@ import { recordPointEvent } from "@/lib/policy-queries";
  * POST { csv: string } -> bulk-imports attendance events from CSV text
  * (see src/lib/csv-import.ts for the expected columns). Each valid row
  * is matched to a real employee by employeeCode and recorded through
- * recordPointEvent() — the same ledger/threshold/PIP-notification path
- * every other point event uses, so imported rows are real data, not a
+ * recordPointEvent() — the same ledger/threshold/termination-notification
+ * path every other point event uses, so imported rows are real data, not a
  * mock addition. Per-row resilience: one bad row (unknown employee
  * code, DB error) doesn't abort the rest of the batch.
  *

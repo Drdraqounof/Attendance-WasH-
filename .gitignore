@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Policy reference source docs — excluded from git (one contains real
+# employee PII: names/phones/notes; kept local-only per team decision).
+docs/WCL_Attendance_Policy_AttendPoint_Reference.pdf
+docs/Attendance Tracker Point System Updated August 2026.xlsx

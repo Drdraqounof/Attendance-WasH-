@@ -41,15 +41,19 @@ export function normalizeLang(raw: string | undefined): Lang {
  */
 export const RISK_LABELS_BY_LANG: Record<Lang, Record<RiskLevel, string>> = {
   en: {
-    pip_flag: "On PIP",
+    termination: "Termination threshold",
+    critical: "Critical",
     at_risk: "At risk",
-    watch: "Watch",
+    elevated: "Elevated",
+    low: "Low",
     clear: "Clear",
   },
   es: {
-    pip_flag: "En PIP",
+    termination: "Umbral de despido",
+    critical: "Crítico",
     at_risk: "En riesgo",
-    watch: "Vigilancia",
+    elevated: "Elevado",
+    low: "Bajo",
     clear: "Sin riesgo",
   },
 };
@@ -171,9 +175,11 @@ export const DASHBOARD_COPY: Record<
     eyebrow: string;
     heading: string;
     subheading: string;
-    metricPip: string;
+    metricTermination: string;
+    metricCritical: string;
     metricAtRisk: string;
-    metricWatch: string;
+    metricElevated: string;
+    metricLow: string;
     metricClear: string;
     metricOpenPointsToday: string;
     recognitionHeading: string;
@@ -205,9 +211,11 @@ export const DASHBOARD_COPY: Record<
     heading: "Shift risk console",
     subheading:
       "SMS signals scored against policy — act before the floor slips. Select a name for schedule and points detail.",
-    metricPip: "On PIP",
+    metricTermination: "Termination threshold",
+    metricCritical: "Critical",
     metricAtRisk: "At risk",
-    metricWatch: "Watch",
+    metricElevated: "Elevated",
+    metricLow: "Low",
     metricClear: "Clear",
     metricOpenPointsToday: "Open points today",
     recognitionHeading: "Employee of the month",
@@ -239,9 +247,11 @@ export const DASHBOARD_COPY: Record<
     heading: "Consola de riesgo del turno",
     subheading:
       "Señales de SMS evaluadas según la política — actúe antes de que el piso se resienta. Seleccione un nombre para ver el horario y el detalle de puntos.",
-    metricPip: "En PIP",
+    metricTermination: "Umbral de despido",
+    metricCritical: "Crítico",
     metricAtRisk: "En riesgo",
-    metricWatch: "Vigilancia",
+    metricElevated: "Elevado",
+    metricLow: "Bajo",
     metricClear: "Sin riesgo",
     metricOpenPointsToday: "Puntos abiertos hoy",
     recognitionHeading: "Empleado del mes",
@@ -389,7 +399,7 @@ export const INSIGHTS_COPY: Record<
     atRiskHeading: string;
     atRiskFlagged: string;
     atRiskEmpty: string;
-    onPipBadge: string;
+    terminationBadge: string;
     reliabilityHeading: string;
     reliabilityTop: string;
     reliabilityVsPrior: string;
@@ -421,7 +431,7 @@ export const INSIGHTS_COPY: Record<
     atRiskHeading: "Employees at risk",
     atRiskFlagged: "flagged",
     atRiskEmpty: "No employees flagged as at risk right now.",
-    onPipBadge: "On PIP",
+    terminationBadge: "Termination threshold",
     reliabilityHeading: "Attendance points & improvement trends",
     reliabilityTop: "Top",
     reliabilityVsPrior: "vs. prior",
@@ -454,7 +464,7 @@ export const INSIGHTS_COPY: Record<
     atRiskHeading: "Empleados en riesgo",
     atRiskFlagged: "marcados",
     atRiskEmpty: "No hay empleados marcados en riesgo por el momento.",
-    onPipBadge: "En PIP",
+    terminationBadge: "Umbral de despido",
     reliabilityHeading: "Puntos de asistencia y tendencias de mejora",
     reliabilityTop: "Top",
     reliabilityVsPrior: "vs. los",
@@ -724,7 +734,7 @@ export const PEOPLE_COPY: Record<
     eyebrow: "Employee profile",
     employeeOfMonthBadge: "Employee of the month",
     riskLabel: "Risk",
-    pipBadge: "PIP",
+    pipBadge: "Termination",
     phoneLabel: "Phone",
     hireDateLabel: "Hire date",
     openPointsLabel: "Open points",
@@ -775,7 +785,7 @@ export const PEOPLE_COPY: Record<
     eyebrow: "Perfil del empleado",
     employeeOfMonthBadge: "Empleado del mes",
     riskLabel: "Riesgo",
-    pipBadge: "PIP",
+    pipBadge: "Despido",
     phoneLabel: "Teléfono",
     hireDateLabel: "Fecha de contratación",
     openPointsLabel: "Puntos abiertos",

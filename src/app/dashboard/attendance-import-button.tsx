@@ -18,8 +18,8 @@ type ImportResult = {
  * this is a real DB write, not a mock addition, even though the
  * roster list itself still renders from mock data (a pre-existing,
  * separate gap — see docs/planning/employee-track-record-plan.md).
- * Points/PIP status for an imported employee are visible immediately
- * on their profile page and on /insights.
+ * Points/termination status for an imported employee are visible
+ * immediately on their profile page and on /insights.
  *
  * PDF import is a deferred follow-up — this button is CSV-only.
  */
