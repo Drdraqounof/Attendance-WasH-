@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { HeroCanvas } from "@/components/hero-canvas";
 import { MarketingCtaBand } from "@/components/marketing-cta-band";
 import { MarketingFooter } from "@/components/marketing-footer";
 
@@ -125,6 +126,7 @@ export default function HomePage() {
           className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/55 to-slate/35"
           aria-hidden
         />
+        <HeroCanvas />
         <div
           className="ops-grid absolute inset-0 opacity-40 mix-blend-soft-light"
           aria-hidden
