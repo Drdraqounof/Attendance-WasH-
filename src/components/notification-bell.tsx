@@ -27,8 +27,8 @@ async function markRead(payload: { id: number } | { all: true }) {
 
 /**
  * Header notification bell — DB-backed via notifications-queries.ts
- * (see src/lib/policy-queries.ts::notifyIfPipCrossed for how rows get
- * created). Renders a floating overlay panel — it's `absolute` inside
+ * (see src/lib/policy-queries.ts::notifyIfTerminationCrossed for how
+ * rows get created). Renders a floating overlay panel — it's `absolute` inside
  * a `relative` wrapper with a high z-index, so it layers on top of the
  * page instead of pushing content down, and closes on outside click,
  * Escape, or picking a notification.

@@ -37,7 +37,7 @@ export function ThresholdEditor({
       return;
     }
     if (
-      key === "pip" &&
+      key === "termination" &&
       !window.confirm(
         `${copy.pipConfirmLead} ${pointValue} ${copy.pipConfirmTrail}`,
       )
@@ -97,7 +97,7 @@ export function ThresholdEditor({
           </div>
 
           <p className="mt-1 text-sm text-slate/65">{threshold.action}</p>
-          {threshold.key === "pip" ? (
+          {threshold.key === "termination" ? (
             <p className="mt-1 text-sm text-slate/50">
               {copy.pipCapNote}
             </p>

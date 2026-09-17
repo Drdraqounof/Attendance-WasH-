@@ -126,8 +126,8 @@ async function seed() {
   await db.insert(pointRules).values(escalationRuleRows);
   console.log(`  ✓ ${escalationRuleRows.length} point rules`);
 
-  // Policy thresholds (2pt verbal warning / 10pt required manager
-  // meeting / 16pt PIP).
+  // Policy thresholds (policy PDF §5 risk bands: 1pt low / 4pt
+  // elevated / 8pt at_risk / 12pt critical / 16pt termination).
   await db.insert(policyThresholds).values(
     POLICY_THRESHOLDS.map((threshold) => ({
       key: threshold.key,

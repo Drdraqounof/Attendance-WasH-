@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   employees,
@@ -24,38 +24,55 @@ import {
 } from "@/lib/policy-engine";
 
 /** Every status a manager can set an employee to, in ascending severity. */
-export const TARGET_STATUSES: RiskLevel[] = ["clear", "watch", "at_risk", "pip_flag"];
+export const TARGET_STATUSES: RiskLevel[] = [
+  "clear",
+  "low",
+  "elevated",
+  "at_risk",
+  "critical",
+  "termination",
+];
 
-/** All four escalation codes — mirrors policy-engine.ts's EscalationRuleCode union. */
+/** All 7 escalation codes — mirrors policy-engine.ts's EscalationRuleCode union. */
 const ESCALATION_RULE_CODES: EscalationRuleCode[] = [
-  "minor_tardy",
-  "moderate_tardy",
-  "severe_late_absence",
-  "nc_ns_major",
+  "late_short_notice",
+  "late_short_no_notice",
+  "late_mid_notice",
+  "late_mid_no_notice",
+  "absence_notice",
+  "absence_no_notice",
+  "non_attendance_warning",
 ];
 
 /**
- * All three thresholds are editable from Settings. Editing "pip" also
- * bulk-updates every employee's `policyCap` to match — PIP *is* the
- * policy cap, so the two are kept in sync rather than letting them
- * drift apart. See docs/policy/policy-thresholds-editing.md.
+ * All 5 thresholds are editable from Settings. Editing "termination"
+ * also bulk-updates every employee's `policyCap` to match — the
+ * termination threshold *is* the policy cap, so the two are kept in
+ * sync rather than letting them drift apart. See
+ * docs/policy/policy-thresholds-editing.md.
  */
 const EDITABLE_THRESHOLD_KEYS: PolicyThresholdKey[] = [
-  "verbal_warning",
-  "manager_meeting",
-  "pip",
+  "low",
+  "elevated",
+  "at_risk",
+  "critical",
+  "termination",
 ];
 
 /**
  * Static text (label/action copy) the DB's `policy_thresholds` table
  * doesn't carry a column for — merged onto the DB's live `pointValue`
  * so edits don't require a schema migration just to keep descriptive
- * copy in sync.
+ * copy in sync. Wording follows the policy PDF §5 exactly.
  */
 const THRESHOLD_ACTION_TEXT: Record<PolicyThresholdKey, string> = {
-  verbal_warning: "Notify the employee's manager/supervisor to conduct a verbal warning conversation. Logged in system.",
-  manager_meeting: "Flag the employee profile and require a formal attendance meeting between the employee and their manager/supervisor.",
-  pip: "Place the employee on a formal Performance Improvement Plan (PIP) and notify HR. This is a corrective action step, not an automatic termination.",
+  low: "Employee is eligible for a verbal warning.",
+  elevated: "Employee is eligible for a verbal warning and a written warning.",
+  at_risk: "Employee is eligible for a written warning and unpaid suspension.",
+  critical:
+    "Employee is eligible for a written warning, unpaid suspension, and termination at management discretion.",
+  termination:
+    "16 or more points requires termination under the policy. Notify HR — this system flags the threshold but does not take automated termination action.",
 };
 
 /**
@@ -85,8 +102,8 @@ export type RecordPointEventResult = {
   previousPoints: number;
   newPoints: number;
   crossedThresholdKeys: PolicyThresholdKey[];
-  /** True once the employee is at (or clamped to) the 16-point cap — on a PIP. */
-  isPipFlag: boolean;
+  /** True once the employee is at (or clamped to) the 16-point cap — the policy's termination threshold. */
+  isTerminationFlag: boolean;
 };
 
 /**
@@ -118,11 +135,12 @@ export type UpdatePolicyThresholdResult = {
 };
 
 /**
- * Admin edit: retune any of the three thresholds. Validates ordering
- * so the tiers can never cross each other: 0 < verbal_warning <
- * manager_meeting < pip. Editing "pip" additionally bulk-updates every
- * employee's `policyCap` to the new value, since PIP is defined as the
- * policy cap — see docs/policy/policy-thresholds-editing.md.
+ * Admin edit: retune any of the 5 thresholds. Validates ordering so the
+ * bands can never cross each other: 0 < low < elevated < at_risk <
+ * critical < termination. Editing "termination" additionally
+ * bulk-updates every employee's `policyCap` to the new value, since the
+ * termination threshold is defined as the policy cap — see
+ * docs/policy/policy-thresholds-editing.md.
  */
 export async function updatePolicyThreshold(
   key: PolicyThresholdKey,
@@ -137,14 +155,23 @@ export async function updatePolicyThreshold(
 
   const current = await getPolicyThresholds();
   const next = current.map((t) => (t.key === key ? { ...t, pointValue } : t));
-  const [verbal, meeting, pip] = [
-    next.find((t) => t.key === "verbal_warning")!,
-    next.find((t) => t.key === "manager_meeting")!,
-    next.find((t) => t.key === "pip")!,
+  const [low, elevated, atRisk, critical, termination] = [
+    next.find((t) => t.key === "low")!,
+    next.find((t) => t.key === "elevated")!,
+    next.find((t) => t.key === "at_risk")!,
+    next.find((t) => t.key === "critical")!,
+    next.find((t) => t.key === "termination")!,
   ];
-  if (!(verbal.pointValue < meeting.pointValue && meeting.pointValue < pip.pointValue)) {
+  if (
+    !(
+      low.pointValue < elevated.pointValue &&
+      elevated.pointValue < atRisk.pointValue &&
+      atRisk.pointValue < critical.pointValue &&
+      critical.pointValue < termination.pointValue
+    )
+  ) {
     throw new Error(
-      `Thresholds must stay in order: verbal warning (${verbal.pointValue}) < required manager meeting (${meeting.pointValue}) < PIP (${pip.pointValue}).`,
+      `Thresholds must stay in order: low (${low.pointValue}) < elevated (${elevated.pointValue}) < at risk (${atRisk.pointValue}) < critical (${critical.pointValue}) < termination (${termination.pointValue}).`,
     );
   }
 
@@ -153,13 +180,14 @@ export async function updatePolicyThreshold(
     .set({ pointValue })
     .where(eq(policyThresholds.key, key));
 
-  if (key === "pip") {
-    // PIP *is* the policy cap — keep every employee's cap in sync
-    // rather than letting the displayed threshold and the actual
-    // clamp/pip-flag behavior (which reads employees.policyCap) drift
-    // apart. Org-wide bulk update: every employee shares one cap today
-    // (see src/db/seed.ts::POLICY_CAP), there's no per-employee
-    // override to preserve.
+  if (key === "termination") {
+    // The termination threshold *is* the policy cap — keep every
+    // employee's cap in sync rather than letting the displayed
+    // threshold and the actual clamp/termination-flag behavior (which
+    // reads employees.policyCap) drift apart. Org-wide bulk update:
+    // every employee shares one cap today (see
+    // src/db/seed.ts::POLICY_CAP), there's no per-employee override to
+    // preserve.
     await db.update(employees).set({ policyCap: pointValue });
   }
 
@@ -197,9 +225,12 @@ export type UpdateEscalationRuleResult = {
 };
 
 /**
- * Admin edit: retune how many points one escalation tier is worth.
- * Validates ordering so the four tiers stay meaningfully escalating:
- * minor_tardy < moderate_tardy < severe_late_absence < nc_ns_major.
+ * Admin edit: retune how many points one escalation rule is worth.
+ * Validates ordering so each duration band's "without notice" value
+ * stays at or above its "with notice" value, and the three duration
+ * bands stay meaningfully escalating — mirroring the policy PDF §4
+ * matrix. `non_attendance_warning` is a flat rule with no ordering
+ * constraint of its own beyond being a positive whole number.
  */
 export async function updateEscalationRule(
   code: EscalationRuleCode,
@@ -214,16 +245,21 @@ export async function updateEscalationRule(
 
   const current = await getEscalationRules();
   const next = current.map((r) => (r.code === code ? { ...r, points } : r));
-  const byCode = Object.fromEntries(next.map((r) => [r.code, r.points]));
-  if (
-    !(
-      byCode.minor_tardy < byCode.moderate_tardy &&
-      byCode.moderate_tardy < byCode.severe_late_absence &&
-      byCode.severe_late_absence < byCode.nc_ns_major
-    )
-  ) {
+  const byCode = Object.fromEntries(next.map((r) => [r.code, r.points])) as Record<
+    EscalationRuleCode,
+    number
+  >;
+  const orderingOk =
+    byCode.late_short_notice <= byCode.late_short_no_notice &&
+    byCode.late_mid_notice <= byCode.late_mid_no_notice &&
+    byCode.absence_notice <= byCode.absence_no_notice &&
+    byCode.late_short_no_notice <= byCode.late_mid_no_notice &&
+    byCode.late_mid_no_notice <= byCode.absence_no_notice &&
+    byCode.late_short_notice <= byCode.late_mid_notice &&
+    byCode.late_mid_notice <= byCode.absence_notice;
+  if (!orderingOk) {
     throw new Error(
-      `Escalation tiers must stay in order: minor (${byCode.minor_tardy}) < moderate (${byCode.moderate_tardy}) < severe (${byCode.severe_late_absence}) < no-call/no-show (${byCode.nc_ns_major}).`,
+      `Escalation rules must stay in order per the policy matrix: each band's "without notice" value must be at or above its "with notice" value, and the three duration bands (15min–1hr < 1–3hr < 3hr+) must escalate. Current values: ${JSON.stringify(byCode)}.`,
     );
   }
 
@@ -236,28 +272,28 @@ export async function updateEscalationRule(
 }
 
 /**
- * Inserts one `notifications` row when a PIP-threshold `warnings` row
- * was just created — shared by recordPointEvent and setEmployeeStatus
- * so PIP-crossing detection stays in one place rather than duplicated.
- * No-op if "pip" isn't among the newly inserted warnings (verbal
- * warning / required manager meeting crossings don't notify in this
- * phase). See docs/planning/pip-notifications.md.
+ * Inserts one `notifications` row when the termination-threshold
+ * `warnings` row was just created — shared by recordPointEvent and
+ * setEmployeeStatus so termination-threshold-crossing detection stays
+ * in one place rather than duplicated. No-op if "termination" isn't
+ * among the newly inserted warnings (the lower bands don't notify in
+ * this phase). See docs/planning/pip-notifications.md.
  */
-async function notifyIfPipCrossed(
+async function notifyIfTerminationCrossed(
   employeeId: string,
   employeeName: string,
   insertedWarnings: { id: number; thresholdKey: string; pointsAtTrigger: number }[],
 ): Promise<void> {
-  const pip = insertedWarnings.find((w) => w.thresholdKey === "pip");
-  if (!pip) return;
+  const termination = insertedWarnings.find((w) => w.thresholdKey === "termination");
+  if (!termination) return;
 
   await db.insert(notifications).values({
     employeeId,
-    warningId: pip.id,
-    thresholdKey: "pip",
-    pointsAtTrigger: pip.pointsAtTrigger,
-    title: `${employeeName} reached the PIP threshold`,
-    body: `${employeeName} crossed ${pip.pointsAtTrigger} points and is now on a Performance Improvement Plan. Notify HR.`,
+    warningId: termination.id,
+    thresholdKey: "termination",
+    pointsAtTrigger: termination.pointsAtTrigger,
+    title: `${employeeName} reached the termination threshold`,
+    body: `${employeeName} crossed ${termination.pointsAtTrigger} points. Under policy, 16 or more points requires termination — notify HR. This is a flag, not an automated termination action.`,
     severity: "critical",
   });
 }
@@ -265,10 +301,11 @@ async function notifyIfPipCrossed(
 /**
  * Records one infraction: inserts the ledger row, updates the
  * employee's running point total, and opens a `warnings` row for every
- * threshold the event just crossed (verbal warning, required manager
- * meeting, PIP — using the live, possibly admin-edited threshold and
- * escalation-rule values, not the static defaults). A PIP crossing
- * also inserts a `notifications` row — see notifyIfPipCrossed above.
+ * threshold the event just crossed (low / elevated / at_risk / critical
+ * / termination — using the live, possibly admin-edited threshold and
+ * escalation-rule values, not the static defaults). A termination
+ * crossing also inserts a `notifications` row — see
+ * notifyIfTerminationCrossed above.
  */
 export async function recordPointEvent(
   input: RecordPointEventInput,
@@ -331,15 +368,61 @@ export async function recordPointEvent(
         pointsAtTrigger: warnings.pointsAtTrigger,
       });
 
-    await notifyIfPipCrossed(input.employeeId, employee.name, inserted);
+    await notifyIfTerminationCrossed(input.employeeId, employee.name, inserted);
   }
 
   return {
     previousPoints: result.previousPoints,
     newPoints: result.newPoints,
     crossedThresholdKeys: result.crossedThresholds.map((t) => t.key),
-    isPipFlag: result.isPipFlag,
+    isTerminationFlag: result.isTerminationFlag,
   };
+}
+
+/**
+ * The policy PDF §5 evaluates points on a rolling 12-month period, not
+ * an all-time or anniversary-reset total (docs/planning/points-system-brd.md's
+ * unbuilt Phase 5 anniversary reset is superseded by this requirement —
+ * see the note at the top of that document). 365 days is close enough
+ * to "12 months" for this app's purposes; the ledger (`pointEvents`)
+ * stays the source of truth either way, so aging-out happens naturally
+ * as the window slides — no reset job needed.
+ */
+const ROLLING_WINDOW_DAYS = 365;
+
+function isoDateDaysAgo(days: number, from: Date): string {
+  const d = new Date(from);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Sums this employee's point-ledger deltas within the trailing rolling
+ * 12-month window ending `asOf` (defaults to now), clamped to their
+ * policy cap — the "current points" the policy PDF actually means, as
+ * opposed to `employees.points`'s simple running total.
+ */
+export async function rollingPolicyPoints(
+  employeeId: string,
+  cap: number,
+  asOf: Date = new Date(),
+): Promise<number> {
+  const since = isoDateDaysAgo(ROLLING_WINDOW_DAYS, asOf);
+  const until = asOf.toISOString().slice(0, 10);
+
+  const rows = await db
+    .select({ delta: pointEvents.delta })
+    .from(pointEvents)
+    .where(
+      and(
+        eq(pointEvents.employeeId, employeeId),
+        gte(pointEvents.date, since),
+        lte(pointEvents.date, until),
+      ),
+    );
+
+  const sum = rows.reduce((total, row) => total + row.delta, 0);
+  return clampToCap(sum, cap);
 }
 
 export type EmployeePolicySnapshot = {
@@ -351,7 +434,9 @@ export type EmployeePolicySnapshot = {
 /**
  * The employee's *real* (DB-backed) current points/band — distinct
  * from the mock-driven `points` shown elsewhere on
- * /dashboard/people/[id] today. See docs/planning/employee-track-record-plan.md.
+ * /dashboard/people/[id] today. `points` here is the rolling-12-month
+ * total (see rollingPolicyPoints above), not employees.points'
+ * all-time running total. See docs/planning/employee-track-record-plan.md.
  */
 export async function getEmployeePolicySnapshot(
   employeeId: string,
@@ -366,10 +451,12 @@ export async function getEmployeePolicySnapshot(
 
   if (!employee) return null;
 
+  const points = await rollingPolicyPoints(employeeId, employee.policyCap);
+
   return {
-    points: employee.points,
+    points,
     policyCap: employee.policyCap,
-    riskLevel: riskLevelFromPoints(employee.points, employee.policyCap, thresholds),
+    riskLevel: riskLevelFromPoints(points, employee.policyCap, thresholds),
   };
 }
 
@@ -469,33 +556,27 @@ export type SetEmployeeStatusResult = {
  * The point value that puts an employee at the *start* of a given
  * band — the lower boundary, since a band is a range and the boundary
  * is the only unambiguous single point within it. "clear" is always 0;
- * "pip_flag" is always the employee's policy cap (see
- * docs/policy/policy-thresholds-editing.md's PIP↔cap coupling).
+ * "termination" is always the employee's policy cap (see
+ * docs/policy/policy-thresholds-editing.md's termination↔cap coupling).
  */
 function pointsForTargetStatus(
   targetStatus: RiskLevel,
   cap: number,
   thresholds: PolicyThreshold[],
 ): number {
-  const sorted = [...thresholds].sort((a, b) => a.pointValue - b.pointValue);
-  const [verbalWarning, managerMeeting] = sorted;
-  switch (targetStatus) {
-    case "clear":
-      return 0;
-    case "watch":
-      return verbalWarning?.pointValue ?? 2;
-    case "at_risk":
-      return managerMeeting?.pointValue ?? 10;
-    case "pip_flag":
-      return cap;
-  }
+  if (targetStatus === "clear") return 0;
+  if (targetStatus === "termination") return cap;
+  const threshold = thresholds.find((t) => t.key === targetStatus);
+  return threshold?.pointValue ?? cap;
 }
 
 const TARGET_STATUS_LABELS: Record<RiskLevel, string> = {
   clear: "Clear",
-  watch: "Watch",
+  low: "Low",
+  elevated: "Elevated",
   at_risk: "At Risk",
-  pip_flag: "PIP",
+  critical: "Critical",
+  termination: "Termination Threshold",
 };
 
 /**
@@ -581,7 +662,7 @@ export async function setEmployeeStatus(
         });
       crossedThresholdKeys = crossed.map((t) => t.key);
 
-      await notifyIfPipCrossed(employeeId, employee.name, inserted);
+      await notifyIfTerminationCrossed(employeeId, employee.name, inserted);
     }
   } else if (delta < 0) {
     const noLongerApplicable = thresholds

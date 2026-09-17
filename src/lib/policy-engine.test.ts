@@ -14,14 +14,19 @@ import {
 } from "./policy-engine";
 
 describe("policy-engine", () => {
-  it("has a 16-point cap and the four escalation tiers from the BRD", () => {
+  it("has a 16-point cap and the 7 escalation rules from the policy PDF §4", () => {
     expect(POLICY_CAP).toBe(16);
-    expect(ESCALATION_RULES.map((r) => r.points)).toEqual([1, 2, 4, 8]);
+    expect(ESCALATION_RULES.map((r) => r.points)).toEqual([1, 2, 2, 4, 4, 8, 4]);
   });
 
   it("looks up points for a known rule code", () => {
-    expect(pointsForRule("minor_tardy")).toBe(1);
-    expect(pointsForRule("nc_ns_major")).toBe(8);
+    expect(pointsForRule("late_short_notice")).toBe(1);
+    expect(pointsForRule("late_short_no_notice")).toBe(2);
+    expect(pointsForRule("late_mid_notice")).toBe(2);
+    expect(pointsForRule("late_mid_no_notice")).toBe(4);
+    expect(pointsForRule("absence_notice")).toBe(4);
+    expect(pointsForRule("absence_no_notice")).toBe(8);
+    expect(pointsForRule("non_attendance_warning")).toBe(4);
   });
 
   it("throws for an unknown rule code", () => {
@@ -35,13 +40,11 @@ describe("policy-engine", () => {
   });
 
   describe("thresholdsCrossed", () => {
-    it("fires the verbal warning exactly once when crossing 2 points", () => {
-      expect(thresholdsCrossed(1, 2).map((t) => t.key)).toEqual([
-        "verbal_warning",
-      ]);
-      // Already at 2 and another 2pt event lands exactly on it again —
-      // no new crossing since old === new isn't > old.
-      expect(thresholdsCrossed(2, 2)).toEqual([]);
+    it("fires the low band exactly once when crossing 1 point", () => {
+      expect(thresholdsCrossed(0, 1).map((t) => t.key)).toEqual(["low"]);
+      // Already at 1 and another event lands exactly on it again — no
+      // new crossing since old === new isn't > old.
+      expect(thresholdsCrossed(1, 1)).toEqual([]);
     });
 
     it("does not re-fire a threshold already passed", () => {
@@ -49,71 +52,78 @@ describe("policy-engine", () => {
     });
 
     it("fires multiple thresholds at once when a large event jumps past them", () => {
-      // 9 -> 17 (pre-clamp) covers both the 10pt manager-meeting and
-      // 16pt PIP thresholds in one event.
+      // 9 -> 17 (pre-clamp) covers the at_risk(8)... no wait, 9 is
+      // already past at_risk; covers critical(12) and termination(16)
+      // in one event.
       expect(thresholdsCrossed(9, 17).map((t) => t.key)).toEqual([
-        "manager_meeting",
-        "pip",
+        "critical",
+        "termination",
       ]);
     });
 
-    it("returns nothing when points go down (e.g. an anniversary reset)", () => {
+    it("returns nothing when points go down", () => {
       expect(thresholdsCrossed(10, 0)).toEqual([]);
     });
   });
 
   describe("applyPointEvent", () => {
     it("accrues points and flags nothing below the first threshold", () => {
-      const result = applyPointEvent(0, "minor_tardy");
+      const result = applyPointEvent(0, "late_short_notice");
       expect(result.newPoints).toBe(1);
-      expect(result.crossedThresholds).toEqual([]);
-      expect(result.isPipFlag).toBe(false);
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual(["low"]);
+      expect(result.isTerminationFlag).toBe(false);
     });
 
-    it("fires the verbal warning at exactly 2 points", () => {
-      const result = applyPointEvent(0, "moderate_tardy");
-      expect(result.newPoints).toBe(2);
-      expect(result.crossedThresholds.map((t) => t.key)).toEqual([
-        "verbal_warning",
-      ]);
+    it("fires the elevated band at exactly 4 points", () => {
+      const result = applyPointEvent(2, "late_mid_no_notice");
+      expect(result.newPoints).toBe(6);
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual(["elevated"]);
     });
 
-    it("fires the required manager meeting at exactly 10 points", () => {
-      const result = applyPointEvent(8, "moderate_tardy");
+    it("fires the at_risk band at exactly 8 points", () => {
+      const result = applyPointEvent(6, "late_mid_no_notice");
       expect(result.newPoints).toBe(10);
-      expect(result.crossedThresholds.map((t) => t.key)).toEqual([
-        "manager_meeting",
-      ]);
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual(["at_risk"]);
     });
 
-    it("clamps at the 16-point cap and flags the employee for a PIP", () => {
-      const result = applyPointEvent(12, "nc_ns_major"); // 12 + 8 = 20, clamped to 16
+    it("clamps at the 16-point cap and flags termination", () => {
+      const result = applyPointEvent(12, "absence_no_notice"); // 12 + 8 = 20, clamped to 16
       expect(result.newPoints).toBe(16);
-      expect(result.isPipFlag).toBe(true);
-      expect(result.crossedThresholds.map((t) => t.key)).toContain("pip");
+      expect(result.isTerminationFlag).toBe(true);
+      expect(result.crossedThresholds.map((t) => t.key)).toContain("termination");
     });
 
-    it("keeps flagging the PIP on further infractions once already at the cap", () => {
-      const result = applyPointEvent(16, "minor_tardy");
+    it("keeps flagging termination on further infractions once already at the cap", () => {
+      const result = applyPointEvent(16, "late_short_notice");
       expect(result.newPoints).toBe(16);
-      expect(result.isPipFlag).toBe(true);
+      expect(result.isTerminationFlag).toBe(true);
       // No *new* crossing — already at the cap before this event.
       expect(result.crossedThresholds).toEqual([]);
+    });
+
+    it("adds 4 points for a written warning on a non-attendance issue", () => {
+      const result = applyPointEvent(0, "non_attendance_warning");
+      expect(result.newPoints).toBe(4);
+      // 0 -> 4 passes through both the low(1) and elevated(4) boundaries.
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual(["low", "elevated"]);
     });
   });
 
   describe("riskLevelFromPoints", () => {
-    it("bands risk consistently with the policy thresholds", () => {
+    it("bands risk consistently with the policy PDF §5", () => {
       expect(riskLevelFromPoints(0)).toBe("clear");
-      expect(riskLevelFromPoints(1)).toBe("clear");
-      expect(riskLevelFromPoints(2)).toBe("watch");
-      expect(riskLevelFromPoints(9)).toBe("watch");
-      expect(riskLevelFromPoints(10)).toBe("at_risk");
-      expect(riskLevelFromPoints(15)).toBe("at_risk");
-      expect(riskLevelFromPoints(16)).toBe("pip_flag");
+      expect(riskLevelFromPoints(1)).toBe("low");
+      expect(riskLevelFromPoints(3)).toBe("low");
+      expect(riskLevelFromPoints(4)).toBe("elevated");
+      expect(riskLevelFromPoints(7)).toBe("elevated");
+      expect(riskLevelFromPoints(8)).toBe("at_risk");
+      expect(riskLevelFromPoints(11)).toBe("at_risk");
+      expect(riskLevelFromPoints(12)).toBe("critical");
+      expect(riskLevelFromPoints(15)).toBe("critical");
+      expect(riskLevelFromPoints(16)).toBe("termination");
       // Defensive: a value above the cap (shouldn't normally happen once
       // callers clamp via applyPointEvent) still reads as flagged.
-      expect(riskLevelFromPoints(20)).toBe("pip_flag");
+      expect(riskLevelFromPoints(20)).toBe("termination");
     });
   });
 
@@ -123,50 +133,46 @@ describe("policy-engine", () => {
   });
 
   describe("admin-editable thresholds (see docs/policy/policy-thresholds-editing.md)", () => {
-    // Simulates thresholds retuned via /settings — verbal warning moved
-    // to 3, required manager meeting moved to 8 — to confirm the
-    // engine bands/fires against whatever thresholds it's given rather
-    // than hardcoded 2/10.
+    // Simulates thresholds retuned via /settings — to confirm the engine
+    // bands/fires against whatever thresholds it's given rather than
+    // hardcoded 1/4/8/12/16.
     const customThresholds: PolicyThreshold[] = [
-      { key: "verbal_warning", pointValue: 3, label: "Verbal Warning", action: "" },
-      { key: "manager_meeting", pointValue: 8, label: "Required Manager Meeting", action: "" },
-      { key: "pip", pointValue: POLICY_CAP, label: "PIP", action: "" },
+      { key: "low", pointValue: 2, label: "Low", action: "" },
+      { key: "elevated", pointValue: 5, label: "Elevated", action: "" },
+      { key: "at_risk", pointValue: 9, label: "At Risk", action: "" },
+      { key: "critical", pointValue: 13, label: "Critical", action: "" },
+      { key: "termination", pointValue: POLICY_CAP, label: "Termination", action: "" },
     ];
 
     it("thresholdsCrossed fires against the custom values, not the defaults", () => {
-      expect(thresholdsCrossed(2, 3, customThresholds).map((t) => t.key)).toEqual([
-        "verbal_warning",
+      expect(thresholdsCrossed(1, 2, customThresholds).map((t) => t.key)).toEqual([
+        "low",
       ]);
-      // 2 points wouldn't have crossed the default 2pt threshold's
-      // *next* event boundary here, but definitely shouldn't fire the
-      // custom 3pt threshold yet.
-      expect(thresholdsCrossed(1, 2, customThresholds)).toEqual([]);
-      expect(thresholdsCrossed(7, 8, customThresholds).map((t) => t.key)).toEqual([
-        "manager_meeting",
+      expect(thresholdsCrossed(0, 1, customThresholds)).toEqual([]);
+      expect(thresholdsCrossed(8, 9, customThresholds).map((t) => t.key)).toEqual([
+        "at_risk",
       ]);
     });
 
     it("applyPointEvent respects custom thresholds end to end", () => {
-      const result = applyPointEvent(1, "moderate_tardy", POLICY_CAP, customThresholds);
-      expect(result.newPoints).toBe(3);
-      expect(result.crossedThresholds.map((t) => t.key)).toEqual([
-        "verbal_warning",
-      ]);
+      const result = applyPointEvent(0, "late_short_no_notice", POLICY_CAP, customThresholds);
+      expect(result.newPoints).toBe(2);
+      expect(result.crossedThresholds.map((t) => t.key)).toEqual(["low"]);
     });
 
     it("riskLevelFromPoints bands against the custom thresholds", () => {
-      expect(riskLevelFromPoints(2, POLICY_CAP, customThresholds)).toBe("clear");
-      expect(riskLevelFromPoints(3, POLICY_CAP, customThresholds)).toBe("watch");
-      expect(riskLevelFromPoints(7, POLICY_CAP, customThresholds)).toBe("watch");
-      expect(riskLevelFromPoints(8, POLICY_CAP, customThresholds)).toBe("at_risk");
-      expect(riskLevelFromPoints(16, POLICY_CAP, customThresholds)).toBe("pip_flag");
+      expect(riskLevelFromPoints(1, POLICY_CAP, customThresholds)).toBe("clear");
+      expect(riskLevelFromPoints(2, POLICY_CAP, customThresholds)).toBe("low");
+      expect(riskLevelFromPoints(8, POLICY_CAP, customThresholds)).toBe("elevated");
+      expect(riskLevelFromPoints(9, POLICY_CAP, customThresholds)).toBe("at_risk");
+      expect(riskLevelFromPoints(16, POLICY_CAP, customThresholds)).toBe("termination");
     });
 
     it("still matches the default banding when no override is passed", () => {
-      // Regression guard: the generalized threshold-counting
-      // implementation must reproduce the original hardcoded 2/10
-      // bands exactly when called with defaults.
-      for (const points of [0, 1, 2, 9, 10, 15, 16, 20]) {
+      // Regression guard: the generalized threshold-banding
+      // implementation must reproduce the original hardcoded bands
+      // exactly when called with defaults.
+      for (const points of [0, 1, 4, 8, 12, 16, 20]) {
         expect(riskLevelFromPoints(points)).toBe(
           riskLevelFromPoints(points, POLICY_CAP, POLICY_THRESHOLDS),
         );
@@ -182,57 +188,62 @@ describe("policy-engine", () => {
     });
 
     it("recommends the highest crossed threshold's action, grounded in real points", () => {
-      const result = recommendedNextStep(11);
-      expect(result.thresholdKey).toBe("manager_meeting");
-      expect(result.text).toContain("11 pts");
-      expect(result.text).toContain("Required Manager Meeting");
+      const result = recommendedNextStep(9);
+      expect(result.thresholdKey).toBe("at_risk");
+      expect(result.text).toContain("9 pts");
+      expect(result.text).toContain("At Risk");
       expect(result.text).toContain(
-        POLICY_THRESHOLDS.find((t) => t.key === "manager_meeting")!.action,
+        POLICY_THRESHOLDS.find((t) => t.key === "at_risk")!.action,
       );
     });
 
-    it("recommends the pip action once at the cap, not the lower thresholds", () => {
+    it("recommends the termination action once at the cap, not the lower thresholds", () => {
       const result = recommendedNextStep(16);
-      expect(result.thresholdKey).toBe("pip");
-      expect(result.text).toContain("Performance Improvement Plan");
+      expect(result.thresholdKey).toBe("termination");
+      expect(result.text).toContain("termination");
     });
 
     it("respects admin-edited thresholds instead of the defaults", () => {
       const customThresholds: PolicyThreshold[] = [
-        { key: "verbal_warning", pointValue: 3, label: "Verbal Warning", action: "Custom verbal action." },
-        { key: "manager_meeting", pointValue: 8, label: "Required Manager Meeting", action: "Custom meeting action." },
-        { key: "pip", pointValue: POLICY_CAP, label: "PIP", action: "Custom PIP action." },
+        { key: "low", pointValue: 2, label: "Low", action: "Custom low action." },
+        { key: "elevated", pointValue: 5, label: "Elevated", action: "Custom elevated action." },
+        { key: "at_risk", pointValue: 9, label: "At Risk", action: "Custom at-risk action." },
+        { key: "critical", pointValue: 13, label: "Critical", action: "Custom critical action." },
+        { key: "termination", pointValue: POLICY_CAP, label: "Termination", action: "Custom termination action." },
       ];
-      const result = recommendedNextStep(8, POLICY_CAP, customThresholds);
-      expect(result.thresholdKey).toBe("manager_meeting");
-      expect(result.text).toContain("Custom meeting action.");
+      const result = recommendedNextStep(9, POLICY_CAP, customThresholds);
+      expect(result.thresholdKey).toBe("at_risk");
+      expect(result.text).toContain("Custom at-risk action.");
     });
   });
 
   describe("admin-editable escalation rules", () => {
     // Simulates the escalation schedule retuned via /settings.
     const customRules: EscalationRule[] = [
-      { code: "minor_tardy", label: "Minor tardy", points: 2 },
-      { code: "moderate_tardy", label: "Moderate tardy", points: 5 },
-      { code: "severe_late_absence", label: "Severe", points: 9 },
-      { code: "nc_ns_major", label: "No-call/no-show", points: 12 },
+      { code: "late_short_notice", label: "Late short — notice", points: 2 },
+      { code: "late_short_no_notice", label: "Late short — no notice", points: 3 },
+      { code: "late_mid_notice", label: "Late mid — notice", points: 4 },
+      { code: "late_mid_no_notice", label: "Late mid — no notice", points: 6 },
+      { code: "absence_notice", label: "Absence — notice", points: 7 },
+      { code: "absence_no_notice", label: "Absence — no notice", points: 12 },
+      { code: "non_attendance_warning", label: "Written warning", points: 5 },
     ];
 
     it("pointsForRule looks up against the custom rules, not the defaults", () => {
-      expect(pointsForRule("minor_tardy", customRules)).toBe(2);
-      expect(pointsForRule("nc_ns_major", customRules)).toBe(12);
+      expect(pointsForRule("late_short_notice", customRules)).toBe(2);
+      expect(pointsForRule("absence_no_notice", customRules)).toBe(12);
     });
 
     it("applyPointEvent uses custom rules for the delta end to end", () => {
       const result = applyPointEvent(
         0,
-        "severe_late_absence",
+        "absence_notice",
         POLICY_CAP,
         POLICY_THRESHOLDS,
         customRules,
       );
-      expect(result.delta).toBe(9);
-      expect(result.newPoints).toBe(9);
+      expect(result.delta).toBe(7);
+      expect(result.newPoints).toBe(7);
     });
   });
 });

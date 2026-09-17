@@ -51,9 +51,9 @@ function AtRiskList({
                 <span className="block truncate font-medium text-ink">
                   {row.name}
                 </span>
-                {row.isPipFlag && (
+                {row.isTerminationFlag && (
                   <span className="shrink-0 border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
-                    {copy.onPipBadge}
+                    {copy.terminationBadge}
                   </span>
                 )}
               </span>

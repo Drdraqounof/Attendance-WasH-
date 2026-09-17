@@ -7,16 +7,17 @@ import {
 } from "@/lib/policy-queries";
 
 /**
- * Lets a signed-in user retune any of the three automated-workflow
- * thresholds (verbal warning / required manager meeting / PIP) from
- * /settings. See docs/policy/policy-thresholds-editing.md.
+ * Lets a signed-in user retune any of the 5 automated-workflow
+ * thresholds (low / elevated / at_risk / critical / termination — the
+ * policy PDF §5 risk bands) from /settings. See
+ * docs/policy/policy-thresholds-editing.md.
  *
  * GET  -> current thresholds (DB-backed, falls back to the static
  *         defaults if the table is ever empty).
  * PATCH { key, pointValue } -> updates one threshold; validated for
- *         ordering (verbal_warning < manager_meeting < pip) by
+ *         ordering (low < elevated < at_risk < critical < termination) by
  *         src/lib/policy-queries.ts::updatePolicyThreshold. Editing
- *         "pip" also bulk-updates every employee's policy cap.
+ *         "termination" also bulk-updates every employee's policy cap.
  *
  * Gated the same way as every other action in the app today: any
  * signed-in demo user — there's no manager/admin role system yet.

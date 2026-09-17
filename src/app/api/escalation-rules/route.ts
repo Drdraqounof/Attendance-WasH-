@@ -7,14 +7,16 @@ import {
 } from "@/lib/policy-queries";
 
 /**
- * Lets a signed-in user retune the four escalation tiers (how many
- * points each infraction type is worth) from /settings. See
- * docs/policy/policy-thresholds-editing.md.
+ * Lets a signed-in user retune the 7 escalation rules (how many points
+ * each duration/notice-status combination is worth, per the policy PDF
+ * §4 matrix, plus the flat non-attendance-written-warning rule) from
+ * /settings. See docs/policy/policy-thresholds-editing.md.
  *
  * GET   -> current rules (DB-backed, falls back to the static
  *          defaults if the table is ever empty).
  * PATCH { code, points } -> updates one rule; validated for ordering
- *          (minor < moderate < severe < no-call/no-show) by
+ *          (each duration band's "without notice" value at or above its
+ *          "with notice" value, and the three bands escalating) by
  *          src/lib/policy-queries.ts::updateEscalationRule.
  *
  * Gated the same way as every other action in the app today: any

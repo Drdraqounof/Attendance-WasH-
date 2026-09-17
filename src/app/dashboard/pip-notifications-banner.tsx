@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { NotificationRow } from "@/lib/notifications-queries";
 
 /**
- * Prominent callout for recent PIP-crossing notifications, above the
- * (still mock-data-driven, unchanged) AttendanceAlerts section. A
- * narrowly-scoped addition — not a replacement for that section, which
- * is a different concept (a current-risk snapshot vs. this event log).
+ * Prominent callout for recent termination-threshold-crossing
+ * notifications, above the (still mock-data-driven, unchanged)
+ * AttendanceAlerts section. A narrowly-scoped addition — not a
+ * replacement for that section, which is a different concept (a
+ * current-risk snapshot vs. this event log).
  */
 export function PipNotificationsBanner({
   notifications,
@@ -24,7 +25,7 @@ export function PipNotificationsBanner({
           id="pip-notifications-heading"
           className="font-display text-lg font-semibold tracking-tight text-danger-soft"
         >
-          New PIP placements
+          New termination-threshold flags
         </h2>
         <p className="text-sm tracking-wide text-slate/55 uppercase">
           {notifications.length} recent

@@ -18,14 +18,16 @@ describe("alerts-mock", () => {
     }
   });
 
-  it("marks pip/at-risk employees critical and watch employees as warning", () => {
+  it("marks termination/critical/at-risk employees critical and elevated/low employees as warning", () => {
     const alerts = generateAttendanceAlerts();
     const people = getAllPeople();
     for (const alert of alerts) {
       const person = people.find((p) => p.id === alert.personId)!;
       const level = riskLevelFromPoints(person.points);
       const expectedSeverity =
-        level === "pip_flag" || level === "at_risk" ? "critical" : "warning";
+        level === "termination" || level === "critical" || level === "at_risk"
+          ? "critical"
+          : "warning";
       expect(alert.severity).toBe(expectedSeverity);
     }
   });

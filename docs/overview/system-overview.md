@@ -18,6 +18,8 @@ Frontline teams often report attendance by SMS. AttendPoint converts those messa
 | Route                      | Role                                                                 |
 | -------------------------- | -------------------------------------------------------------------- |
 | `/`                        | Marketing homepage                                                   |
+| `/capabilities`            | Public capabilities page — core features plus the live policy-engine point matrix/risk bands (reads `ESCALATION_RULES`/`POLICY_THRESHOLDS` directly) |
+| `/how-it-works`            | Public page walking through the 5-step signal → risk → action flow, plus an FAQ |
 | `/login`                   | Mock manager sign-in (demo credentials)                              |
 | `/dashboard`               | Demo shift risk console (mock roster, metrics, intervene targets)    |
 | `/dashboard/people/[id]`   | Employee profile: schedule, open points, points ledger               |
@@ -33,7 +35,7 @@ After demo sign-in, `/dashboard` shows an **ops floor risk console**:
 - Intervene-now list for the top at-risk employees (also links to profiles)
 - Mock data only — SMS intake is not connected yet
 
-Risk bands (demo): **At risk** ≥ 6 points, **Watch** 3–5, **Clear** 0–2.
+Risk bands (policy PDF §5, rolling 12-month points): **Clear** 0, **Low** 1–3, **Elevated** 4–7, **At risk** 8–11, **Critical** 12–15, **Termination threshold** 16+.
 
 ## Person profile (demo)
 
@@ -56,4 +58,4 @@ Header nav on ops pages: **Dashboard** · **Analytics**.
 
 ## Auth note
 
-Demo mode only: any nonempty credentials (or “demo access”) set cookie `ap_demo=1` and redirect to `/dashboard`. No real identity provider yet.
+Demo mode only: any nonempty credentials (or "demo access") set cookie `ap_demo=1` and redirect to `/dashboard`. No real identity provider yet. Full mechanism, gated routes, and known limitations: [docs/auth/authentication.md](../auth/authentication.md).

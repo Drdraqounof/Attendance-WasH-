@@ -45,25 +45,35 @@ export default async function DashboardPage() {
   const alerts = generateAttendanceAlerts(getAllPeople(lang));
   const nominee = employeeOfTheMonth(lang);
   const recentNotifications = await getNotifications(5);
-  const pipNotifications = recentNotifications.filter(
-    (n) => n.thresholdKey === "pip",
+  const terminationNotifications = recentNotifications.filter(
+    (n) => n.thresholdKey === "termination",
   );
 
   const metrics = [
     {
-      label: copy.metricPip,
-      value: summary.pip,
+      label: copy.metricTermination,
+      value: summary.termination,
+      tone: "text-danger-soft",
+    },
+    {
+      label: copy.metricCritical,
+      value: summary.critical,
       tone: "text-danger-soft",
     },
     {
       label: copy.metricAtRisk,
       value: summary.atRisk,
-      tone: "text-danger-soft",
+      tone: "text-danger-soft/80",
     },
     {
-      label: copy.metricWatch,
-      value: summary.watch,
+      label: copy.metricElevated,
+      value: summary.elevated,
       tone: "text-danger-soft/80",
+    },
+    {
+      label: copy.metricLow,
+      value: summary.low,
+      tone: "text-danger-soft/60",
     },
     {
       label: copy.metricClear,
@@ -119,7 +129,7 @@ export default async function DashboardPage() {
         </div>
 
         <div
-          className="animate-fade-up-delay-1 mt-8 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-5"
+          className="animate-fade-up-delay-1 mt-8 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4 lg:grid-cols-7"
           role="group"
           aria-label="Shift risk summary"
         >
@@ -148,9 +158,9 @@ export default async function DashboardPage() {
           <InterveneNow targets={intervene} copy={copy} />
         </div>
 
-        {pipNotifications.length > 0 && (
+        {terminationNotifications.length > 0 && (
           <div className="animate-fade-up-delay-3 mt-8">
-            <PipNotificationsBanner notifications={pipNotifications} />
+            <PipNotificationsBanner notifications={terminationNotifications} />
           </div>
         )}
 

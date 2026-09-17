@@ -5,9 +5,9 @@ import { employees, notifications } from "@/db/schema";
 /**
  * Drizzle read/write layer for the in-app notification feed — follows
  * the same conventions as policy-queries.ts. Rows are inserted by
- * notifyIfPipCrossed() in policy-queries.ts whenever an employee
- * crosses the PIP threshold (automated infraction or manual
- * setEmployeeStatus override). Read-state (`status`/`readAt`) is
+ * notifyIfTerminationCrossed() in policy-queries.ts whenever an
+ * employee crosses the termination threshold (automated infraction or
+ * manual setEmployeeStatus override). Read-state (`status`/`readAt`) is
  * deliberately decoupled from `warnings.status` — this is a UI
  * nag-suppression concern, not the action-plan/analytics state.
  */

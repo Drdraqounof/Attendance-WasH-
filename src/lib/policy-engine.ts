@@ -1,5 +1,10 @@
 /**
- * The 16-point escalating attendance policy — see docs/planning/points-system-brd.md.
+ * The attendance policy engine — see
+ * docs/WCL_Attendance_Policy_AttendPoint_Reference.pdf, the official,
+ * effective (Oct 1, 2025) Wash Cycle Laundry Hourly Attendance & Leave
+ * Policy. This supersedes the point values/thresholds originally
+ * specified in docs/planning/points-system-brd.md §1/§2 — see the note
+ * at the top of that document.
  *
  * Pure calculation only (no DB access, no I/O) so the rules are easy to
  * unit test in isolation. src/lib/policy-queries.ts wraps these functions
@@ -8,19 +13,35 @@
  * Model: deduction-only, inverse scoring. Every employee starts at 0
  * points (perfect attendance) and only accrues points upward via the
  * escalation schedule below. 16 points is a hard cap — an employee can
- * never register above it — and reaching it places the employee on a
- * formal Performance Improvement Plan (PIP), a corrective action step,
- * not an automatic termination.
+ * never register above it. The policy states "16 or more points
+ * requires termination"; this engine only *flags* that (never registers
+ * above the cap, marks `isTerminationFlag`) rather than taking an
+ * automated termination action itself — the policy's own instruction is
+ * to preserve HR/management discretion rather than assume a fully
+ * automatic outcome.
  */
 
-/** Hard point cap. Reaching it triggers the PIP flag. */
+/** Hard point cap. Reaching it triggers the termination flag. */
 export const POLICY_CAP = 16;
 
+/**
+ * The policy's point matrix (PDF §4) is duration × notice-status, plus
+ * one flat rule for a written warning issued for a non-attendance
+ * issue:
+ *
+ *   Late 15min–1hr   : 1 pt with notice / 2 pts without notice
+ *   Late 1–3hr        : 2 pts with notice / 4 pts without notice
+ *   Absent/late 3hr+  : 4 pts with notice / 8 pts without notice
+ *   Non-attendance written warning (PDF §4 "Additional rule") : 4 pts
+ */
 export type EscalationRuleCode =
-  | "minor_tardy"
-  | "moderate_tardy"
-  | "severe_late_absence"
-  | "nc_ns_major";
+  | "late_short_notice"
+  | "late_short_no_notice"
+  | "late_mid_notice"
+  | "late_mid_no_notice"
+  | "absence_notice"
+  | "absence_no_notice"
+  | "non_attendance_warning";
 
 export type EscalationRule = {
   code: EscalationRuleCode;
@@ -28,27 +49,57 @@ export type EscalationRule = {
   points: number;
 };
 
-/** The four-tier escalation schedule from docs/planning/points-system-brd.md §1. */
+/** The 7-rule escalation schedule from the policy PDF §4. */
 export const ESCALATION_RULES: EscalationRule[] = [
-  { code: "minor_tardy", label: "Minor tardy / minor infraction", points: 1 },
   {
-    code: "moderate_tardy",
-    label: "Moderate tardy / unexcused partial shift",
+    code: "late_short_notice",
+    label: "Late 15min–1hr — with notice",
+    points: 1,
+  },
+  {
+    code: "late_short_no_notice",
+    label: "Late 15min–1hr — without notice",
     points: 2,
   },
   {
-    code: "severe_late_absence",
-    label: "Severe late arrival or unexcused shift absence",
+    code: "late_mid_notice",
+    label: "Late 1–3hr — with notice",
+    points: 2,
+  },
+  {
+    code: "late_mid_no_notice",
+    label: "Late 1–3hr — without notice",
     points: 4,
   },
   {
-    code: "nc_ns_major",
-    label: "No-call, no-show / major infraction",
+    code: "absence_notice",
+    label: "Absent or late 3hr+ — with notice",
+    points: 4,
+  },
+  {
+    code: "absence_no_notice",
+    label: "Absent or late 3hr+ — without notice",
     points: 8,
+  },
+  {
+    code: "non_attendance_warning",
+    label: "Written warning — non-attendance issue",
+    points: 4,
   },
 ];
 
-export type PolicyThresholdKey = "verbal_warning" | "manager_meeting" | "pip";
+/**
+ * Risk bands from the policy PDF §5 — a rolling-12-month point total is
+ * evaluated against these ranges: 0 clear, 1-3 low, 4-7 elevated, 8-11
+ * at_risk, 12-15 critical, 16+ termination. Each key doubles as the
+ * `PolicyThresholdKey`/`RiskLevel` value for the band it opens.
+ */
+export type PolicyThresholdKey =
+  | "low"
+  | "elevated"
+  | "at_risk"
+  | "critical"
+  | "termination";
 
 export type PolicyThreshold = {
   key: PolicyThresholdKey;
@@ -57,28 +108,39 @@ export type PolicyThreshold = {
   action: string;
 };
 
-/** The three automated-workflow thresholds from docs/planning/points-system-brd.md §2. */
+/** The 5 risk bands (lower bound of each) from the policy PDF §5. */
 export const POLICY_THRESHOLDS: PolicyThreshold[] = [
   {
-    key: "verbal_warning",
-    pointValue: 2,
-    label: "Verbal Warning",
-    action:
-      "Notify the employee's manager/supervisor to conduct a verbal warning conversation. Logged in system.",
+    key: "low",
+    pointValue: 1,
+    label: "Low",
+    action: "Employee is eligible for a verbal warning.",
   },
   {
-    key: "manager_meeting",
-    pointValue: 10,
-    label: "Required Manager Meeting",
-    action:
-      "Flag the employee profile and require a formal attendance meeting between the employee and their manager/supervisor.",
+    key: "elevated",
+    pointValue: 4,
+    label: "Elevated",
+    action: "Employee is eligible for a verbal warning and a written warning.",
   },
   {
-    key: "pip",
+    key: "at_risk",
+    pointValue: 8,
+    label: "At Risk",
+    action: "Employee is eligible for a written warning and unpaid suspension.",
+  },
+  {
+    key: "critical",
+    pointValue: 12,
+    label: "Critical",
+    action:
+      "Employee is eligible for a written warning, unpaid suspension, and termination at management discretion.",
+  },
+  {
+    key: "termination",
     pointValue: POLICY_CAP,
-    label: "Performance Improvement Plan (PIP)",
+    label: "Termination Threshold",
     action:
-      "Place the employee on a formal Performance Improvement Plan (PIP) and notify HR. This is a corrective action step, not an automatic termination.",
+      "16 or more points requires termination under the policy. Notify HR — this system flags the threshold but does not take automated termination action.",
   },
 ];
 
@@ -109,7 +171,7 @@ export function clampToCap(points: number, cap: number = POLICY_CAP): number {
 /**
  * Thresholds whose pointValue falls in (oldPoints, newPoints] — i.e. the
  * ones an infraction just pushed the employee up past. Returns [] if
- * points didn't increase (e.g. an anniversary reset).
+ * points didn't increase (e.g. a rolling-window aging-out).
  *
  * Accepts a `thresholds` override (defaulting to the static
  * POLICY_THRESHOLDS) so callers with access to the admin-editable
@@ -134,8 +196,8 @@ export type PointEventResult = {
   delta: number;
   newPoints: number;
   crossedThresholds: PolicyThreshold[];
-  /** True once the employee is at (or clamped to) the 16-point cap — on a PIP. */
-  isPipFlag: boolean;
+  /** True once the employee is at (or clamped to) the 16-point cap — the policy's termination threshold. */
+  isTerminationFlag: boolean;
 };
 
 /**
@@ -159,7 +221,7 @@ export function applyPointEvent(
     delta,
     newPoints,
     crossedThresholds,
-    isPipFlag: newPoints >= cap,
+    isTerminationFlag: newPoints >= cap,
   };
 }
 
@@ -199,27 +261,25 @@ export function recommendedNextStep(
   };
 }
 
-export type RiskLevel = "clear" | "watch" | "at_risk" | "pip_flag";
+export type RiskLevel = "clear" | PolicyThresholdKey;
 
 /**
- * Coarse risk banding used for "risk radar"-style views — how close an
- * employee is to the 16-point cap, not just their raw score.
- *
- * Generalized over however many `thresholds` are passed (defaulting to
- * the static POLICY_THRESHOLDS: verbal_warning, manager_meeting, pip)
- * rather than hardcoding 2/10 — so admin-edited thresholds (see
+ * Risk banding straight from the policy PDF §5: the employee's points
+ * land in exactly one of 6 bands (clear, then the 5 threshold bands),
+ * each a range starting at its threshold's `pointValue` and running up
+ * to (but not including) the next threshold's `pointValue`. Generalized
+ * over whatever `thresholds` are passed (defaulting to the static
+ * POLICY_THRESHOLDS) so admin-edited thresholds (see
  * src/lib/policy-queries.ts::getPolicyThresholds()) band employees
- * correctly too: 0 crossed → clear, 1 → watch, 2+ → at_risk, at/above
- * the cap → pip_flag regardless of the thresholds passed in.
+ * correctly too.
  */
 export function riskLevelFromPoints(
   points: number,
   cap: number = POLICY_CAP,
   thresholds: PolicyThreshold[] = POLICY_THRESHOLDS,
 ): RiskLevel {
-  if (points >= cap) return "pip_flag";
-  const crossedCount = thresholds.filter((t) => points >= t.pointValue).length;
-  if (crossedCount >= 2) return "at_risk";
-  if (crossedCount >= 1) return "watch";
-  return "clear";
+  if (points >= cap) return "termination";
+  const sorted = [...thresholds].sort((a, b) => b.pointValue - a.pointValue);
+  const highest = sorted.find((t) => points >= t.pointValue);
+  return highest?.key ?? "clear";
 }

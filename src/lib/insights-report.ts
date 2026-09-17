@@ -99,7 +99,7 @@ export async function generateInsightsReportPdf(
     for (const row of atRisk) {
       bulletLine(
         doc,
-        `${row.name}${row.isPipFlag ? " (On PIP)" : ""}`,
+        `${row.name}${row.isTerminationFlag ? " (Termination threshold)" : ""}`,
         `${row.points} pts · ${RISK_LABELS[row.riskLevel]} — ${row.reason}`,
       );
     }

@@ -158,7 +158,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                   }`}
                 >
                   {riskLabels[level]}
-                  {level === "pip_flag" && (
+                  {level === "termination" && (
                     <span className="border border-danger-soft/40 bg-danger-soft/10 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-danger-soft uppercase">
                       {copy.pipBadge}
                     </span>
@@ -219,9 +219,9 @@ export default async function PersonDetailPage({ params }: PageProps) {
             >
               <div
                 className={`h-full transition-[width] duration-500 ${
-                  level === "pip_flag" || level === "at_risk"
+                  level === "termination" || level === "critical" || level === "at_risk"
                     ? "bg-danger-soft"
-                    : level === "watch"
+                    : level === "elevated" || level === "low"
                       ? "bg-danger-soft/70"
                       : "bg-accent"
                 }`}

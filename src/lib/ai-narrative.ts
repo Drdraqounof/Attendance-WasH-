@@ -78,7 +78,7 @@ function buildPrompt(input: {
     "Common causes of attendance issues:",
     causeLines,
     "",
-    "Employees at risk (16-point policy: 2 pts verbal warning, 10 pts required manager meeting, 16 pts PIP):",
+    "Employees at risk (rolling 12-month policy: 1pt low/verbal warning, 4pt elevated/written warning, 8pt at-risk/suspension, 12pt critical/termination at discretion, 16pt termination threshold):",
     atRiskLines,
     "",
     "Most reliable employees (lowest points, top 5):",
