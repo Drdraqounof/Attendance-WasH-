@@ -58,4 +58,4 @@ Header nav on ops pages: **Dashboard** · **Analytics**.
 
 ## Auth note
 
-Demo mode only: any nonempty credentials (or “demo access”) set cookie `ap_demo=1` and redirect to `/dashboard`. No real identity provider yet.
+Demo mode only: any nonempty credentials (or "demo access") set cookie `ap_demo=1` and redirect to `/dashboard`. No real identity provider yet. Full mechanism, gated routes, and known limitations: [docs/auth/authentication.md](../auth/authentication.md).
