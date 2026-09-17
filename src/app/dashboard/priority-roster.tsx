@@ -5,6 +5,7 @@ import {
   type RosterEmployee,
 } from "@/lib/dashboard-mock";
 import { DASHBOARD_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
+import { recommendedNextStep } from "@/lib/policy-engine";
 import Link from "next/link";
 import { AttendanceImportButton } from "./attendance-import-button";
 
@@ -100,7 +101,7 @@ function RosterRow({
         </span>
 
         <span className="hidden truncate text-sm text-slate/75 xl:block">
-          {employee.suggestedAction}
+          {recommendedNextStep(employee.points).text}
         </span>
       </Link>
     </li>
@@ -216,7 +217,7 @@ export function InterveneNow({
                 </p>
               </div>
               <p className="shrink-0 text-sm font-medium text-accent-deep sm:text-right">
-                {person.suggestedAction}
+                {recommendedNextStep(person.points).text}
               </p>
             </Link>
           </li>
