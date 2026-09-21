@@ -1,18 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { DEMO_COOKIE } from "@/lib/auth-constants";
 
 const ERROR_ID = "login-form-error";
 
-function setDemoCookie() {
-  document.cookie = `${DEMO_COOKIE}=1; path=/; max-age=86400; SameSite=Lax`;
-}
-
 function goToLanguage() {
-  // Full navigation so the cookie is always picked up by the next request.
-  // Language choice happens next, at /login/language, before landing on
-  // the dashboard — see src/app/login/language/page.tsx.
+  // Full navigation so the server-set session cookie is guaranteed to
+  // be picked up on the very next request. Language choice happens
+  // next, at /login/language, before landing on the dashboard — see
+  // src/app/login/language/page.tsx.
   window.location.assign("/login/language");
 }
 
@@ -32,17 +28,22 @@ export function LoginForm() {
     }
 
     setError("");
-    startTransition(() => {
-      setDemoCookie();
-      goToLanguage();
-    });
-  }
-
-  function onDemoAccess() {
-    setError("");
-    startTransition(() => {
-      setDemoCookie();
-      goToLanguage();
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setError(data.error ?? "Sign-in failed. Try again.");
+          return;
+        }
+        goToLanguage();
+      } catch {
+        setError("Sign-in failed — check your connection and try again.");
+      }
     });
   }
 
@@ -99,21 +100,6 @@ export function LoginForm() {
           {pending ? "Signing in…" : "Enter dashboard"}
         </button>
       </form>
-
-      <button
-        type="button"
-        onClick={onDemoAccess}
-        disabled={pending}
-        className="mt-3 inline-flex h-12 w-full items-center justify-center border border-line bg-transparent text-sm font-medium text-slate transition-colors hover:border-accent/50 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        Continue without credentials
-      </button>
-
-      <p className="mt-6 text-center text-sm tracking-wide text-slate/55">
-        <span className="inline-block border border-danger-soft/25 bg-danger-soft/8 px-2.5 py-1 text-danger-soft">
-          Demo mode — any credentials work
-        </span>
-      </p>
     </div>
   );
 }

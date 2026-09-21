@@ -1,10 +1,10 @@
 "use client";
 
-import { DEMO_COOKIE } from "@/lib/auth-constants";
-
 export function SignOutButton({ label = "Sign out" }: { label?: string }) {
-  function onSignOut() {
-    document.cookie = `${DEMO_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+  async function onSignOut() {
+    // Cookie is httpOnly (set by /api/login), so it can only be
+    // cleared via a server response, not document.cookie.
+    await fetch("/api/logout", { method: "POST" }).catch(() => {});
     window.location.assign("/");
   }
 

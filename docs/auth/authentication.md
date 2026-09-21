@@ -1,37 +1,61 @@
-# Authentication — demo cookie session
+# Authentication — allowlisted email/password session
 
-**Status:** Demo only. No real identity provider, user table, or role system exists yet.
+**Status:** Real credential check against a shared org allowlist (2026-09-21).
+Still no real identity provider, per-manager user table, or role system —
+see "Known limitations" below.
 
 ## What this is
 
 Every "signed-in" page and API route in the app gates on a single boolean:
-whether the `ap_demo` cookie is present and equal to `"1"`. There is no
-password check, no session token, no user record, and no per-manager
-identity — anyone who has the cookie is treated as the same anonymous
-"signed-in manager."
+whether the `ap_demo` cookie is present and equal to `"1"`. That cookie is
+now only ever set server-side, after `/api/login` verifies the submitted
+email against `AUTH_ALLOWED_EMAILS` and the password against
+`AUTH_PASSWORD` (both in `.env`, git-ignored). There is still no per-user
+identity or session token — everyone who signs in with an allowed email
+gets the same shared session value, so managers are still not
+distinguished from one another once signed in (see "Known limitations").
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
 | `src/lib/auth-constants.ts` | Defines `DEMO_COOKIE = "ap_demo"` — the one shared constant, safe to import from client or server code. |
-| `src/lib/auth-mock.ts` | Re-exports `DEMO_COOKIE` and exposes `hasDemoSession()`, a server-only async check (`cookies().get(DEMO_COOKIE)?.value === "1"`) for use in Server Components and Route Handlers. |
-| `src/app/login/page.tsx` + `src/app/login/login-form.tsx` | The sign-in UI. A client component; sets the cookie directly with `document.cookie`. |
+| `src/lib/auth-mock.ts` | Exposes `hasDemoSession()` (server-only async cookie check) and `verifyCredentials(email, password)`, which checks the submitted email against `AUTH_ALLOWED_EMAILS` (comma-separated, case-insensitive) and the password against `AUTH_PASSWORD` via a constant-time (`crypto.timingSafeEqual`) compare. Throws if either env var is unset, so a missing config fails closed. |
+| `src/app/api/login/route.ts` | `POST { email, password }` — calls `verifyCredentials`; on success, sets the `ap_demo` cookie via a server `Set-Cookie` header (`httpOnly`, `SameSite=Lax`, `secure` in production, 24h expiry). On failure, returns 401 with an error message. |
+| `src/app/api/logout/route.ts` | `POST` — clears the cookie via `Set-Cookie` (`maxAge: 0`). Needed because an `httpOnly` cookie can't be cleared from client JS. |
+| `src/app/login/page.tsx` + `src/app/login/login-form.tsx` | The sign-in UI. A client component that `fetch()`s `/api/login` and shows its error message on failure. No client-side cookie access. |
 | `src/app/login/language/page.tsx` + `language-picker.tsx` | Post-login step that sets the `attendpoint_lang` cookie before landing on `/dashboard` — separate from auth, see `src/lib/i18n.ts`. |
-| `src/app/dashboard/sign-out-button.tsx` | Clears the cookie (`max-age=0`) and redirects to `/`. |
+| `src/app/dashboard/sign-out-button.tsx` | Calls `/api/logout`, then redirects to `/`. |
 
 ## How sign-in works
 
-1. `LoginForm` accepts either any non-empty email/password pair, or a
-   "Continue without credentials" button — both paths are identical.
-   **No credentials are ever validated.**
-2. On submit, the client sets the cookie itself:
-   `document.cookie = "ap_demo=1; path=/; max-age=86400; SameSite=Lax"`
-   (24-hour expiry).
-3. The page does a full navigation (`window.location.assign`, not a
+1. `LoginForm` submits email + password to `POST /api/login`.
+2. The route checks the email against the `AUTH_ALLOWED_EMAILS` allowlist
+   and the password against `AUTH_PASSWORD` (both server-side env vars —
+   never sent to the client). Wrong email, wrong password, or missing env
+   config all return an error; nothing is ever silently accepted.
+3. On success, the server issues `Set-Cookie: ap_demo=1; HttpOnly; ...`
+   (24-hour expiry). The cookie is no longer readable or forgeable from
+   devtools/JS.
+4. The page does a full navigation (`window.location.assign`, not a
    client-side router push) to `/login/language`, so the cookie is
    guaranteed to be present on the very next server request.
-4. `/login/language` sets `attendpoint_lang` and forwards to `/dashboard`.
+5. `/login/language` sets `attendpoint_lang` and forwards to `/dashboard`.
+
+## Configuration
+
+`.env` must set:
+
+```
+AUTH_ALLOWED_EMAILS=<comma-separated list of allowed manager emails>
+AUTH_PASSWORD=<shared temp password — rotate before production>
+```
+
+`.env` is git-ignored — the actual allowlist and password live there only,
+never in committed docs or source.
+
+`AUTH_PASSWORD` is currently one shared password for every allowed email,
+not per-user — see "Known limitations."
 
 ## How route gating works
 
@@ -60,14 +84,18 @@ routes `attendance-import`, `escalation-rules`, `policy-thresholds`,
   session. Every signed-in visitor sees the same data and can perform
   the same actions (editing thresholds, marking notifications read,
   etc.) — see the note on `notifications` in `docs/database/database.md`
-  for a concrete consequence of this.
+  for a concrete consequence of this. Credential checking is now real,
+  but it's still one shared session value for every allowed email, not
+  a per-manager one.
 - **No role system.** "Admin" and "manager" aren't distinguished
   anywhere — every gated route/API just checks `hasDemoSession()`.
-- **Client-set cookie, not `httpOnly`.** The cookie is set from
-  client-side JS (not a server `Set-Cookie` header), so it's readable
-  and forgeable via devtools. Acceptable for a demo; would need to move
-  to a server-issued, `httpOnly` session cookie (and real credential
-  verification) before this could gate anything real.
-- **No CSRF protection.** Since there's no real session and no
-  state-changing action requires a distinct secret beyond the cookie,
-  this hasn't been addressed — flag it if real auth is ever added.
+- **Shared temp password.** `AUTH_PASSWORD` is one password for every
+  allowed email, set as a temporary value for initial rollout — rotate
+  it (and consider per-user passwords) before this gates anything with
+  real consequences long-term.
+- **No CSRF protection.** `/api/login` and `/api/logout` aren't CSRF
+  hardened yet — low risk today since login/logout are the only things
+  they do, but revisit if either route's scope grows.
+- ~~Client-set cookie, not `httpOnly`~~ — fixed 2026-09-21: the cookie
+  is now set via a server `Set-Cookie` header from `/api/login`, with
+  `httpOnly` and `secure` (in production) flags.
