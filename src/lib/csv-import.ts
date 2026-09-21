@@ -9,8 +9,13 @@ import type { PointEventSource } from "@/lib/policy-queries";
  * ledger/threshold/notification logic as every other point event —
  * this is real data, not a mock addition.
  *
- * PDF import is an explicitly deferred follow-up — this file only
- * handles CSV text.
+ * This module itself only ever sees CSV text. .xlsx uploads are
+ * converted to CSV client-side (via SheetJS, in
+ * attendance-import-button.tsx) before reaching this parser or the
+ * API route, so the format/row-validation rules below apply equally
+ * to both upload types.
+ *
+ * PDF import is an explicitly deferred follow-up.
  */
 
 const REQUIRED_HEADERS = ["employeeCode", "date", "ruleCode"] as const;
