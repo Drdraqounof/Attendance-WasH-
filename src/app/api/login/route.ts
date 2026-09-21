@@ -3,12 +3,11 @@ import { DEMO_COOKIE } from "@/lib/auth-constants";
 import { verifyCredentials } from "@/lib/auth-mock";
 
 /**
- * POST { email, password } -> verifies against the org allowlist
- * (AUTH_ALLOWED_EMAILS / AUTH_PASSWORD in .env — see
- * src/lib/auth-mock.ts::verifyCredentials) and, on success, issues a
- * server-set httpOnly session cookie. Replaces the previous
- * client-side `document.cookie = "ap_demo=1"` — the cookie is no
- * longer readable or forgeable from devtools/JS.
+ * POST { email, password } -> verifies against the login_credentials
+ * table in Neon (see src/lib/auth-mock.ts::verifyCredentials) and, on
+ * success, issues a server-set httpOnly session cookie. Replaces the
+ * previous client-side `document.cookie = "ap_demo=1"` — the cookie is
+ * no longer readable or forgeable from devtools/JS.
  *
  * Still a single shared session value (DEMO_COOKIE), not a per-user
  * token — see docs/auth/authentication.md's "Known limitations" for
@@ -40,11 +39,11 @@ export async function POST(request: Request) {
 
   let allowed: boolean;
   try {
-    allowed = verifyCredentials(email, password);
+    allowed = await verifyCredentials(email, password);
   } catch (error) {
-    console.error("Login is not configured:", error);
+    console.error("Login check failed:", error);
     return NextResponse.json(
-      { error: "Sign-in is not configured. Contact an administrator." },
+      { error: "Sign-in is temporarily unavailable. Try again shortly." },
       { status: 500 },
     );
   }

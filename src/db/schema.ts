@@ -54,6 +54,23 @@ export const notificationStatusEnum = pgEnum("notification_status", [
   "read",
 ]);
 
+/**
+ * Login allowlist — email + salted/hashed password checked by
+ * src/lib/auth-mock.ts::verifyCredentials() at /api/login. Deliberately
+ * separate from `managers` below: this only stores what's needed to
+ * gate sign-in, not a full HR profile, and doesn't assume every login
+ * email has a matching managers row (or vice versa) — see
+ * docs/auth/authentication.md for the "no identity" limitation this
+ * doesn't yet solve.
+ */
+export const loginCredentials = pgTable("login_credentials", {
+  email: text("email").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 /** Signed-in manager accounts. Demo: no real identity provider yet. */
 export const managers = pgTable("managers", {
   id: serial("id").primaryKey(),

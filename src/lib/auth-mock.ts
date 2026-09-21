@@ -1,6 +1,9 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
+import { db } from "@/db/client";
+import { loginCredentials } from "@/db/schema";
 import { DEMO_COOKIE } from "@/lib/auth-constants";
+import { passwordMatches } from "@/lib/password-hash";
 
 export { DEMO_COOKIE };
 
@@ -10,40 +13,24 @@ export async function hasDemoSession(): Promise<boolean> {
   return cookieStore.get(DEMO_COOKIE)?.value === "1";
 }
 
-function parseAllowedEmails(raw: string | undefined): Set<string> {
-  return new Set(
-    (raw ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
-
-/** Constant-time string compare (fixed-length digests, so length itself leaks nothing). */
-function secretsMatch(a: string, b: string): boolean {
-  const digestA = createHash("sha256").update(a).digest();
-  const digestB = createHash("sha256").update(b).digest();
-  return timingSafeEqual(digestA, digestB);
-}
-
 /**
- * Checks a submitted email/password against the org allowlist —
- * AUTH_ALLOWED_EMAILS (comma-separated) and AUTH_PASSWORD in .env.
- * Throws if those aren't configured, so a missing env var fails
- * closed (locks everyone out) rather than open (lets anyone in).
+ * Checks a submitted email/password against the login_credentials
+ * table in Neon (see src/db/schema.ts and
+ * src/db/seed-login-credentials.ts). Returns false for an unknown
+ * email or wrong password — never throws for bad input, only for a
+ * DB-level failure, so a misconfigured connection still fails closed.
  */
-export function verifyCredentials(email: string, password: string): boolean {
-  const allowedEmails = parseAllowedEmails(process.env.AUTH_ALLOWED_EMAILS);
-  const expectedPassword = process.env.AUTH_PASSWORD;
+export async function verifyCredentials(
+  email: string,
+  password: string,
+): Promise<boolean> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const [row] = await db
+    .select({ passwordHash: loginCredentials.passwordHash })
+    .from(loginCredentials)
+    .where(eq(loginCredentials.email, normalizedEmail))
+    .limit(1);
 
-  if (allowedEmails.size === 0 || !expectedPassword) {
-    throw new Error(
-      "Login is not configured — set AUTH_ALLOWED_EMAILS and AUTH_PASSWORD in .env.",
-    );
-  }
-
-  if (!allowedEmails.has(email.trim().toLowerCase())) {
-    return false;
-  }
-  return secretsMatch(password, expectedPassword);
+  if (!row) return false;
+  return passwordMatches(password, row.passwordHash);
 }
