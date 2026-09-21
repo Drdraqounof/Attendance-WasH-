@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 
 type ImportResult = {
   imported: number;
@@ -10,9 +11,11 @@ type ImportResult = {
 };
 
 /**
- * "Import attendance (CSV)" button for the Priority Roster header.
- * Reads the picked file as text client-side, POSTs it to
- * /api/attendance-import, and shows a result summary. Imported rows
+ * "Import attendance (CSV/Excel)" button for the Priority Roster header.
+ * Reads the picked file client-side — .xlsx is converted to CSV text
+ * in-browser via SheetJS (first sheet only) so it flows through the
+ * exact same pipeline as a native CSV upload — then POSTs the CSV text
+ * to /api/attendance-import and shows a result summary. Imported rows
  * go through the real recordPointEvent() ledger (see
  * src/lib/csv-import.ts / src/app/api/attendance-import/route.ts) —
  * this is a real DB write, not a mock addition, even though the
@@ -21,7 +24,7 @@ type ImportResult = {
  * Points/termination status for an imported employee are visible
  * immediately on their profile page and on /insights.
  *
- * PDF import is a deferred follow-up — this button is CSV-only.
+ * PDF import is a deferred follow-up — this button handles CSV/XLSX.
  */
 export function AttendanceImportButton() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,11 +36,23 @@ export function AttendanceImportButton() {
     setBusy(true);
     setResult(null);
     try {
-      if (!file.name.toLowerCase().endsWith(".csv")) {
-        setResult({ error: "Please choose a .csv file. PDF import is coming soon." });
+      const name = file.name.toLowerCase();
+      let csv: string;
+      if (name.endsWith(".csv")) {
+        csv = await file.text();
+      } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          setResult({ error: "That spreadsheet has no sheets." });
+          return;
+        }
+        csv = XLSX.utils.sheet_to_csv(workbook.Sheets[firstSheetName]);
+      } else {
+        setResult({ error: "Please choose a .csv or .xlsx file. PDF import is coming soon." });
         return;
       }
-      const csv = await file.text();
       const response = await fetch("/api/attendance-import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,7 +79,7 @@ export function AttendanceImportButton() {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -78,7 +93,7 @@ export function AttendanceImportButton() {
         disabled={busy}
         className="border border-line bg-white/70 px-3 py-1.5 text-sm font-medium text-slate/75 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
       >
-        {busy ? "Importing…" : "Import attendance (CSV)"}
+        {busy ? "Importing…" : "Import attendance (CSV/Excel)"}
       </button>
 
       {result ? (

@@ -34,7 +34,7 @@ export default function LoginPage() {
             Manager sign in
           </h1>
           <p className="animate-fade-up-delay-1 mt-2 text-base leading-relaxed text-slate/75">
-            Enter the ops floor. Demo access needs no real account.
+            Sign in with your WashCycle manager email to enter the ops floor.
           </p>
 
           <div className="animate-fade-up-delay-2 mt-8">

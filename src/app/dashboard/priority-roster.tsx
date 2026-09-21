@@ -202,7 +202,7 @@ export function InterveneNow({
               className="flex flex-col gap-1 px-4 py-4 transition-colors hover:bg-surface-2/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5"
               aria-label={`Open profile for ${person.name}`}
             >
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5">
                   <span className="font-display text-sm font-semibold tabular-nums text-danger-soft">
                     {String(index + 1).padStart(2, "0")}
@@ -216,7 +216,7 @@ export function InterveneNow({
                   {person.role} · {person.team} · {person.lastSignal}
                 </p>
               </div>
-              <p className="shrink-0 text-sm font-medium text-accent-deep sm:text-right">
+              <p className="min-w-0 text-sm font-medium text-accent-deep sm:max-w-[45%] sm:shrink-0 sm:text-right">
                 {recommendedNextStep(person.points).text}
               </p>
             </Link>
