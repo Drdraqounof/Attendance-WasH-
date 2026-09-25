@@ -1,7 +1,7 @@
 WashCycle Attendance SMS Integration
 Client Overview
 
-Status (2026-09-20): Waiting on WashCycle to provide Zoom account/API access. See section 7 for the specific items needed. No integration work (webhook endpoint, phone-number matching, etc.) has started — the "SMS" source value already in the app's data model is a placeholder for this work, not a sign it's built.
+Status (2026-09-25): Waiting on WashCycle's team to approve granting access to both Zoom and Zoho (see the companion Zoho item in the integration plan below). See section 7 for the specific items needed from Zoom. No integration work (webhook endpoint, phone-number matching, etc.) has started — the "SMS" source value already in the app's data model is a placeholder for this work, not a sign it's built.
 
 This proposal is one piece of the broader plan in [docs/planning/2026-09-20-attendance-data-integration-management-plan.md](../planning/2026-09-20-attendance-data-integration-management-plan.md), which also covers historical Excel import, Zoho Shifts, and role-based access.
 

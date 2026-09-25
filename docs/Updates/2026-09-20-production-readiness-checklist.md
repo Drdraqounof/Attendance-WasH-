@@ -35,8 +35,8 @@ Per [docs/database/database.md](../database/database.md)'s 2026-09-15 note and [
 
 ## 4. External integrations (blocked on third parties)
 
-- [ ] **Zoom SMS intake** — blocked on WashCycle providing Zoom account/API access; see [docs/Zoom/Zoom.md](../Zoom/Zoom.md) and the checklist in its section 7
-- [ ] **Zoho Shifts integration** — not started; needs API credentials/permissions confirmed with WashCycle, see [docs/planning/2026-09-20-attendance-data-integration-management-plan.md](../planning/2026-09-20-attendance-data-integration-management-plan.md)
+- [ ] **Zoom SMS intake** — blocked on WashCycle's team approving access to Zoom (account/API access); see [docs/Zoom/Zoom.md](../Zoom/Zoom.md) and the checklist in its section 7. Status as of 2026-09-25: awaiting approval.
+- [ ] **Zoho Shifts integration** — not started; blocked on the same team approval, this time for Zoho access, see [docs/planning/2026-09-20-attendance-data-integration-management-plan.md](../planning/2026-09-20-attendance-data-integration-management-plan.md). Status as of 2026-09-25: awaiting approval.
 - [ ] Decide bulk historical-import path for pre-existing Excel attendance records beyond the current single-file CSV/Excel importer (see section 1 of the same plan doc)
 
 ## 5. Security
