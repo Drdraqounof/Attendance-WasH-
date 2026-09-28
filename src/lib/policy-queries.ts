@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   employees,
@@ -96,6 +96,8 @@ export type RecordPointEventInput = {
   ruleCode: EscalationRuleCode | string;
   reason: string;
   source: PointEventSource;
+  /** Login email of whoever recorded it — null for automated/legacy sources. */
+  createdBy?: string | null;
 };
 
 export type RecordPointEventResult = {
@@ -344,6 +346,7 @@ export async function recordPointEvent(
     reason: input.reason,
     source: input.source,
     ruleCode: input.ruleCode,
+    createdBy: input.createdBy ?? null,
   });
 
   await db
@@ -360,6 +363,7 @@ export async function recordPointEvent(
           thresholdKey: threshold.key,
           pointsAtTrigger: result.newPoints,
           status: "open" as const,
+          createdBy: input.createdBy ?? null,
         })),
       )
       .returning({
@@ -418,6 +422,7 @@ export async function rollingPolicyPoints(
         eq(pointEvents.employeeId, employeeId),
         gte(pointEvents.date, since),
         lte(pointEvents.date, until),
+        isNull(pointEvents.voidedAt),
       ),
     );
 
@@ -469,6 +474,10 @@ export type HistoryEntry =
       reason: string;
       source: string;
       ruleCode: string | null;
+      createdBy: string | null;
+      /** Set when the event was voided (soft-deleted) — excluded from points. */
+      voidedAt: string | null;
+      voidedBy: string | null;
     }
   | {
       kind: "threshold_crossed";
@@ -523,6 +532,9 @@ export async function getEmployeeHistory(
         reason: row.reason,
         source: row.source,
         ruleCode: row.ruleCode,
+        createdBy: row.createdBy,
+        voidedAt: row.voidedAt ? row.voidedAt.toISOString() : null,
+        voidedBy: row.voidedBy,
       }),
     ),
     ...warningRows.map(
@@ -596,6 +608,7 @@ export async function setEmployeeStatus(
   employeeId: string,
   targetStatus: RiskLevel,
   note?: string,
+  createdBy: string | null = null,
 ): Promise<SetEmployeeStatusResult> {
   const [[employee], thresholds] = await Promise.all([
     db
@@ -631,6 +644,7 @@ export async function setEmployeeStatus(
         `Manually set to ${TARGET_STATUS_LABELS[targetStatus]} by manager`,
       source: "Supervisor",
       ruleCode: null,
+      createdBy,
     });
 
     await db
@@ -653,6 +667,7 @@ export async function setEmployeeStatus(
             thresholdKey: threshold.key,
             pointsAtTrigger: targetPoints,
             status: "open" as const,
+            createdBy,
           })),
         )
         .returning({
@@ -692,4 +707,90 @@ export async function setEmployeeStatus(
     crossedThresholdKeys,
     resolvedWarningCount,
   };
+}
+
+/**
+ * An employee's team (= station, see docs/auth/roles-and-stations.md),
+ * or null if the employee doesn't exist. Used for scope checks before
+ * any per-employee read or write.
+ */
+export async function getEmployeeTeam(employeeId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ team: employees.team })
+    .from(employees)
+    .where(eq(employees.id, employeeId))
+    .limit(1);
+  return row?.team ?? null;
+}
+
+export type PointEventForAccess = {
+  id: string;
+  employeeId: string;
+  delta: number;
+  team: string;
+  createdBy: string | null;
+  voidedAt: Date | null;
+};
+
+/** The fields needed to decide whether a caller may void/restore an event. */
+export async function getPointEventForAccess(
+  id: string,
+): Promise<PointEventForAccess | null> {
+  const [row] = await db
+    .select({
+      id: pointEvents.id,
+      employeeId: pointEvents.employeeId,
+      delta: pointEvents.delta,
+      team: employees.team,
+      createdBy: pointEvents.createdBy,
+      voidedAt: pointEvents.voidedAt,
+    })
+    .from(pointEvents)
+    .innerJoin(employees, eq(pointEvents.employeeId, employees.id))
+    .where(eq(pointEvents.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Soft delete: marks a ledger event voided and backs its delta out of
+ * the employee's running total. The row itself is never deleted, so
+ * the change can be undone (restorePointEvent) and stays auditable.
+ * Returns false if it was already voided (no double-subtract).
+ *
+ * Warnings/notifications the event may have triggered are left as-is —
+ * they're historical facts about the crossing; HR resolves them via a
+ * status change if needed.
+ */
+export async function voidPointEvent(id: string, voidedBy: string): Promise<boolean> {
+  const [updated] = await db
+    .update(pointEvents)
+    .set({ voidedAt: new Date(), voidedBy })
+    .where(and(eq(pointEvents.id, id), isNull(pointEvents.voidedAt)))
+    .returning({ employeeId: pointEvents.employeeId, delta: pointEvents.delta });
+  if (!updated) return false;
+
+  await db
+    .update(employees)
+    .set({ points: sql`greatest(${employees.points} - ${updated.delta}, 0)` })
+    .where(eq(employees.id, updated.employeeId));
+  return true;
+}
+
+/** Undo for voidPointEvent. Returns false if the event wasn't voided. */
+export async function restorePointEvent(id: string): Promise<boolean> {
+  const [updated] = await db
+    .update(pointEvents)
+    .set({ voidedAt: null, voidedBy: null })
+    .where(and(eq(pointEvents.id, id), isNotNull(pointEvents.voidedAt)))
+    .returning({ employeeId: pointEvents.employeeId, delta: pointEvents.delta });
+  if (!updated) return false;
+
+  await db
+    .update(employees)
+    .set({
+      points: sql`least(greatest(${employees.points} + ${updated.delta}, 0), ${employees.policyCap})`,
+    })
+    .where(eq(employees.id, updated.employeeId));
+  return true;
 }

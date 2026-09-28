@@ -1,47 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthShell, authLinkClass, authSecondaryButtonClass } from "./auth-shell";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
   title: "Manager sign in",
 };
 
-export default function LoginPage() {
-  return (
-    <div className="ops-atmosphere relative flex min-h-full flex-1 flex-col">
-      <div className="ops-grid absolute inset-0 opacity-70" aria-hidden />
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ reset?: string; registered?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const notice =
+    params.reset === "1"
+      ? "Your password has been changed. Sign in with your new password."
+      : params.registered === "1"
+        ? "Account created. Sign in to continue."
+        : null;
 
-      <header className="relative z-10">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-6 py-5 sm:px-8">
-          <Link
-            href="/"
-            className="text-sm text-slate/65 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          >
-            Back home
+  return (
+    <AuthShell
+      heading="Manager sign in"
+      intro="Sign in with your WashCycle manager email to enter the ops floor."
+      footer={
+        <div className="flex flex-col gap-3">
+          <p>New to AttendPoint?</p>
+          <Link href="/register" className={authSecondaryButtonClass}>
+            Create an account
           </Link>
         </div>
-      </header>
-
-      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pb-16 pt-4 sm:px-8 sm:pb-20">
-        <div className="w-full max-w-md">
-          <div className="live-pulse mb-4 h-[3px] w-16 sm:w-24" aria-hidden />
-
-          <p className="font-display animate-fade-up text-[clamp(2.5rem,8vw,3.75rem)] leading-[0.92] font-bold tracking-tight text-ink">
-            AttendPoint
-          </p>
-
-          <h1 className="animate-fade-up-delay-1 mt-5 font-display text-xl font-semibold tracking-tight text-slate sm:text-2xl">
-            Manager sign in
-          </h1>
-          <p className="animate-fade-up-delay-1 mt-2 text-base leading-relaxed text-slate/75">
-            Sign in with your WashCycle manager email to enter the ops floor.
-          </p>
-
-          <div className="animate-fade-up-delay-2 mt-8">
-            <LoginForm />
-          </div>
-        </div>
-      </main>
-    </div>
+      }
+    >
+      {notice ? (
+        <p
+          role="status"
+          className="mb-6 border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent-deep"
+        >
+          {notice}
+        </p>
+      ) : null}
+      <LoginForm />
+      <p className="mt-4 text-right text-sm">
+        <Link href="/forgot-password" className={authLinkClass}>
+          Forgot password?
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

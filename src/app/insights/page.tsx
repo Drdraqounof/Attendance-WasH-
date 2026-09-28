@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { OpsShell } from "@/components/ops-shell";
 import type { TrendDirection } from "@/lib/ai-analysis-mock";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { requireSession } from "@/lib/session";
 import {
   INSIGHTS_COPY,
   RISK_LABELS_BY_LANG,
@@ -38,10 +37,7 @@ export default async function InsightsPage({
 }: {
   searchParams?: Promise<{ days?: string }>;
 }) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const { scope } = await requireSession();
 
   const lang = await getLang();
   const copy = INSIGHTS_COPY[lang];
@@ -62,10 +58,10 @@ export default async function InsightsPage({
   // isolated behind its own <Suspense> boundary, since that's the call
   // with real network/latency risk (OpenAI).
   const [lateness, causes, atRisk, ranking] = await Promise.all([
-    frequentLatenessPatterns(days, 3),
-    signalTypeBreakdown(days),
-    employeesAtRisk(days),
-    reliabilityRanking(days, RELIABILITY_LIMIT),
+    frequentLatenessPatterns(scope, days, 3),
+    signalTypeBreakdown(scope, days),
+    employeesAtRisk(scope, days),
+    reliabilityRanking(scope, days, RELIABILITY_LIMIT),
   ]);
   const maxCauseCount = causes[0]?.count ?? 1;
 
@@ -119,7 +115,7 @@ export default async function InsightsPage({
 
         {/* AI-generated executive summary — streams in independently */}
         <Suspense fallback={<AiSummaryCardSkeleton />}>
-          <AiSummaryCard days={days} copy={copy} />
+          <AiSummaryCard days={days} scope={scope} copy={copy} />
         </Suspense>
 
         {/* Frequent lateness patterns */}
@@ -203,6 +199,7 @@ export default async function InsightsPage({
             <AtRiskCardWithRecommendations
               atRisk={atRisk}
               days={days}
+              scope={scope}
               copy={copy}
               riskLabels={riskLabels}
             />

@@ -11,6 +11,7 @@ import {
   type ReliabilityRow,
   type SignalTypeRow,
 } from "@/lib/insights-queries";
+import type { StationScope } from "@/lib/access";
 
 /**
  * AI narrative layer for the Insights page.
@@ -88,6 +89,7 @@ function buildPrompt(input: {
 
 async function generateInsightsNarrativeUncached(
   days: number,
+  scope: StationScope,
 ): Promise<InsightsNarrative> {
   const client = getOpenAIClient();
   if (!client) {
@@ -97,10 +99,10 @@ async function generateInsightsNarrativeUncached(
   // Same window the page's deterministic sections use, fetched here too
   // so the prompt and the on-page numbers can never drift apart.
   const [lateness, causes, atRisk, ranking] = await Promise.all([
-    frequentLatenessPatterns(days),
-    signalTypeBreakdown(days),
-    employeesAtRisk(days),
-    reliabilityRanking(days),
+    frequentLatenessPatterns(scope, days),
+    signalTypeBreakdown(scope, days),
+    employeesAtRisk(scope, days),
+    reliabilityRanking(scope, days),
   ]);
 
   try {
@@ -132,8 +134,10 @@ async function generateInsightsNarrativeUncached(
 }
 
 /**
- * Cached entry point — call this from the page. Cache key is
- * ["insights-narrative", days], revalidated hourly.
+ * Cached entry point — call this from the page. unstable_cache folds
+ * the arguments into the key, so it's ["insights-narrative", days,
+ * scope]: one station's summary is never served to another. Revalidated
+ * hourly.
  */
 export const generateInsightsNarrative = unstable_cache(
   generateInsightsNarrativeUncached,

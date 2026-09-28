@@ -2,9 +2,10 @@ import { inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { employees } from "@/db/schema";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { inScope } from "@/lib/access";
 import { parseAttendanceCsv, type CsvRowError } from "@/lib/csv-import";
 import { recordPointEvent } from "@/lib/policy-queries";
+import { requireApiSession, writeAudit } from "@/lib/session";
 
 /**
  * POST { csv: string } -> bulk-imports attendance events from CSV text
@@ -15,14 +16,14 @@ import { recordPointEvent } from "@/lib/policy-queries";
  * mock addition. Per-row resilience: one bad row (unknown employee
  * code, DB error) doesn't abort the rest of the batch.
  *
- * Same gating as every other mutation route in the app —
- * hasDemoSession() only, no manager/admin role system yet.
+ * Any signed-in role can import, but only for employees inside their
+ * active station scope — rows for anyone else are rejected with a
+ * per-row error. Each recorded event carries the importer's email
+ * (createdBy), and the batch is logged to audit_log.
  */
 export async function POST(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { mutating: true });
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {
@@ -48,23 +49,26 @@ export async function POST(request: Request) {
 
   const employeeCodes = [...new Set(rows.map((r) => r.employeeCode))];
   const matches = await db
-    .select({ id: employees.id, employeeCode: employees.employeeCode })
+    .select({ id: employees.id, employeeCode: employees.employeeCode, team: employees.team })
     .from(employees)
     .where(inArray(employees.employeeCode, employeeCodes));
-  const idByCode = new Map(matches.map((m) => [m.employeeCode, m.id]));
+  const byCode = new Map(matches.map((m) => [m.employeeCode, m]));
 
   let imported = 0;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNumber = i + 2; // header is row 1, data starts at row 2
-    const employeeId = idByCode.get(row.employeeCode);
-    if (!employeeId) {
+    const match = byCode.get(row.employeeCode);
+    // Out-of-scope employees get the same message as unknown ones, so a
+    // supervisor can't probe for employees at other stations.
+    if (!match || !inScope(session.scope, match.team)) {
       errors.push({
         row: rowNumber,
-        message: `No employee found with employeeCode "${row.employeeCode}".`,
+        message: `No employee found with employeeCode "${row.employeeCode}" at your station.`,
       });
       continue;
     }
+    const employeeId = match.id;
 
     try {
       await recordPointEvent({
@@ -74,12 +78,22 @@ export async function POST(request: Request) {
         ruleCode: row.ruleCode,
         reason: row.reason,
         source: row.source,
+        createdBy: session.email,
       });
       imported++;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Import failed.";
       errors.push({ row: rowNumber, message: `${row.employeeCode}: ${message}` });
     }
+  }
+
+  if (imported > 0) {
+    await writeAudit(session, {
+      action: "import",
+      entity: "attendance_import",
+      entityId: new Date().toISOString(),
+      after: { imported, total: rows.length, errorCount: errors.length },
+    });
   }
 
   return NextResponse.json({ imported, total: rows.length, errors });

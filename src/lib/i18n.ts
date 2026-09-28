@@ -117,6 +117,7 @@ export const CHROME_COPY: Record<
     navAnalytics: string;
     navInsights: string;
     navInsightsShort: string;
+    navMap: string;
     navSettings: string;
     navProfile: string;
     signOut: string;
@@ -136,6 +137,7 @@ export const CHROME_COPY: Record<
     navAnalytics: "Analytics",
     navInsights: "AI Insights",
     navInsightsShort: "AI",
+    navMap: "Map",
     navSettings: "Settings",
     navProfile: "Profile",
     signOut: "Sign out",
@@ -154,6 +156,7 @@ export const CHROME_COPY: Record<
     navAnalytics: "Analítica",
     navInsights: "IA Insights",
     navInsightsShort: "IA",
+    navMap: "Mapa",
     navSettings: "Configuración",
     navProfile: "Perfil",
     signOut: "Cerrar sesión",

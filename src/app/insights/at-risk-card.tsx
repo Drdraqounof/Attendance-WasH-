@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AtRiskRow } from "@/lib/insights-queries";
+import type { StationScope } from "@/lib/access";
 import { generateAtRiskRecommendations } from "@/lib/ai-recommendations";
 import { INSIGHTS_COPY, RISK_LABELS_BY_LANG } from "@/lib/i18n";
 import type { RiskLevel } from "@/lib/policy-engine";
@@ -126,15 +127,17 @@ export function AtRiskCard({
 export async function AtRiskCardWithRecommendations({
   atRisk,
   days,
+  scope,
   copy = INSIGHTS_COPY.en,
   riskLabels = RISK_LABELS_BY_LANG.en,
 }: {
   atRisk: AtRiskRow[];
   days: number;
+  scope: StationScope;
   copy?: InsightsCopy;
   riskLabels?: RiskLabels;
 }) {
-  const recommendations = await generateAtRiskRecommendations(days);
+  const recommendations = await generateAtRiskRecommendations(days, scope);
   const byEmployeeId = new Map(
     recommendations.items.map((item) => [item.employeeId, item.text]),
   );

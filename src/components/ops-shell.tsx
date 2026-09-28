@@ -2,17 +2,20 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationBell } from "@/components/notification-bell";
+import { ROLE_LABELS } from "@/lib/access";
 import { CHROME_COPY } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
 import {
   getNotifications,
   getUnreadNotificationCount,
 } from "@/lib/notifications-queries";
+import { requireSession } from "@/lib/session";
 
 type OpsNavActive =
   | "dashboard"
   | "analytics"
   | "insights"
+  | "map"
   | "settings"
   | "profile"
   | "people";
@@ -44,10 +47,13 @@ export async function OpsHeader({
 }) {
   const lang = await getLang();
   const copy = CHROME_COPY[lang];
+  const session = await requireSession();
+  const reader = { email: session.email, scope: session.scope };
   const [notifications, unreadCount] = await Promise.all([
-    getNotifications(10),
-    getUnreadNotificationCount(),
+    getNotifications(reader, 10),
+    getUnreadNotificationCount(reader),
   ]);
+  const canSwitch = session.assignments.length > 1;
 
   return (
     <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
@@ -69,6 +75,7 @@ export async function OpsHeader({
             {navLink("/dashboard", copy.navDashboard, active === "dashboard")}
             {navLink("/analytics", copy.navAnalytics, active === "analytics")}
             {navLink("/insights", copy.navInsights, active === "insights")}
+            {navLink("/map", copy.navMap, active === "map")}
             {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           {crumb ? (
@@ -84,6 +91,25 @@ export async function OpsHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-5">
+          <div
+            className="hidden items-center gap-2 border border-line bg-white/70 px-3 py-1.5 text-sm lg:flex"
+            title={`Signed in as ${session.email}`}
+          >
+            <span className="font-semibold tracking-[0.12em] text-accent-deep uppercase">
+              {ROLE_LABELS[session.active.role]}
+            </span>
+            <span className="max-w-56 truncate text-slate/70">
+              {session.active.station?.name ?? "All stations"}
+            </span>
+            {canSwitch ? (
+              <Link
+                href="/login/workspace?switch=1"
+                className="font-medium text-slate/60 underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              >
+                Switch
+              </Link>
+            ) : null}
+          </div>
           <nav
             className="flex items-center gap-4 sm:hidden"
             aria-label="Ops navigation mobile"
@@ -91,6 +117,7 @@ export async function OpsHeader({
             {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
             {navLink("/analytics", copy.navAnalytics, active === "analytics")}
             {navLink("/insights", copy.navInsightsShort, active === "insights")}
+            {navLink("/map", copy.navMap, active === "map")}
             {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           <NotificationBell

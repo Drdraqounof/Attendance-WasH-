@@ -1,26 +1,21 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 import { NotificationPreferences } from "@/app/profile/notification-preferences";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { describeAssignment, ROLE_LABELS } from "@/lib/access";
 import { PROFILE_COPY } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
-import { DEMO_MANAGER } from "@/lib/manager-mock";
+import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Profile",
 };
 
 export default async function ProfilePage() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const session = await requireSession();
 
   const lang = await getLang();
   const copy = PROFILE_COPY[lang];
-  const manager = DEMO_MANAGER;
 
   return (
     <OpsShell active="profile">
@@ -30,9 +25,9 @@ export default async function ProfilePage() {
             {copy.eyebrow}
           </p>
           <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            {manager.name}
+            {session.displayName}
           </h1>
-          <p className="mt-2 text-lg text-slate/70">{manager.role}</p>
+          <p className="mt-2 text-lg text-slate/70">{ROLE_LABELS[session.active.role]}</p>
         </div>
 
         <section
@@ -43,33 +38,37 @@ export default async function ProfilePage() {
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
               {copy.labelEmail}
             </p>
-            <p className="mt-2 text-lg font-medium text-ink">
-              {manager.email}
+            <p className="mt-2 text-lg font-medium break-all text-ink">
+              {session.email}
             </p>
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              {copy.labelPhone}
+              Active role
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
-              {manager.phoneMasked}
+              {ROLE_LABELS[session.active.role]}
             </p>
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              {copy.labelFloor}
+              Station
             </p>
             <p className="mt-2 text-lg font-medium text-ink">
-              {manager.floor}
+              {session.active.station?.name ?? "All stations"}
             </p>
           </div>
           <div className="bg-white/80 px-5 py-5">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
-              {copy.labelManagerSince}
+              Assignments
             </p>
-            <p className="mt-2 text-lg font-medium text-ink">
-              {manager.joined}
-            </p>
+            <ul className="mt-2 space-y-1 text-sm text-ink">
+              {session.assignments.map((assignment) => (
+                <li key={`${assignment.role}-${assignment.station?.id ?? "all"}`}>
+                  {describeAssignment(assignment)}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 

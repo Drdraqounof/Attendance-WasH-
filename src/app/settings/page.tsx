@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { isHr } from "@/lib/access";
 import { SETTINGS_COPY } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
 import { ESCALATION_RULES, POLICY_THRESHOLDS } from "@/lib/policy-engine";
 import { getEscalationRules, getPolicyThresholds } from "@/lib/policy-queries";
+import { requireSession } from "@/lib/session";
 import { AutomationToggles } from "./automation-toggles";
 import { EscalationEditor } from "./escalation-editor";
 import { ThresholdEditor } from "./threshold-editor";
@@ -19,9 +19,11 @@ type SettingsCopy = (typeof SETTINGS_COPY)[keyof typeof SETTINGS_COPY];
 function StaticEscalationTable({
   rules,
   copy,
+  loadFailed,
 }: {
   rules: typeof ESCALATION_RULES;
   copy: SettingsCopy;
+  loadFailed: boolean;
 }) {
   return (
     <section>
@@ -29,9 +31,11 @@ function StaticEscalationTable({
         <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
           {copy.escalationHeading}
         </h2>
-        <p className="text-sm tracking-wide text-danger-soft uppercase">
-          {copy.escalationReadOnly}
-        </p>
+        {loadFailed && (
+          <p className="text-sm tracking-wide text-danger-soft uppercase">
+            {copy.escalationReadOnly}
+          </p>
+        )}
       </div>
       <ul className="mt-3 divide-y divide-line/70 border border-line bg-white/65">
         {rules.map((rule) => (
@@ -51,10 +55,10 @@ function StaticEscalationTable({
 }
 
 export default async function SettingsPage() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const session = await requireSession();
+  // Thresholds and escalation rules are org-wide policy — HR edits
+  // them; supervisors see the same values read-only.
+  const canEditPolicy = isHr(session.active);
 
   const lang = await getLang();
   const copy = SETTINGS_COPY[lang];
@@ -64,20 +68,22 @@ export default async function SettingsPage() {
   // defaults, read-only, if the DB is unreachable rather than
   // crashing the page.
   let thresholds = POLICY_THRESHOLDS;
-  let thresholdsEditable = true;
+  let thresholdsLoadFailed = false;
   try {
     thresholds = await getPolicyThresholds();
   } catch {
-    thresholdsEditable = false;
+    thresholdsLoadFailed = true;
   }
+  const thresholdsEditable = canEditPolicy && !thresholdsLoadFailed;
 
   let escalationRules = ESCALATION_RULES;
-  let escalationEditable = true;
+  let escalationLoadFailed = false;
   try {
     escalationRules = await getEscalationRules();
   } catch {
-    escalationEditable = false;
+    escalationLoadFailed = true;
   }
+  const escalationEditable = canEditPolicy && !escalationLoadFailed;
 
   return (
     <OpsShell active="settings">
@@ -93,6 +99,12 @@ export default async function SettingsPage() {
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/75">
             {copy.subheading}
           </p>
+          {!canEditPolicy && (
+            <p className="mt-4 max-w-2xl border border-line bg-white/70 px-4 py-3 text-sm text-slate/70">
+              Policy thresholds and escalation rules apply to every station, so only HR can
+              change them. You&apos;re viewing the current values.
+            </p>
+          )}
         </div>
 
         {/* Automation toggles */}
@@ -126,7 +138,7 @@ export default async function SettingsPage() {
             >
               {copy.thresholdsHeading}
             </h2>
-            {!thresholdsEditable && (
+            {thresholdsLoadFailed && (
               <p className="text-sm tracking-wide text-danger-soft uppercase">
                 {copy.thresholdsReadOnly}
               </p>
@@ -163,7 +175,11 @@ export default async function SettingsPage() {
           {escalationEditable ? (
             <EscalationEditor initialRules={escalationRules} copy={copy} />
           ) : (
-            <StaticEscalationTable rules={escalationRules} copy={copy} />
+            <StaticEscalationTable
+              rules={escalationRules}
+              copy={copy}
+              loadFailed={escalationLoadFailed}
+            />
           )}
         </div>
 

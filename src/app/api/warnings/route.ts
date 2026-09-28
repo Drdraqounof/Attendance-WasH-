@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { hasDemoSession } from "@/lib/auth-mock";
 import type { RiskLevel } from "@/lib/policy-engine";
-import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
+import { inScope } from "@/lib/access";
+import {
+  getEmployeePolicySnapshot,
+  getEmployeeTeam,
+  setEmployeeStatus,
+  TARGET_STATUSES,
+} from "@/lib/policy-queries";
+import { requireApiSession, writeAudit } from "@/lib/session";
 
 /**
  * First real mutation-capable API route in the app — see
@@ -20,15 +26,14 @@ import { setEmployeeStatus, TARGET_STATUSES } from "@/lib/policy-queries";
  * so this route rejects the request rather than silently recording an
  * unexplained change.
  *
- * Gated the same way as every other page in this demo: any signed-in
- * user (hasDemoSession()) — there is no manager/admin role system yet
- * (see docs/planning/employee-track-record-plan.md's open questions).
+ * HR only — manual point adjustments are HR-controlled (see
+ * docs/planning/2026-09-16-stakeholder-feedback-response.md), and the
+ * employee must be inside HR's active scope. Every change is recorded
+ * in audit_log. See docs/auth/roles-and-stations.md.
  */
 export async function POST(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { hrOnly: true, mutating: true });
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {
@@ -73,7 +78,25 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await setEmployeeStatus(employeeId, targetStatus as RiskLevel, note);
+    const team = await getEmployeeTeam(employeeId);
+    if (team === null || !inScope(session.scope, team)) {
+      return NextResponse.json({ error: "Employee not found." }, { status: 404 });
+    }
+
+    const before = await getEmployeePolicySnapshot(employeeId);
+    const result = await setEmployeeStatus(
+      employeeId,
+      targetStatus as RiskLevel,
+      note,
+      session.email,
+    );
+    await writeAudit(session, {
+      action: "set_status",
+      entity: "employee",
+      entityId: employeeId,
+      before,
+      after: { ...result, note },
+    });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Update failed.";

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { canVoidEvent, isHr, stationScope } from "@/lib/access";
 import { riskLevelFromPoints } from "@/lib/dashboard-mock";
 import {
   PEOPLE_COPY,
@@ -15,6 +15,7 @@ import {
   employeeOfTheMonth,
   getPersonById,
   incidentSummary,
+  isPersonInScope,
   pointsTowardCap,
   type ScheduleStatus,
 } from "@/lib/people-mock";
@@ -23,7 +24,9 @@ import {
   getEmployeePolicySnapshot,
   type HistoryEntry,
 } from "@/lib/policy-queries";
+import { getSession, requireSession } from "@/lib/session";
 import { StatusChanger } from "./status-changer";
+import { VoidEventButton } from "./void-event-button";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -33,7 +36,12 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const person = getPersonById(id);
+  // Same scope check as the page — never put an out-of-station
+  // employee's name in the tab title.
+  const session = await getSession();
+  const inView =
+    session?.active != null && isPersonInScope(id, stationScope(session.active));
+  const person = inView ? getPersonById(id) : null;
   return {
     title: person ? person.name : "Person",
   };
@@ -67,17 +75,20 @@ function statusTone(status: ScheduleStatus): string {
 }
 
 export default async function PersonDetailPage({ params }: PageProps) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const session = await requireSession();
+  const { scope } = session;
 
   const { id } = await params;
   const lang = await getLang();
-  const person = getPersonById(id, lang);
+  // Out-of-station employees 404 exactly like missing ones, so a
+  // supervisor can't confirm who works at other stations.
+  const person = isPersonInScope(id, scope) ? getPersonById(id, lang) : null;
   if (!person) {
     notFound();
   }
+  // Untranslated team, for access checks (person.team may be localized).
+  const personTeam = getPersonById(id)!.team;
+  const canChangeStatus = isHr(session.active);
 
   const copy = PEOPLE_COPY[lang];
   const riskLabels = RISK_LABELS_BY_LANG[lang];
@@ -93,7 +104,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const capPct = Math.round((towardCap / person.policyCap) * 100);
   const trend = incidentSummary(person, 30);
   const narrative = attendanceTrendNarrative(person, 30);
-  const isNominee = employeeOfTheMonth(lang)?.person.id === person.id;
+  const isNominee = employeeOfTheMonth(lang, scope)?.person.id === person.id;
 
   // Track record + status-change action read/write the real Neon DB
   // (see docs/planning/employee-track-record-plan.md) — everything else on this
@@ -400,12 +411,18 @@ export default async function PersonDetailPage({ params }: PageProps) {
                     </span>{" "}
                     · {riskLabels[dbSnapshot.riskLevel]}
                   </p>
-                  <StatusChanger
-                    employeeId={person.id}
-                    currentStatus={dbSnapshot.riskLevel}
-                    copy={copy}
-                    riskLabels={riskLabels}
-                  />
+                  {canChangeStatus ? (
+                    <StatusChanger
+                      employeeId={person.id}
+                      currentStatus={dbSnapshot.riskLevel}
+                      copy={copy}
+                      riskLabels={riskLabels}
+                    />
+                  ) : (
+                    <p className="text-sm text-slate/60">
+                      Status changes are handled by HR.
+                    </p>
+                  )}
                 </div>
               ) : null}
 
@@ -423,25 +440,48 @@ export default async function PersonDetailPage({ params }: PageProps) {
                       {entry.kind === "point_event" ? (
                         <>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-ink">
+                            <p
+                              className={`text-sm font-medium ${
+                                entry.voidedAt ? "text-slate/50 line-through" : "text-ink"
+                              }`}
+                            >
                               {entry.reason}
                             </p>
                             <p className="mt-0.5 text-sm text-slate/55">
                               {entry.date}
                               <span className="text-slate/35"> · </span>
                               {entry.source}
+                              {entry.voidedAt ? (
+                                <>
+                                  <span className="text-slate/35"> · </span>
+                                  Voided{entry.voidedBy ? ` by ${entry.voidedBy}` : ""}
+                                </>
+                              ) : null}
                             </p>
                           </div>
-                          <p
-                            className={`font-display shrink-0 text-sm font-semibold tabular-nums ${
-                              entry.delta < 0
-                                ? "text-accent-deep"
-                                : "text-danger-soft"
-                            }`}
-                          >
-                            {entry.delta > 0 ? "+" : ""}
-                            {entry.delta}
-                          </p>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <p
+                              className={`font-display text-sm font-semibold tabular-nums ${
+                                entry.voidedAt
+                                  ? "text-slate/40 line-through"
+                                  : entry.delta < 0
+                                    ? "text-accent-deep"
+                                    : "text-danger-soft"
+                              }`}
+                            >
+                              {entry.delta > 0 ? "+" : ""}
+                              {entry.delta}
+                            </p>
+                            {canVoidEvent(session, {
+                              createdBy: entry.createdBy,
+                              team: personTeam,
+                            }) ? (
+                              <VoidEventButton
+                                eventId={entry.id}
+                                voided={entry.voidedAt !== null}
+                              />
+                            ) : null}
+                          </div>
                         </>
                       ) : (
                         <>

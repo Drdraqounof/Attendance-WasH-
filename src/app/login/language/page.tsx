@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { getSession } from "@/lib/session";
 import { LanguagePicker } from "./language-picker";
 
 export const metadata: Metadata = {
@@ -19,9 +19,12 @@ export const metadata: Metadata = {
  * click, rather than only affecting pages after it.
  */
 export default async function LanguagePage() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
+  const session = await getSession();
+  if (!session) {
     redirect("/login");
+  }
+  if (!session.active) {
+    redirect("/login/workspace");
   }
 
   return (

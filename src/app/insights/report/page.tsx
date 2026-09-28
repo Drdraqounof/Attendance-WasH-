@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { generateInsightsNarrative } from "@/lib/ai-narrative";
-import { hasDemoSession } from "@/lib/auth-mock";
+import { requireSession } from "@/lib/session";
 import { INSIGHTS_REPORT_COPY } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
 import { parseDays } from "@/lib/insights-days";
@@ -25,13 +24,10 @@ export default async function ReportBuilderPage({
 }: {
   searchParams?: Promise<{ days?: string }>;
 }) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const { scope } = await requireSession();
 
   const days = parseDays((await searchParams)?.days);
-  const narrative = await generateInsightsNarrative(days);
+  const narrative = await generateInsightsNarrative(days, scope);
   const lang = await getLang();
   const copy = INSIGHTS_REPORT_COPY[lang];
 

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { hasDemoSession } from "@/lib/auth-mock";
 import type { EscalationRuleCode } from "@/lib/policy-engine";
 import {
   getEscalationRules,
   updateEscalationRule,
 } from "@/lib/policy-queries";
+import { requireApiSession, writeAudit } from "@/lib/session";
 
 /**
  * Lets a signed-in user retune the 7 escalation rules (how many points
@@ -19,24 +19,20 @@ import {
  *          "with notice" value, and the three bands escalating) by
  *          src/lib/policy-queries.ts::updateEscalationRule.
  *
- * Gated the same way as every other action in the app today: any
- * signed-in demo user — there's no manager/admin role system yet.
+ * GET: any signed-in user. PATCH: HR only (these are org-wide policy
+ * values), recorded in audit_log. See docs/auth/roles-and-stations.md.
  */
-export async function GET() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+export async function GET(request: Request) {
+  const session = await requireApiSession(request);
+  if (session instanceof NextResponse) return session;
 
   const rules = await getEscalationRules();
   return NextResponse.json({ rules });
 }
 
 export async function PATCH(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { hrOnly: true, mutating: true });
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {
@@ -62,10 +58,18 @@ export async function PATCH(request: Request) {
   }
 
   try {
+    const before = await getEscalationRules();
     const result = await updateEscalationRule(
       code as EscalationRuleCode,
       points,
     );
+    await writeAudit(session, {
+      action: "update",
+      entity: "escalation_rule",
+      entityId: code,
+      before: before.find((r) => r.code === code)?.points ?? null,
+      after: points,
+    });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Update failed.";

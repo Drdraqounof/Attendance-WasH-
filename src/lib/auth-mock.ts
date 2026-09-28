@@ -1,16 +1,16 @@
 import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
 import { db } from "@/db/client";
 import { loginCredentials } from "@/db/schema";
-import { DEMO_COOKIE } from "@/lib/auth-constants";
 import { passwordMatches } from "@/lib/password-hash";
+import { getSession } from "@/lib/session";
 
-export { DEMO_COOKIE };
-
-/** Server-side session check for RSC pages. */
+/**
+ * True when a valid per-user session exists (any workspace state).
+ * Prefer requireSession() / requireApiSession() from src/lib/session.ts,
+ * which also enforce the active role/station.
+ */
 export async function hasDemoSession(): Promise<boolean> {
-  const cookieStore = await cookies();
-  return cookieStore.get(DEMO_COOKIE)?.value === "1";
+  return (await getSession()) !== null;
 }
 
 /**

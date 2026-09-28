@@ -29,6 +29,20 @@
       "when": 1790010576160,
       "tag": "0003_perfect_lilith",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790345548179,
+      "tag": "0004_roles_and_stations",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790604594751,
+      "tag": "0005_password_reset_tokens",
+      "breakpoints": true
     }
   ]
 }
