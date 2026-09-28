@@ -49,6 +49,24 @@ function FitBounds({ selectedRoute }: { selectedRoute?: Route }) {
   return null;
 }
 
+/**
+ * Leaflet caches its container size, so after the panel grows (full
+ * screen, window resize) it would leave grey, unloaded tiles. Re-measure
+ * whenever the container's size changes.
+ */
+function ResizeWatcher() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
+}
+
 export default function FleetMap({
   routes,
   hovered,
@@ -72,6 +90,7 @@ export default function FleetMap({
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitBounds selectedRoute={selectedRoute} />
+      <ResizeWatcher />
 
       {routes.map((route) => {
         const isSelected = route.id === selected;

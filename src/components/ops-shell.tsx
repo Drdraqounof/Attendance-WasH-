@@ -57,11 +57,11 @@ export async function OpsHeader({
 
   return (
     <header className="relative z-30 border-b border-line/80 bg-white/50 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5 sm:px-8">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/"
-            className="font-display shrink-0 text-base font-semibold tracking-[0.14em] text-ink uppercase focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            className="font-display shrink-0 text-base font-semibold tracking-[0.08em] text-ink uppercase sm:tracking-[0.14em] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
             AttendPoint
           </Link>
@@ -90,7 +90,7 @@ export async function OpsHeader({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-5">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-5">
           <div
             className="hidden items-center gap-2 border border-line bg-white/70 px-3 py-1.5 text-sm lg:flex"
             title={`Signed in as ${session.email}`}
@@ -110,16 +110,6 @@ export async function OpsHeader({
               </Link>
             ) : null}
           </div>
-          <nav
-            className="flex items-center gap-4 sm:hidden"
-            aria-label="Ops navigation mobile"
-          >
-            {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
-            {navLink("/analytics", copy.navAnalytics, active === "analytics")}
-            {navLink("/insights", copy.navInsightsShort, active === "insights")}
-            {navLink("/map", copy.navMap, active === "map")}
-            {navLink("/settings", copy.navSettings, active === "settings")}
-          </nav>
           <NotificationBell
             notifications={notifications}
             unreadCount={unreadCount}
@@ -129,6 +119,17 @@ export async function OpsHeader({
           <SignOutButton label={copy.signOut} />
         </div>
       </div>
+      {/* Phone nav: its own row, scrolls sideways instead of overflowing the header. */}
+      <nav
+        className="flex items-center gap-5 overflow-x-auto border-t border-line/60 px-6 py-3 whitespace-nowrap sm:hidden"
+        aria-label="Ops navigation mobile"
+      >
+        {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
+        {navLink("/analytics", copy.navAnalytics, active === "analytics")}
+        {navLink("/insights", copy.navInsightsShort, active === "insights")}
+        {navLink("/map", copy.navMap, active === "map")}
+        {navLink("/settings", copy.navSettings, active === "settings")}
+      </nav>
     </header>
   );
 }

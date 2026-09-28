@@ -145,3 +145,9 @@ body {
   box-shadow: 0 2px 8px rgba(15, 28, 36, 0.12);
   padding: 6px 10px;
 }
+
+/* Map panel in native full screen (src/app/map/fleet-dashboard.tsx). */
+:fullscreen .fleet-map.leaflet-container,
+div:fullscreen {
+  background: var(--surface-2);
+}
