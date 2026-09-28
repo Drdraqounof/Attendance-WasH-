@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { hasDemoSession } from "@/lib/auth-mock";
 import { refineInsightsNarrative } from "@/lib/ai-narrative";
+import { requireApiSession } from "@/lib/session";
 
 /**
  * Powers the "Any improvements before I build the report?" step in
@@ -10,10 +10,8 @@ import { refineInsightsNarrative } from "@/lib/ai-narrative";
  * in the PDF via POST /api/insights/report).
  */
 export async function POST(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { mutating: true });
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {

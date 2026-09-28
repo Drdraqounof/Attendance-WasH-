@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
-import { hasDemoSession } from "@/lib/auth-mock";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/notifications-queries";
+import { requireApiSession } from "@/lib/session";
 
 /**
  * POST { id: number } | { all: true } -> marks one or all notifications
- * read. Same gating/shape as src/app/api/warnings/route.ts — any
- * signed-in user (hasDemoSession()), no manager/admin role system yet.
+ * read *for the signed-in user only* (notification_reads), limited to
+ * their active station. Other users' read state is untouched.
  */
 export async function POST(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { mutating: true });
+  if (session instanceof NextResponse) return session;
+  const reader = { email: session.email, scope: session.scope };
 
   let body: unknown;
   try {
@@ -28,12 +27,12 @@ export async function POST(request: Request) {
 
   try {
     if (all === true) {
-      const count = await markAllNotificationsRead();
+      const count = await markAllNotificationsRead(reader);
       return NextResponse.json({ ok: true, count });
     }
 
     if (typeof id === "number" && Number.isInteger(id)) {
-      await markNotificationRead(id);
+      await markNotificationRead(reader, id);
       return NextResponse.json({ ok: true });
     }
 

@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 
 const ERROR_ID = "login-form-error";
 
-function goToLanguage() {
+function goToNextStep(next: unknown) {
   // Full navigation so the server-set session cookie is guaranteed to
-  // be picked up on the very next request. Language choice happens
-  // next, at /login/language, before landing on the dashboard — see
-  // src/app/login/language/page.tsx.
-  window.location.assign("/login/language");
+  // be picked up on the very next request. The server decides the next
+  // step: /login/workspace (pick a role/station) when the user has
+  // more than one assignment, otherwise /login/language.
+  window.location.assign(
+    next === "/login/workspace" ? "/login/workspace" : "/login/language",
+  );
 }
 
 export function LoginForm() {
@@ -40,7 +42,7 @@ export function LoginForm() {
           setError(data.error ?? "Sign-in failed. Try again.");
           return;
         }
-        goToLanguage();
+        goToNextStep(data.next);
       } catch {
         setError("Sign-in failed — check your connection and try again.");
       }

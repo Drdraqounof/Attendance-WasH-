@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
 import { generateAttendanceAlerts } from "@/lib/alerts-mock";
-import { hasDemoSession } from "@/lib/auth-mock";
 import {
   DEMO_SHIFT_META,
   interventionTargets,
@@ -19,6 +17,7 @@ import {
 import { getLang } from "@/lib/i18n-server";
 import { getNotifications } from "@/lib/notifications-queries";
 import { employeeOfTheMonth, getAllPeople } from "@/lib/people-mock";
+import { requireSession } from "@/lib/session";
 import { AttendanceAlerts } from "./attendance-alerts";
 import { PipNotificationsBanner } from "./pip-notifications-banner";
 import { InterveneNow, PriorityRoster } from "./priority-roster";
@@ -28,10 +27,8 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const session = await requireSession();
+  const { scope } = session;
 
   const lang = await getLang();
   const copy = DASHBOARD_COPY[lang];
@@ -39,12 +36,15 @@ export default async function DashboardPage() {
   const riskLabels = RISK_LABELS_BY_LANG[lang];
   const severityLabels = ALERT_SEVERITY_LABELS_BY_LANG[lang];
 
-  const roster = localizedRoster(lang);
+  const roster = localizedRoster(lang, scope);
   const summary = summarizeRoster(roster);
   const intervene = interventionTargets(roster, 3);
-  const alerts = generateAttendanceAlerts(getAllPeople(lang));
-  const nominee = employeeOfTheMonth(lang);
-  const recentNotifications = await getNotifications(5);
+  const alerts = generateAttendanceAlerts(getAllPeople(lang, scope));
+  const nominee = employeeOfTheMonth(lang, scope);
+  const recentNotifications = await getNotifications(
+    { email: session.email, scope },
+    5,
+  );
   const terminationNotifications = recentNotifications.filter(
     (n) => n.thresholdKey === "termination",
   );
@@ -115,7 +115,7 @@ export default async function DashboardPage() {
               </p>
             </div>
             <p className="shrink-0 text-sm text-slate/55">
-              {DEMO_SHIFT_META.floor}
+              {session.active.station?.name ?? "All stations"}
               <span className="mx-2 text-line" aria-hidden>
                 ·
               </span>

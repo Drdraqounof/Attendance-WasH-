@@ -1,9 +1,11 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { employees, pointEvents } from "@/db/schema";
 import { getPolicyThresholds } from "@/lib/policy-queries";
 import { clampToCap, riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
 import type { TrendDirection } from "@/lib/ai-analysis-mock";
+import type { StationScope } from "@/lib/access";
+import { employeeScopeFilter } from "@/lib/scope-sql";
 
 /**
  * Drizzle/Neon-backed replacements for the four deterministic
@@ -18,6 +20,9 @@ import type { TrendDirection } from "@/lib/ai-analysis-mock";
  * docs/planning/employee-track-record-plan.md.
  *
  * The mock files are untouched — /analytics still uses them.
+ *
+ * Every query takes the caller's StationScope (src/lib/access.ts) and
+ * ignores voided (soft-deleted) point events.
  */
 
 /** Fixed "today" for demo data, matching DEMO_TODAY in people-mock.ts. */
@@ -45,6 +50,7 @@ export type LatenessPatternRow = {
 
 /** "Frequent lateness patterns" — employees with `minLateCount`+ late events in the window. */
 export async function frequentLatenessPatterns(
+  scope: StationScope,
   days = 30,
   minLateCount = 3,
 ): Promise<LatenessPatternRow[]> {
@@ -64,6 +70,8 @@ export async function frequentLatenessPatterns(
         gte(pointEvents.date, since),
         lte(pointEvents.date, REFERENCE_DATE),
         sql`${pointEvents.reason} ilike '%late%'`,
+        isNull(pointEvents.voidedAt),
+        employeeScopeFilter(scope),
       ),
     )
     .groupBy(employees.id, employees.name)
@@ -90,6 +98,7 @@ export type SignalTypeRow = {
 
 /** "Common causes of attendance issues" — top reason categories in the window. */
 export async function signalTypeBreakdown(
+  scope: StationScope,
   days = 30,
   limit = 6,
 ): Promise<SignalTypeRow[]> {
@@ -103,7 +112,15 @@ export async function signalTypeBreakdown(
   const rows = await db
     .select({ type: typeExpr.as("type"), count: countExpr.as("count") })
     .from(pointEvents)
-    .where(and(gte(pointEvents.date, since), lte(pointEvents.date, REFERENCE_DATE)))
+    .innerJoin(employees, eq(pointEvents.employeeId, employees.id))
+    .where(
+      and(
+        gte(pointEvents.date, since),
+        lte(pointEvents.date, REFERENCE_DATE),
+        isNull(pointEvents.voidedAt),
+        employeeScopeFilter(scope),
+      ),
+    )
     .groupBy(typeExpr)
     .orderBy(desc(countExpr))
     .limit(limit);
@@ -132,7 +149,10 @@ export type AtRiskRow = {
  * sort to the top, per the policy PDF §5. Points are the rolling
  * 12-month sum, not employees.points' all-time running total.
  */
-export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
+export async function employeesAtRisk(
+  scope: StationScope,
+  days = 30,
+): Promise<AtRiskRow[]> {
   const since = isoDateDaysAgo(days);
   const rollingSince = isoDateDaysAgo(ROLLING_WINDOW_DAYS);
   const thresholds = await getPolicyThresholds();
@@ -150,7 +170,11 @@ export async function employeesAtRisk(days = 30): Promise<AtRiskRow[]> {
       rollingPoints: rollingSumExpr.as("rolling_points"),
     })
     .from(employees)
-    .leftJoin(pointEvents, eq(pointEvents.employeeId, employees.id))
+    .leftJoin(
+      pointEvents,
+      and(eq(pointEvents.employeeId, employees.id), isNull(pointEvents.voidedAt)),
+    )
+    .where(employeeScopeFilter(scope))
     .groupBy(employees.id, employees.name, employees.policyCap, employees.suggestedAction);
 
   return rows
@@ -198,6 +222,7 @@ export type ReliabilityRow = {
  * are the rolling-12-month total, independent of that trend window.
  */
 export async function reliabilityRanking(
+  scope: StationScope,
   days = 30,
   limit = 10,
 ): Promise<ReliabilityRow[]> {
@@ -221,7 +246,11 @@ export async function reliabilityRanking(
       rollingPoints: rollingSumExpr.as("rolling_points"),
     })
     .from(employees)
-    .leftJoin(pointEvents, eq(pointEvents.employeeId, employees.id))
+    .leftJoin(
+      pointEvents,
+      and(eq(pointEvents.employeeId, employees.id), isNull(pointEvents.voidedAt)),
+    )
+    .where(employeeScopeFilter(scope))
     .groupBy(employees.id, employees.name, employees.policyCap);
 
   return rows

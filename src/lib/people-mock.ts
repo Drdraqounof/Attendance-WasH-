@@ -4,6 +4,7 @@ import {
   riskLevelFromPoints,
   type RosterEmployee,
 } from "@/lib/dashboard-mock";
+import { ALL_STATIONS, filterToScope, inScope, type StationScope } from "@/lib/access";
 import { localizeRoster, nomineeReason, type Lang } from "@/lib/i18n";
 
 export type ScheduleStatus =
@@ -423,8 +424,22 @@ export function getPersonById(id: string, lang: Lang = "en"): PersonProfile | nu
   return localizeRoster([person], lang)[0]!;
 }
 
-export function getAllPeople(lang: Lang = "en"): PersonProfile[] {
-  const people = DEMO_ROSTER.map((row) => {
+/**
+ * True when this (mock) employee is inside the caller's station scope.
+ * Checked against the untranslated DEMO_ROSTER team, since localized
+ * rows carry translated team names.
+ */
+export function isPersonInScope(id: string, scope: StationScope): boolean {
+  const base = DEMO_ROSTER.find((row) => row.id === id);
+  return base !== undefined && inScope(scope, base.team);
+}
+
+export function getAllPeople(
+  lang: Lang = "en",
+  scope: StationScope = ALL_STATIONS,
+): PersonProfile[] {
+  // Scope is applied before localization — see isPersonInScope.
+  const people = filterToScope(DEMO_ROSTER, scope, (row) => row.team).map((row) => {
     const extra = profiles[row.id];
     if (!extra) {
       throw new Error(`Missing profile for ${row.id}`);
@@ -508,8 +523,10 @@ export function teamRiskBreakdown(roster: RosterEmployee[]): TeamRiskRow[] {
   return [...map.values()].sort((a, b) => b.openPoints - a.openPoints);
 }
 
-export function signalTypeBreakdown(): SignalTypeRow[] {
-  const people = getAllPeople();
+export function signalTypeBreakdown(
+  scope: StationScope = ALL_STATIONS,
+): SignalTypeRow[] {
+  const people = getAllPeople("en", scope);
   const counts = new Map<string, number>();
   for (const person of people) {
     for (const event of person.pointLedger) {
@@ -523,8 +540,12 @@ export function signalTypeBreakdown(): SignalTypeRow[] {
     .slice(0, 6);
 }
 
-export function topPointHolders(limit = 5, lang: Lang = "en"): PersonProfile[] {
-  return [...getAllPeople(lang)]
+export function topPointHolders(
+  limit = 5,
+  lang: Lang = "en",
+  scope: StationScope = ALL_STATIONS,
+): PersonProfile[] {
+  return [...getAllPeople(lang, scope)]
     .sort((a, b) => b.points - a.points)
     .slice(0, limit);
 }
@@ -653,8 +674,12 @@ export type MonthlyNominee = {
 };
 
 /** Best-attendance nominations for manager recognition (demo: current cycle). */
-export function attendanceNominees(limit = 3, lang: Lang = "en"): MonthlyNominee[] {
-  return [...getAllPeople(lang)]
+export function attendanceNominees(
+  limit = 3,
+  lang: Lang = "en",
+  scope: StationScope = ALL_STATIONS,
+): MonthlyNominee[] {
+  return [...getAllPeople(lang, scope)]
     .sort((a, b) => a.points - b.points || a.name.localeCompare(b.name))
     .slice(0, limit)
     .map((person) => ({
@@ -665,6 +690,9 @@ export function attendanceNominees(limit = 3, lang: Lang = "en"): MonthlyNominee
 }
 
 /** Top nominee for "Employee of the month" recognition (demo: current cycle). */
-export function employeeOfTheMonth(lang: Lang = "en"): MonthlyNominee | null {
-  return attendanceNominees(1, lang)[0] ?? null;
+export function employeeOfTheMonth(
+  lang: Lang = "en",
+  scope: StationScope = ALL_STATIONS,
+): MonthlyNominee | null {
+  return attendanceNominees(1, lang, scope)[0] ?? null;
 }

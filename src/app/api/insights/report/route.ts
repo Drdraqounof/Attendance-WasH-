@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { InsightsNarrative } from "@/lib/ai-narrative";
-import { hasDemoSession } from "@/lib/auth-mock";
 import { parseDays } from "@/lib/insights-days";
 import { generateInsightsReportPdf } from "@/lib/insights-report";
+import { requireApiSession } from "@/lib/session";
 
 /**
  * Powers the "Build report" button on /insights — streams back the
@@ -29,15 +29,13 @@ function pdfResponse(pdf: Buffer, days: number): NextResponse {
 
 /** Quick default download — the report's standard cached AI summary. */
 export async function GET(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request);
+  if (session instanceof NextResponse) return session;
 
   const { searchParams } = new URL(request.url);
   const days = parseDays(searchParams.get("days"));
 
-  const pdf = await generateInsightsReportPdf(days);
+  const pdf = await generateInsightsReportPdf(session.scope, days);
   return pdfResponse(pdf, days);
 }
 
@@ -48,10 +46,8 @@ export async function GET(request: Request) {
  * the PDF instead of re-fetching the default cached one.
  */
 export async function POST(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request);
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {
@@ -85,6 +81,6 @@ export async function POST(request: Request) {
     };
   }
 
-  const pdf = await generateInsightsReportPdf(days, narrativeOverride);
+  const pdf = await generateInsightsReportPdf(session.scope, days, narrativeOverride);
   return pdfResponse(pdf, days);
 }

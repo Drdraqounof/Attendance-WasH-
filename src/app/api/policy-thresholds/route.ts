@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { hasDemoSession } from "@/lib/auth-mock";
 import type { PolicyThresholdKey } from "@/lib/policy-engine";
 import {
   getPolicyThresholds,
   updatePolicyThreshold,
 } from "@/lib/policy-queries";
+import { requireApiSession, writeAudit } from "@/lib/session";
 
 /**
  * Lets a signed-in user retune any of the 5 automated-workflow
@@ -19,24 +19,20 @@ import {
  *         src/lib/policy-queries.ts::updatePolicyThreshold. Editing
  *         "termination" also bulk-updates every employee's policy cap.
  *
- * Gated the same way as every other action in the app today: any
- * signed-in demo user — there's no manager/admin role system yet.
+ * GET: any signed-in user. PATCH: HR only (these are org-wide policy
+ * values), recorded in audit_log. See docs/auth/roles-and-stations.md.
  */
-export async function GET() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+export async function GET(request: Request) {
+  const session = await requireApiSession(request);
+  if (session instanceof NextResponse) return session;
 
   const thresholds = await getPolicyThresholds();
   return NextResponse.json({ thresholds });
 }
 
 export async function PATCH(request: Request) {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
+  const session = await requireApiSession(request, { hrOnly: true, mutating: true });
+  if (session instanceof NextResponse) return session;
 
   let body: unknown;
   try {
@@ -62,10 +58,18 @@ export async function PATCH(request: Request) {
   }
 
   try {
+    const before = await getPolicyThresholds();
     const result = await updatePolicyThreshold(
       key as PolicyThresholdKey,
       pointValue,
     );
+    await writeAudit(session, {
+      action: "update",
+      entity: "policy_threshold",
+      entityId: key,
+      before: before.find((t) => t.key === key)?.pointValue ?? null,
+      after: pointValue,
+    });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Update failed.";

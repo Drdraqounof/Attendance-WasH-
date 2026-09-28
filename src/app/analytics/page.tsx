@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { OpsShell } from "@/components/ops-shell";
-import { hasDemoSession } from "@/lib/auth-mock";
 import {
   localizedRoster,
   riskLevelFromPoints,
@@ -18,22 +16,20 @@ import {
   teamRiskBreakdown,
   topPointHolders,
 } from "@/lib/people-mock";
+import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Analytics",
 };
 
 export default async function AnalyticsPage() {
-  const signedIn = await hasDemoSession();
-  if (!signedIn) {
-    redirect("/login");
-  }
+  const { scope } = await requireSession();
 
   const lang = await getLang();
   const copy = ANALYTICS_COPY[lang];
   const riskLabels = RISK_LABELS_BY_LANG[lang];
 
-  const roster = localizedRoster(lang);
+  const roster = localizedRoster(lang, scope);
   const summary = analyticsSummary(roster);
   // Fold the 6-band policy model into this legacy 3-bucket
   // distribution chart, which hasn't been redesigned with dedicated
@@ -47,9 +43,9 @@ export default async function AnalyticsPage() {
     clear: rosterSummary.clear,
   };
   const teams = teamRiskBreakdown(roster);
-  const signals = signalTypeBreakdown();
-  const leaders = topPointHolders(5, lang);
-  const nominees = attendanceNominees(3, lang);
+  const signals = signalTypeBreakdown(scope);
+  const leaders = topPointHolders(5, lang, scope);
+  const nominees = attendanceNominees(3, lang, scope);
   const maxTrend = Math.max(...ANALYTICS_TREND.map((d) => d.points), 1);
 
   const metrics = [

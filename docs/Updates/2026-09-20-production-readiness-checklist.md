@@ -9,12 +9,12 @@
 
 Current state is demo-only — see [docs/auth/authentication.md](../auth/authentication.md).
 
-- [ ] Replace the `ap_demo` client-set cookie with a real, server-issued `httpOnly` session cookie
-- [ ] Add real credential verification (currently any non-empty email/password, or no credentials at all, signs in)
-- [ ] Add a `managers` identity link from session → a specific manager row (the `managers` table already exists in the schema but nothing queries it by session)
-- [ ] Add a real role system (Administrator / Manager / Supervisor / Employee) — every route today only checks "is any cookie present," with no distinction between roles
-- [ ] Add CSRF protection once real sessions exist
-- [ ] Decide and implement per-manager notification targeting (today notifications broadcast to any signed-in user — see `notifications` table note in [docs/database/database.md](../database/database.md))
+- [x] Replace the `ap_demo` client-set cookie with a real, server-issued `httpOnly` session cookie (per-user `ap_session`, 2026-09-25)
+- [x] Add real credential verification (currently any non-empty email/password, or no credentials at all, signs in)
+- [x] Link session → a specific user (`sessions` → `login_credentials`, profile in `user_profiles`, optional `managers` link) — 2026-09-25
+- [x] Add a real role system — HR / Supervisor with station scoping, 2026-09-25 ([roles-and-stations.md](../auth/roles-and-stations.md)). Still open: in-app admin UI for assignments; Employee self-service role if wanted
+- [~] Add CSRF protection once real sessions exist — basic Origin check on mutating routes done; no token yet
+- [x] Per-user notification targeting — scoped by station, per-user read state (2026-09-25) (previously notifications broadcast to any signed-in user — see `notifications` table note in [docs/database/database.md](../database/database.md))
 
 ## 2. Database wiring (blocking)
 
@@ -35,8 +35,8 @@ Per [docs/database/database.md](../database/database.md)'s 2026-09-15 note and [
 
 ## 4. External integrations (blocked on third parties)
 
-- [ ] **Zoom SMS intake** — blocked on WashCycle providing Zoom account/API access; see [docs/Zoom/Zoom.md](../Zoom/Zoom.md) and the checklist in its section 7
-- [ ] **Zoho Shifts integration** — not started; needs API credentials/permissions confirmed with WashCycle, see [docs/planning/2026-09-20-attendance-data-integration-management-plan.md](../planning/2026-09-20-attendance-data-integration-management-plan.md)
+- [ ] **Zoom SMS intake** — blocked on WashCycle's team approving access to Zoom (account/API access); see [docs/Zoom/Zoom.md](../Zoom/Zoom.md) and the checklist in its section 7. Status as of 2026-09-25: awaiting approval.
+- [ ] **Zoho Shifts integration** — not started; blocked on the same team approval, this time for Zoho access, see [docs/planning/2026-09-20-attendance-data-integration-management-plan.md](../planning/2026-09-20-attendance-data-integration-management-plan.md). Status as of 2026-09-25: awaiting approval.
 - [ ] Decide bulk historical-import path for pre-existing Excel attendance records beyond the current single-file CSV/Excel importer (see section 1 of the same plan doc)
 
 ## 5. Security

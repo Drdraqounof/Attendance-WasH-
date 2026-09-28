@@ -8,6 +8,7 @@ import {
   reliabilityRanking,
   signalTypeBreakdown,
 } from "@/lib/insights-queries";
+import type { StationScope } from "@/lib/access";
 
 /**
  * Renders the same data /insights shows (src/lib/insights-queries.ts +
@@ -27,15 +28,16 @@ import {
  * re-fetching the cached per-window default.
  */
 export async function generateInsightsReportPdf(
+  scope: StationScope,
   days: number,
   narrativeOverride?: InsightsNarrative,
 ): Promise<Buffer> {
   const [narrative, lateness, causes, atRisk, ranking] = await Promise.all([
-    narrativeOverride ?? generateInsightsNarrative(days),
-    frequentLatenessPatterns(days, 3),
-    signalTypeBreakdown(days),
-    employeesAtRisk(days),
-    reliabilityRanking(days, 10),
+    narrativeOverride ?? generateInsightsNarrative(days, scope),
+    frequentLatenessPatterns(scope, days, 3),
+    signalTypeBreakdown(scope, days),
+    employeesAtRisk(scope, days),
+    reliabilityRanking(scope, days, 10),
   ]);
 
   const doc = new PDFDocument({ size: "LETTER", margin: 50 });

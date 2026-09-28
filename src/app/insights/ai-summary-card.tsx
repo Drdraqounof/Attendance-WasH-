@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { generateInsightsNarrative } from "@/lib/ai-narrative";
+import type { StationScope } from "@/lib/access";
 import { INSIGHTS_COPY } from "@/lib/i18n";
 
 /**
@@ -11,12 +12,14 @@ import { INSIGHTS_COPY } from "@/lib/i18n";
  */
 export async function AiSummaryCard({
   days,
+  scope,
   copy = INSIGHTS_COPY.en,
 }: {
   days: number;
+  scope: StationScope;
   copy?: (typeof INSIGHTS_COPY)[keyof typeof INSIGHTS_COPY];
 }) {
-  const narrative = await generateInsightsNarrative(days);
+  const narrative = await generateInsightsNarrative(days, scope);
 
   return (
     <section

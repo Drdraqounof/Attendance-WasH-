@@ -3,6 +3,7 @@ import { getOpenAIClient, OPENAI_MODEL } from "@/lib/openai-client";
 import { recommendedNextStep } from "@/lib/policy-engine";
 import { employeesAtRisk, type AtRiskRow } from "@/lib/insights-queries";
 import { getPolicyThresholds } from "@/lib/policy-queries";
+import type { StationScope } from "@/lib/access";
 
 /**
  * Per-employee "what to do next" recommendations for the /insights
@@ -20,7 +21,8 @@ import { getPolicyThresholds } from "@/lib/policy-queries";
  * never depends on OpenAI being configured.
  *
  * Same unstable_cache pattern as src/lib/ai-narrative.ts, keyed by the
- * `days` window, 1-hour revalidation.
+ * `days` window and station scope (unstable_cache includes the
+ * arguments in the key), 1-hour revalidation.
  */
 
 export type RecommendationItem = {
@@ -47,8 +49,9 @@ function deterministicItems(
 
 async function generateAtRiskRecommendationsUncached(
   days: number,
+  scope: StationScope,
 ): Promise<AtRiskRecommendations> {
-  const atRisk = await employeesAtRisk(days);
+  const atRisk = await employeesAtRisk(scope, days);
   if (atRisk.length === 0) {
     return { items: [], source: "fallback" };
   }

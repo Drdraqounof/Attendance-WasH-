@@ -1,0 +1,72 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { NODES } from "./nodes";
+import { fetchRouteGeometry, haversineKm } from "./osrm";
+import { ROUTE_DEFINITIONS } from "./routes";
+import { inefficiencyFactor, KM_TO_MILES, TRUCK_MPG, truckFuelCost } from "./theme";
+
+const SOUTH_END: [number, number] = [NODES.depot_south.lat, NODES.depot_south.lng];
+const SEAPORT: [number, number] = [NODES.depot_east.lat, NODES.depot_east.lng];
+
+describe("fleet — cost math", () => {
+  it("prices truck fuel from distance, mpg and gas price", () => {
+    // 100 km ≈ 62.14 mi ÷ 14 mpg ≈ 4.44 gal × $3.50 ≈ $15.53
+    expect(truckFuelCost(100, 3.5)).toBeCloseTo(((100 * KM_TO_MILES) / TRUCK_MPG) * 3.5, 6);
+    expect(truckFuelCost(100, 3.5)).toBeCloseTo(15.53, 2);
+    expect(truckFuelCost(0, 3.5)).toBe(0);
+  });
+
+  it("uses a fixed inefficiency factor per route type", () => {
+    expect(inefficiencyFactor("truck")).toBe(0.35);
+    expect(inefficiencyFactor("bike")).toBe(0.3);
+  });
+});
+
+describe("fleet — demo data", () => {
+  it("only references stops that exist", () => {
+    for (const route of ROUTE_DEFINITIONS) {
+      for (const stop of route.stops) expect(NODES[stop], `${route.id}: ${stop}`).toBeDefined();
+    }
+  });
+});
+
+describe("fleet — OSRM routing", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("measures straight-line distance with haversine", () => {
+    expect(haversineKm(SOUTH_END, SEAPORT)).toBeCloseTo(3.4, 1);
+  });
+
+  it("falls back to straight lines when OSRM is unreachable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const result = await fetchRouteGeometry("truck", [SOUTH_END, SEAPORT]);
+    expect(result.isFallback).toBe(true);
+    expect(result.geometry).toEqual([SOUTH_END, SEAPORT]);
+    expect(result.distanceKm).toBeCloseTo(haversineKm(SOUTH_END, SEAPORT), 6);
+    expect(result.durationMin).toBeCloseTo((result.distanceKm / 25) * 60, 6);
+  });
+
+  it("uses OSRM geometry (converted to [lat, lng]) when available", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          routes: [
+            {
+              distance: 4200,
+              duration: 600,
+              geometry: { coordinates: [[SOUTH_END[1], SOUTH_END[0]], [SEAPORT[1], SEAPORT[0]]] },
+            },
+          ],
+        }),
+      }),
+    );
+    const result = await fetchRouteGeometry("bike", [SOUTH_END, SEAPORT]);
+    expect(result).toEqual({
+      distanceKm: 4.2,
+      durationMin: 10,
+      geometry: [SOUTH_END, SEAPORT],
+      isFallback: false,
+    });
+  });
+});
