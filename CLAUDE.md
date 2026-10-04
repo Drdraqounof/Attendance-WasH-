@@ -17,9 +17,12 @@ attendance policy.
   (`src/db/schema.ts`), but most pages still read from `src/lib/*-mock.ts`.
   Don't assume a page is DB-backed just because the table exists — check
   the relevant doc first.
-- **Auth is demo-only** (`ap_demo` cookie, no real identity/roles) — see
-  [`docs/auth/authentication.md`](docs/auth/authentication.md) before
-  building anything that assumes a real user/session model.
+- **Auth is per-user with HR/Supervisor roles and station scoping.**
+  Pages use `requireSession()` and API routes use `requireApiSession()`
+  from `src/lib/session.ts`; pass `session.scope` into queries. See
+  [`docs/auth/authentication.md`](docs/auth/authentication.md) and
+  [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md).
+  Registration currently lets users pick their own role (temporary).
 - Run `npm test`, `npx tsc --noEmit`, and `npm run build` after code
   changes — all three are fast and catch most regressions in this repo.
 - **Sensitive information is read-only.** Employee PII, attendance/HR

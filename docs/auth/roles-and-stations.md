@@ -1,7 +1,8 @@
 # Roles & stations — per-user sessions and scoped access
 
-**Status:** Built 2026-09-25. Needs the 0004 migration and role seeding
-before it works against a real database (see "Setup").
+**Status:** Built 2026-09-25. Migration 0004 is applied to the shared
+Neon database (2026-09-28). Accounts get roles through `/register` or
+`npm run db:seed-roles` (see "Setup").
 
 ## What this is
 
@@ -31,16 +32,17 @@ undone, and is recorded.
 | Void (soft-delete) a point event, and undo it | Any event in scope | Only events they recorded, at their station |
 | Map — fleet delivery routes (`/map`, see [map.md](../fleet/map.md)) | Yes | Yes — demo fleet, not scoped by station yet |
 
-"Station" currently means an `employees.team` value, for example
-"Delivery Drivers" or "Laundry Team Members – First Shift". See "Known
-gaps".
+"Station" currently means an `employees.team` value. In the shared
+database these are **Dock A, Dock B, Pack line, Sort hub and Yard**.
+See "Known gaps".
 
 ## Sign-in flow
 
 1. `/login` → `POST /api/login` checks the password against
    `login_credentials`, as before (see [authentication.md](authentication.md)).
 2. If the account has no valid assignment, sign-in is refused with
-   "no role assigned".
+   "Your account doesn't have a role yet". Accounts created at
+   `/register` always have one (see below).
 3. A `sessions` row is created and an httpOnly `ap_session` cookie is set.
    The cookie holds a random token; the database stores only its sha256.
 4. **One assignment** → it becomes active automatically and the user goes
@@ -95,10 +97,20 @@ employee's running total. Restore reverses it. Warnings or notifications
 the event already triggered are left as they are; HR resolves them with
 a status change if needed.
 
+## How accounts get roles
+
+- **`/register`**: the person picks **HR** or **Supervisor** (and a
+  station for Supervisor), and it's saved to `user_roles` immediately.
+  **Temporary:** there's no approval step yet, so anyone can make
+  themselves HR. Replace this with an approval queue, or make HR
+  invite-only, before production.
+- **`npm run db:seed-roles`**: scripted assignments. This is the only
+  way to give one person several roles or stations.
+
 ## Setup (run these yourself; they write to the database)
 
 ```bash
-npm run db:migrate          # applies 0004_roles_and_stations.sql
+npm run db:migrate          # applies 0004 (roles/stations) and 0005 (password reset)
 npm run db:seed-login       # if the accounts don't exist yet
 npm run db:seed-roles       # stations + assignments
 ```
@@ -108,7 +120,7 @@ npm run db:seed-roles       # stations + assignments
 ```bash
 SEED_ROLE_ASSIGNMENTS='[
   {"email":"hr@example.com","name":"Dana (HR)","role":"hr"},
-  {"email":"sup@example.com","name":"Sam Lee","role":"supervisor","stations":["Delivery Drivers","Team Leads"]}
+  {"email":"sup@example.com","name":"Sam Lee","role":"supervisor","stations":["Dock A","Pack line"]}
 ]'
 ```
 
@@ -118,26 +130,37 @@ How the seed behaves:
 - The same email can appear more than once, to hold both HR and
   Supervisor.
 - Every email must already exist in `login_credentials`.
+- Station names must match exactly. The script lists the known ones
+  and aborts before writing if one doesn't match.
+- The variables can be passed inline to avoid editing `.env`:
+  `SEED_ROLE_ASSIGNMENTS='[...]' npm run db:seed-roles`.
 
 **Existing sessions:** everyone gets signed out once. Old `ap_demo`
 cookies are no longer accepted.
 
 ## Known gaps
 
-- **No admin UI for assignments.** They're managed through
-  `db:seed-roles`. An HR-only "Users & roles" page is the natural next
-  step.
+- **Self-selected roles at sign-up** (see "How accounts get roles").
+  This is the most important gap before production.
+- **No admin UI for assignments.** Beyond sign-up, they're managed
+  through `db:seed-roles`. An HR-only "Users & roles" page is the
+  natural next step.
 - **Stations are derived from `team`.** Teams mix job type and shift,
   for example "Team Leads" vs. "First Shift". When real stations or
   sites exist, add a proper `employees.station_id` (a schema change on
   HR records, so it needs sign-off) and point `stationScope` at it.
-- **Mock-backed pages are filtered, not DB-backed.** `/dashboard`,
+- **Mock-backed pages don't match real stations.** `/dashboard`,
   `/analytics`, and most of `/dashboard/people/[id]` still read
-  `DEMO_ROSTER`. They're filtered by the same scope, but the numbers
-  are still demo data.
+  `DEMO_ROSTER`. Its team names ("Delivery Drivers", "Team Leads", …)
+  differ from the database stations (Dock A, …), so for a Supervisor
+  these pages are empty and every person page returns 404. HR is
+  unaffected. The fix is to move those pages to DB queries, and in the
+  meantime to check person-page scope against the DB team
+  (`getEmployeeTeam`).
 - **Void only affects points.** Voiding doesn't re-evaluate warnings
   that were already opened.
 - **English-only chrome.** The new UI text (workspace picker, badge,
-  profile cards, void button) isn't in `src/lib/i18n.ts` yet.
+  profile cards, void button, account pages) isn't in
+  `src/lib/i18n.ts` yet.
 - **CSRF protection is basic.** It's an Origin-header check plus
   `SameSite=Lax`, with no token.

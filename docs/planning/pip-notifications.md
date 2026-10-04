@@ -54,7 +54,7 @@ from an append-only notification event log.
   `warnings.status` — read-state and the action-plan/analytics warning
   state stay decoupled.
 - `src/app/api/notifications/read/route.ts` — `POST { id } | { all: true }`,
-  same `hasDemoSession()` gating as every other mutation route.
+  gated by `requireApiSession()` (per-user; read state is per user in `notification_reads` since 2026-09-25).
 - `src/components/notification-bell.tsx` — now DB-backed. Badge shows
   `unreadCount` (not total notification count) — the actual
   "stop nagging" behavior. "Mark all as read" action; clicking a
@@ -83,3 +83,7 @@ from an append-only notification event log.
   regressions).
 - `npx drizzle-kit generate` / `npx drizzle-kit migrate` — migration
   generated and applied successfully against the live Neon dev DB.
+
+> **Update 2026-09-25:** per-manager targeting is now implemented.
+> Notifications are scoped to the reader's station and read state is per
+> user. See [docs/auth/roles-and-stations.md](../auth/roles-and-stations.md).

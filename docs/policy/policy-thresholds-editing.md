@@ -31,7 +31,7 @@ The termination threshold isn't an independent number — it's the point total a
 - **Schema**: no migration needed — `policy_thresholds` (`key`, `point_value`, `label`, `active`) already existed from Phase 1 of `docs/planning/points-system-brd.md`. The descriptive "action" text (what happens when a threshold fires) isn't a DB column; it's merged in from a small static lookup in `policy-queries.ts` keyed by threshold `key`, so edits don't require a schema change just to keep that copy showing.
 - **Read**: `getPolicyThresholds()` in `src/lib/policy-queries.ts` — reads the 5 rows, ordered by point value, falling back to the static `POLICY_THRESHOLDS` constant if the table is ever empty.
 - **Write**: `updatePolicyThreshold(key, pointValue)` — validates the key is one of the 5 editable ones and the ordering rule above, then updates the row.
-- **API**: `src/app/api/policy-thresholds/route.ts` — `GET` (current thresholds) and `PATCH { key, pointValue }` (apply an edit), gated by `hasDemoSession()` like every other action in the app today (no manager/admin role system exists yet).
+- **API**: `src/app/api/policy-thresholds/route.ts` — `GET` (current thresholds) and `PATCH { key, pointValue }` (apply an edit), `GET` is open to any signed-in user; `PATCH` is **HR only** and recorded in `audit_log` (see [roles-and-stations.md](../auth/roles-and-stations.md)). Supervisors see the thresholds read-only on `/settings`.
 - **UI**: `src/app/settings/threshold-editor.tsx`, a client component rendering a number input + Save button for each editable threshold, with an extra note on the termination threshold explaining the policy-cap coupling.
 
 ### Where edits actually take effect
@@ -53,7 +53,7 @@ The "Attendance escalation schedule" section (how many points each infraction is
 - **Schema**: no migration needed — `point_rules.points`/`.code` already existed from Phase 1, now seeded with the 7 escalation rows. Unlike thresholds, `point_rules.label` is a real DB column, so no static-text merge is needed for display.
 - **Read**: `getEscalationRules()` in `src/lib/policy-queries.ts` — reads the 7 rows with a non-null `code`, ordered by points, falling back to the static `ESCALATION_RULES` if the table is ever empty.
 - **Write**: `updateEscalationRule(code, points)` — validates that each duration band's without-notice value stays at or above its with-notice value, and that the three duration bands escalate (15min–1hr ≤ 1–3hr ≤ 3hr+, per notice status).
-- **API**: `src/app/api/escalation-rules/route.ts` — `GET`/`PATCH { code, points }`, same `hasDemoSession()` gating as everything else.
+- **API**: `src/app/api/escalation-rules/route.ts` — `GET`/`PATCH { code, points }`, with the same gating: `PATCH` is HR only and audited.
 - **UI**: `src/app/settings/escalation-editor.tsx` — a number input + Save per rule.
 - **Where it takes effect**: `policy-engine.ts::pointsForRule`/`applyPointEvent` were generalized the same way as the thresholds (optional `rules`/`escalationRules` override, defaulting to `ESCALATION_RULES`). `policy-queries.ts::recordPointEvent` fetches live rules and passes them through, so the very next infraction recorded through it uses the edited point value for its delta.
 - Same known limitation as Part 1: legacy mock-driven pages/pointLedger data are unaffected by edits here.

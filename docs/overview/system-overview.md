@@ -15,21 +15,26 @@ Frontline teams often report attendance by SMS. AttendPoint converts those messa
 
 ## Current app surfaces
 
-| Route                      | Role                                                                 |
-| -------------------------- | -------------------------------------------------------------------- |
-| `/`                        | Marketing homepage                                                   |
-| `/capabilities`            | Public capabilities page — core features plus the live policy-engine point matrix/risk bands (reads `ESCALATION_RULES`/`POLICY_THRESHOLDS` directly) |
-| `/how-it-works`            | Public page walking through the 5-step signal → risk → action flow, plus an FAQ |
-| `/login`                   | Mock manager sign-in (demo credentials)                              |
-| `/dashboard`               | Demo shift risk console (mock roster, metrics, intervene targets)    |
-| `/dashboard/people/[id]`   | Employee profile: schedule, open points, points ledger               |
-| `/analytics`               | Floor analytics: trends, risk mix, teams, signal types               |
+| Route | Purpose | Access |
+| --- | --- | --- |
+| `/` | Marketing homepage | Public |
+| `/capabilities` | Core features plus the live policy-engine point matrix and risk bands (reads `ESCALATION_RULES`/`POLICY_THRESHOLDS` directly) | Public |
+| `/how-it-works` | The 5-step signal → risk → action flow, plus an FAQ | Public |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Sign-in and account flows | Public |
+| `/login/workspace` | Role/station picker for users with more than one assignment | Signed in |
+| `/dashboard` | Shift risk console (mock roster, metrics, intervene targets), filtered to the active station | HR, Supervisor |
+| `/dashboard/people/[id]` | Employee profile: schedule, open points, ledger, live track record | HR, Supervisor (own station only) |
+| `/analytics` | Floor analytics: trends, risk mix, teams, signal types | HR, Supervisor |
+| `/insights`, `/insights/report` | DB-backed insights with an AI summary; PDF report builder | HR, Supervisor |
+| `/map` | Fleet delivery routes (Leaflet + OSRM), full-screen mode | HR, Supervisor |
+| `/settings` | Automation toggles, policy thresholds, escalation schedule | Edit: HR · View: Supervisor |
+| `/profile` | Signed-in user's account and role assignments | Signed in |
 
 ## Dashboard (demo)
 
-After demo sign-in, `/dashboard` shows an **ops floor risk console**:
+After sign-in, `/dashboard` shows an **ops floor risk console**:
 
-- Live status strip and shift meta (demo floor / day shift)
+- Live status strip and shift meta (the active station, day shift)
 - Summary counts: at risk, watch, clear, open points today
 - Priority roster sorted highest-risk first — **names link to person profiles**
 - Intervene-now list for the top at-risk employees (also links to profiles)
@@ -54,8 +59,11 @@ Risk bands (policy PDF §5, rolling 12-month points): **Clear** 0, **Low** 1–3
 - Signal mix from point ledgers
 - Highest open-points list (links to person profiles)
 
-Header nav on ops pages: **Dashboard** · **Analytics**.
+Header nav on ops pages: **Dashboard** · **Analytics** · **AI Insights** · **Map** · **Settings**, plus a role/station badge (with **Switch** when the user has more than one assignment), notifications, Profile and Sign out. On phones, the nav sits on its own horizontally scrolling row.
 
 ## Auth note
 
-Demo mode only: any nonempty credentials (or "demo access") set cookie `ap_demo=1` and redirect to `/dashboard`. No real identity provider yet. Full mechanism, gated routes, and known limitations: [docs/auth/authentication.md](../auth/authentication.md).
+Each user signs in with their own account. That creates a per-user session (httpOnly `ap_session` cookie; its sha256 is stored in `sessions`). Users work under an assigned role, **HR** or **Supervisor**, at a **station**, and every page and API route is scoped to that choice. Registration and password reset are self-service.
+
+- Sign-in, registration, reset: [docs/auth/authentication.md](../auth/authentication.md)
+- Roles, stations, permission matrix, audit log: [docs/auth/roles-and-stations.md](../auth/roles-and-stations.md)

@@ -3,7 +3,7 @@
 **Date:** 2026-08-11 · **Updated same day:** streaming/caching/DB-backed rewrite
 **Route:** `/insights?days=7|30|90`
 **File:** `src/app/insights/page.tsx`
-**Auth:** Server-guarded — redirects to `/login` if `hasDemoSession()` is false.
+**Auth:** Server-guarded by `requireSession()`. It redirects to `/login` when signed out and to `/login/workspace` when no workspace is picked. Every section (and the cached AI summary) is scoped to the viewer's station; see [roles-and-stations.md](../auth/roles-and-stations.md).
 **Nav label:** "AI Insights" (see `src/components/ops-shell.tsx`)
 
 ## Purpose
@@ -54,7 +54,7 @@ the top of the page. It's the analysis counterpart to `/dashboard`
 
 All five functions are backed by live Drizzle queries against the
 Neon `employees` / `point_events` tables (see
-[database.md](database.md)) — the mock files
+[database.md](../database/database.md)) — the mock files
 (`ai-analysis-mock.ts`, `people-mock.ts`) are no longer read by this
 page. `/analytics` still uses the mock files; they weren't touched.
 
@@ -122,5 +122,5 @@ OpenAI call entirely until it expires. See "2026-08-11 changes" in
 ## Related docs
 
 - [ai-integration.md](ai-integration.md) — how the OpenAI connection itself works (client, prompt, fallback).
-- [database.md](database.md) — Neon/Drizzle schema the mock data now also exists in (not yet wired to this page).
-- [system-overview.md](system-overview.md) — where `/insights` fits among the app's other routes.
+- [database.md](../database/database.md) — Neon/Drizzle schema this page reads from (via `src/lib/insights-queries.ts`).
+- [system-overview.md](../overview/system-overview.md) — where `/insights` fits among the app's other routes.

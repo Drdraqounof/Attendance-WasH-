@@ -7,13 +7,18 @@
 
 ## 1. Authentication & access control (blocking)
 
-Current state is demo-only — see [docs/auth/authentication.md](../auth/authentication.md).
+Per-user sessions, HR/Supervisor roles with station scoping, registration and password reset are built (2026-09-25 to 09-28). See [docs/auth/authentication.md](../auth/authentication.md) and [docs/auth/roles-and-stations.md](../auth/roles-and-stations.md). Remaining items:
 
 - [x] Replace the `ap_demo` client-set cookie with a real, server-issued `httpOnly` session cookie (per-user `ap_session`, 2026-09-25)
 - [x] Add real credential verification (currently any non-empty email/password, or no credentials at all, signs in)
 - [x] Link session → a specific user (`sessions` → `login_credentials`, profile in `user_profiles`, optional `managers` link) — 2026-09-25
 - [x] Add a real role system — HR / Supervisor with station scoping, 2026-09-25 ([roles-and-stations.md](../auth/roles-and-stations.md)). Still open: in-app admin UI for assignments; Employee self-service role if wanted
 - [~] Add CSRF protection once real sessions exist — basic Origin check on mutating routes done; no token yet
+- [ ] **Replace self-selected roles at registration** with an HR approval queue or invite-only HR. Today anyone can register as HR.
+- [ ] Connect an email provider for password reset links (`src/lib/account.ts::deliverResetLink`). Links are only printed in dev today.
+- [ ] Rate-limit `/api/login`, `/api/register` and `/api/password-reset/request`
+- [ ] In-app HR "Users & roles" page (assignments are script-managed beyond sign-up)
+- [ ] Align demo-data pages with real stations. Supervisors currently see `/dashboard`/`/analytics` empty because mock team names ≠ DB stations.
 - [x] Per-user notification targeting — scoped by station, per-user read state (2026-09-25) (previously notifications broadcast to any signed-in user — see `notifications` table note in [docs/database/database.md](../database/database.md))
 
 ## 2. Database wiring (blocking)
