@@ -18,7 +18,7 @@ function toCoords(stops: string[]): [number, number][] {
 
 async function loadGasPrice(): Promise<GasPriceResponse> {
   try {
-    const res = await fetch("/api/gas-price");
+    const res = await fetch("/api/gas-price", { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`gas-price ${res.status}`);
     return await res.json();
   } catch {
@@ -39,13 +39,19 @@ export function useRoutes() {
     let cancelled = false;
 
     async function load() {
-      const price = await loadGasPrice();
+      // Gas price and route geometry are independent — fetch them together.
+      const pricePromise = loadGasPrice();
+      const geometries = ROUTE_DEFINITIONS.map((def) =>
+        fetchRouteGeometry(def.type, toCoords(def.stops)),
+      );
+
+      const price = await pricePromise;
       if (cancelled) return;
       setGasPrice(price);
 
       const withMetrics = await Promise.all(
-        ROUTE_DEFINITIONS.map(async (def): Promise<Route> => {
-          const result = await fetchRouteGeometry(def.type, toCoords(def.stops));
+        ROUTE_DEFINITIONS.map(async (def, i): Promise<Route> => {
+          const result = await geometries[i];
           const factor = inefficiencyFactor(def.type);
           const fuelCost =
             def.type === "truck" ? truckFuelCost(result.distanceKm, price.pricePerGallon) : 0;

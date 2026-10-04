@@ -35,6 +35,7 @@ export async function GET(request: Request) {
   try {
     const res = await fetch(`${EIA_URL}&api_key=${apiKey}`, {
       next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) throw new Error(`EIA ${res.status}`);
 

@@ -11,6 +11,9 @@ const OSRM_PROFILE: Record<RouteType, string> = {
   bike: "cycling",
 };
 
+/** After this, give up on OSRM and use the straight-line fallback. */
+export const OSRM_TIMEOUT_MS = 8000;
+
 export type OsrmResult = {
   distanceKm: number;
   durationMin: number;
@@ -60,7 +63,8 @@ export async function fetchRouteGeometry(
   const url = `https://router.project-osrm.org/route/v1/${profile}/${coordPath}?overview=full&geometries=geojson`;
 
   try {
-    const res = await fetch(url);
+    // A hung request would otherwise keep the whole map on "Loading routes…".
+    const res = await fetch(url, { signal: AbortSignal.timeout(OSRM_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`OSRM ${res.status}`);
     const data = await res.json();
     const route = data?.routes?.[0];

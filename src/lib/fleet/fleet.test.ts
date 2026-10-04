@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NODES } from "./nodes";
-import { fetchRouteGeometry, haversineKm } from "./osrm";
+import { fetchRouteGeometry, haversineKm, OSRM_TIMEOUT_MS } from "./osrm";
 import { ROUTE_DEFINITIONS } from "./routes";
 import { inefficiencyFactor, KM_TO_MILES, TRUCK_MPG, truckFuelCost } from "./theme";
 
@@ -43,6 +43,31 @@ describe("fleet — OSRM routing", () => {
     expect(result.geometry).toEqual([SOUTH_END, SEAPORT]);
     expect(result.distanceKm).toBeCloseTo(haversineKm(SOUTH_END, SEAPORT), 6);
     expect(result.durationMin).toBeCloseTo((result.distanceKm / 25) * 60, 6);
+  });
+
+  it("falls back when OSRM hangs past the timeout", async () => {
+    // Fake timers don't drive AbortSignal.timeout, so hand out a signal we abort ourselves.
+    const controller = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+          }),
+      ),
+    );
+    try {
+      const pending = fetchRouteGeometry("truck", [SOUTH_END, SEAPORT]);
+      expect(timeout).toHaveBeenCalledWith(OSRM_TIMEOUT_MS);
+      controller.abort(new DOMException("timed out", "TimeoutError"));
+      const result = await pending;
+      expect(result.isFallback).toBe(true);
+      expect(result.geometry).toEqual([SOUTH_END, SEAPORT]);
+    } finally {
+      timeout.mockRestore();
+    }
   });
 
   it("uses OSRM geometry (converted to [lat, lng]) when available", async () => {
