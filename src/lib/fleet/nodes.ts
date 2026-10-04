@@ -1,12 +1,13 @@
 import type { MapNode } from "@/lib/fleet/types";
 
 /**
- * Demo data: real Boston-area neighborhood centroids (lat, lng) used as
- * depots/hubs/stops on /map. Not tied to any WCL system yet — see
+ * Map nodes (lat, lng) for /map. `wcl_lynn` is Wash Cycle Laundry's real
+ * Boston-area plant (626 Lynnway, Lynn, MA). Every other node is demo data:
+ * Boston-area neighborhood centroids, not tied to any WCL system yet — see
  * docs/fleet/map.md.
  */
 export const NODES: Record<string, MapNode> = {
-  depot_south: { lat: 42.3388, lng: -71.0784, label: "South End Depot", type: "depot" },
+  wcl_lynn: { lat: 42.4531, lng: -70.9615, label: "Wash Cycle Laundry — Lynn Plant", type: "depot" },
   depot_east: { lat: 42.352, lng: -71.041, label: "Seaport Hub", type: "hub" },
   downtown: { lat: 42.3554, lng: -71.0605, label: "Downtown Crossing", type: "stop" },
   back_bay: { lat: 42.3503, lng: -71.081, label: "Back Bay", type: "stop" },

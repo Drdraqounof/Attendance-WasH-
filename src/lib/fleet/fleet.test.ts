@@ -4,8 +4,9 @@ import { fetchRouteGeometry, haversineKm, OSRM_TIMEOUT_MS } from "./osrm";
 import { ROUTE_DEFINITIONS } from "./routes";
 import { inefficiencyFactor, KM_TO_MILES, TRUCK_MPG, truckFuelCost } from "./theme";
 
-const SOUTH_END: [number, number] = [NODES.depot_south.lat, NODES.depot_south.lng];
-const SEAPORT: [number, number] = [NODES.depot_east.lat, NODES.depot_east.lng];
+// Fixed points so the routing tests don't move when demo nodes change.
+const SOUTH_END: [number, number] = [42.3388, -71.0784];
+const SEAPORT: [number, number] = [42.352, -71.041];
 
 describe("fleet — cost math", () => {
   it("prices truck fuel from distance, mpg and gas price", () => {
@@ -26,6 +27,10 @@ describe("fleet — demo data", () => {
     for (const route of ROUTE_DEFINITIONS) {
       for (const stop of route.stops) expect(NODES[stop], `${route.id}: ${stop}`).toBeDefined();
     }
+  });
+
+  it("places the depot at the real Lynn plant", () => {
+    expect(NODES.wcl_lynn).toMatchObject({ type: "depot", lat: 42.4531, lng: -70.9615 });
   });
 });
 

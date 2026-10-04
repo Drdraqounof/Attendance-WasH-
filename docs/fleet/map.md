@@ -61,9 +61,17 @@ Without it, the page uses the fallback price.
 
 ## Known gaps
 
-- **Demo data.** The nodes and routes are hardcoded Boston examples.
-  They aren't tied to WCL's real depots, vehicles, drivers or stations.
-  Every supervisor sees the same fleet, whatever their station.
+- **Mostly demo data.** The main depot (`wcl_lynn`) is WCL's real
+  Boston-area plant at 626 Lynnway, Lynn, MA (coordinates from
+  OpenStreetMap). All other nodes, the Seaport Hub and all routes are
+  hardcoded Boston examples. They aren't tied to WCL's real vehicles,
+  drivers or stations. Every supervisor sees the same fleet, whatever
+  their station.
+- **Lynn adds distance.** Lynn is about 15 km north-east of downtown, so
+  the truck routes that start there (Downtown Loop, South Shore Express)
+  include that drive. Their distance, fuel and CO₂ figures are higher
+  than the old in-city demo depot gave. The Inner City Bike Circuit starts
+  at the Seaport Hub instead, so it stays inside the city.
 - **"Savings" are illustrative.** They come from a fixed inefficiency
   factor (35% for trucks, 30% for bikes), not from a real route
   optimizer or solver.
