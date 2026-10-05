@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { ROUTE_DEFINITIONS } from "@/lib/fleet/routes";
+import type { ScopedRouteDefinition } from "@/lib/fleet/types";
 import { RouteDetailPanel } from "./route-detail-panel";
 import { RouteSidebar, type RouteFilter } from "./route-sidebar";
 import { useRoutes } from "./use-routes";
@@ -139,11 +139,11 @@ function useMovableHost(slot: RefObject<HTMLDivElement | null>, detached: boolea
   return host;
 }
 
-export function FleetDashboard() {
-  const { routes, toggleRoute, gasPrice } = useRoutes();
+export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefinition[] }) {
+  const { routes, toggleRoute, gasPrice } = useRoutes(definitions);
   const [filter, setFilter] = useState<RouteFilter>("all");
   const [hovered, setHovered] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>("r1");
+  const [selected, setSelected] = useState<string | null>(definitions[0]?.id ?? null);
   const mapPanelRef = useRef<HTMLDivElement>(null);
   const mapSlotRef = useRef<HTMLDivElement>(null);
   const fullscreen = useMapFullscreen(mapPanelRef);
@@ -151,10 +151,10 @@ export function FleetDashboard() {
 
   const totalRouteCounts = useMemo(
     () => ({
-      truck: ROUTE_DEFINITIONS.filter((r) => r.type === "truck").length,
-      bike: ROUTE_DEFINITIONS.filter((r) => r.type === "bike").length,
+      truck: definitions.filter((r) => r.type === "truck").length,
+      bike: definitions.filter((r) => r.type === "bike").length,
     }),
-    [],
+    [definitions],
   );
 
   const visibleRoutes = routes?.filter((r) => r.active && (filter === "all" || r.type === filter)) ?? [];

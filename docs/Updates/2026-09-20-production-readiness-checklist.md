@@ -18,7 +18,7 @@ Per-user sessions, HR/Supervisor roles with station scoping, registration and pa
 - [ ] Connect an email provider for password reset links (`src/lib/account.ts::deliverResetLink`). Links are only printed in dev today.
 - [ ] Rate-limit `/api/login`, `/api/register` and `/api/password-reset/request`
 - [ ] In-app HR "Users & roles" page (assignments are script-managed beyond sign-up)
-- [ ] Align demo-data pages with real stations. Supervisors currently see `/dashboard`/`/analytics` empty because mock team names ≠ DB stations.
+- [ ] Align demo-data pages with real stations. Bridged for the demo on 2026-10-04 by `DEMO_STATION_TEAMS` (each station sees made-up mock teams). Still open: move `/dashboard`, `/analytics`, `/map` and person pages to DB queries so supervisors see their real staff.
 - [x] Per-user notification targeting — scoped by station, per-user read state (2026-09-25) (previously notifications broadcast to any signed-in user — see `notifications` table note in [docs/database/database.md](../database/database.md))
 
 ## 2. Database wiring (blocking)

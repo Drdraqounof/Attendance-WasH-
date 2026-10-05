@@ -30,7 +30,7 @@ undone, and is recorded.
 | Notifications | For employees in scope | For employees at their station |
 | Mark notifications read | Affects only that user | Affects only that user |
 | Void (soft-delete) a point event, and undo it | Any event in scope | Only events they recorded, at their station |
-| Map — fleet delivery routes (`/map`, see [map.md](../fleet/map.md)) | Yes | Yes — demo fleet, not scoped by station yet |
+| Map — fleet delivery routes (`/map`, see [map.md](../fleet/map.md)) | All routes | Only if their station covers Delivery Drivers (Yard); otherwise an empty state |
 
 "Station" currently means an `employees.team` value. In the shared
 database these are **Dock A, Dock B, Pack line, Sort hub and Yard**.
@@ -149,14 +149,25 @@ cookies are no longer accepted.
   for example "Team Leads" vs. "First Shift". When real stations or
   sites exist, add a proper `employees.station_id` (a schema change on
   HR records, so it needs sign-off) and point `stationScope` at it.
-- **Mock-backed pages don't match real stations.** `/dashboard`,
-  `/analytics`, and most of `/dashboard/people/[id]` still read
-  `DEMO_ROSTER`. Its team names ("Delivery Drivers", "Team Leads", …)
-  differ from the database stations (Dock A, …), so for a Supervisor
-  these pages are empty and every person page returns 404. HR is
-  unaffected. The fix is to move those pages to DB queries, and in the
-  meantime to check person-page scope against the DB team
-  (`getEmployeeTeam`).
+- **Mock-backed pages use a demo station→team map.** `/dashboard`,
+  `/analytics`, `/map` and most of `/dashboard/people/[id]` still read
+  `DEMO_ROSTER`, whose team names ("Delivery Drivers", "Team Leads", …)
+  differ from the database stations. Since 2026-10-04,
+  `DEMO_STATION_TEAMS` in `src/lib/dashboard-mock.ts` bridges them, and
+  mock helpers filter through `mockScope(scope)`:
+
+  | Station | Mock teams it sees |
+  | --- | --- |
+  | Dock A | Laundry Team Members – First Shift |
+  | Dock B | Laundry Team Members – Second Shift |
+  | Pack line | Team Leads, Production Supervisors |
+  | Sort hub | Maintenance Technicians |
+  | Yard | Delivery Drivers (and so the fleet map) |
+
+  The mapping is made up for the demo. It isn't WCL's real org chart, so
+  a Supervisor sees demo people at their station, not their real staff.
+  DB-backed pages (`/insights`, notifications) keep using the plain
+  scope. Delete the map once those pages move to DB queries.
 - **Void only affects points.** Voiding doesn't re-evaluate warnings
   that were already opened.
 - **English-only chrome.** The new UI text (workspace picker, badge,

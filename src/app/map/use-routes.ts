@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { NODES } from "@/lib/fleet/nodes";
 import { fetchRouteGeometry } from "@/lib/fleet/osrm";
-import { ROUTE_DEFINITIONS } from "@/lib/fleet/routes";
 import {
   FALLBACK_GAS_PRICE_PER_GALLON,
   inefficiencyFactor,
   TRUCK_CO2_PER_KM,
   truckFuelCost,
 } from "@/lib/fleet/theme";
-import type { GasPriceResponse, Route } from "@/lib/fleet/types";
+import type { GasPriceResponse, Route, ScopedRouteDefinition } from "@/lib/fleet/types";
 
 function toCoords(stops: string[]): [number, number][] {
   return stops.filter((s) => NODES[s]).map((s) => [NODES[s].lat, NODES[s].lng]);
@@ -27,11 +26,12 @@ async function loadGasPrice(): Promise<GasPriceResponse> {
 }
 
 /**
- * Loads the gas price, then routes every demo route through OSRM and
- * derives distance / duration / fuel / CO₂ / "vs. unoptimized" savings.
- * Toggling a route is a per-viewer view filter only — nothing is saved.
+ * Loads the gas price, then routes each of the viewer's (already scoped)
+ * routes through OSRM and derives distance / duration / fuel / CO₂ /
+ * "vs. unoptimized" savings. Toggling a route is a per-viewer view
+ * filter only — nothing is saved.
  */
-export function useRoutes() {
+export function useRoutes(definitions: ScopedRouteDefinition[]) {
   const [routes, setRoutes] = useState<Route[] | null>(null);
   const [gasPrice, setGasPrice] = useState<GasPriceResponse | null>(null);
 
@@ -41,7 +41,7 @@ export function useRoutes() {
     async function load() {
       // Gas price and route geometry are independent — fetch them together.
       const pricePromise = loadGasPrice();
-      const geometries = ROUTE_DEFINITIONS.map((def) =>
+      const geometries = definitions.map((def) =>
         fetchRouteGeometry(def.type, toCoords(def.stops)),
       );
 
@@ -50,7 +50,7 @@ export function useRoutes() {
       setGasPrice(price);
 
       const withMetrics = await Promise.all(
-        ROUTE_DEFINITIONS.map(async (def, i): Promise<Route> => {
+        definitions.map(async (def, i): Promise<Route> => {
           const result = await geometries[i];
           const factor = inefficiencyFactor(def.type);
           const fuelCost =
@@ -80,7 +80,7 @@ export function useRoutes() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [definitions]);
 
   function toggleRoute(id: string) {
     setRoutes((rs) => rs?.map((r) => (r.id === id ? { ...r, active: !r.active } : r)) ?? rs);

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NODES } from "./nodes";
 import { fetchRouteGeometry, haversineKm, OSRM_TIMEOUT_MS } from "./osrm";
+import { DEMO_ROSTER } from "@/lib/dashboard-mock";
 import { ROUTE_DEFINITIONS } from "./routes";
+import { routesForScope } from "./scoped-routes";
 import { inefficiencyFactor, KM_TO_MILES, TRUCK_MPG, truckFuelCost } from "./theme";
 
 // Fixed points so the routing tests don't move when demo nodes change.
@@ -29,8 +31,38 @@ describe("fleet — demo data", () => {
     }
   });
 
+  it("only assigns drivers who exist on the mock roster as delivery drivers", () => {
+    for (const route of ROUTE_DEFINITIONS) {
+      if (!route.driverId) continue;
+      const row = DEMO_ROSTER.find((r) => r.id === route.driverId);
+      expect(row?.team, route.id).toBe("Delivery Drivers");
+    }
+  });
+
   it("places the depot at the real Lynn plant", () => {
     expect(NODES.wcl_lynn).toMatchObject({ type: "depot", lat: 42.4531, lng: -70.9615 });
+  });
+});
+
+describe("fleet — scoped routes", () => {
+  const sup = (name: string) => ({ all: false as const, teams: [name] });
+
+  it("shows HR and the Yard supervisor every route", () => {
+    expect(routesForScope({ all: true })).toHaveLength(ROUTE_DEFINITIONS.length);
+    expect(routesForScope(sup("Yard"))).toHaveLength(ROUTE_DEFINITIONS.length);
+  });
+
+  it("shows other stations no routes", () => {
+    expect(routesForScope(sup("Dock A"))).toEqual([]);
+    expect(routesForScope({ all: false, teams: [] })).toEqual([]);
+  });
+
+  it("flags routes whose driver is at the at-risk band or higher", () => {
+    const byId = new Map(routesForScope().map((r) => [r.id, r]));
+    // e03 Devon Briggs has 8 points (at risk); e08 Aisha Rahman has 1.
+    expect(byId.get("r1")?.driver).toMatchObject({ id: "e03", points: 8, atRisk: true });
+    expect(byId.get("r2")?.driver).toMatchObject({ id: "e08", points: 1, atRisk: false });
+    expect(byId.get("r4")?.driver).toBeNull();
   });
 });
 

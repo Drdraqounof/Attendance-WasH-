@@ -66,10 +66,17 @@ export function RouteSidebar({
                 aria-current={isSelected ? "true" : undefined}
                 className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               >
-                <span
-                  className={`inline-block border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase ${typeBadge(route.type)}`}
-                >
-                  {route.type}
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`inline-block border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase ${typeBadge(route.type)}`}
+                  >
+                    {route.type}
+                  </span>
+                  {route.driver?.atRisk && (
+                    <span className="inline-block border border-danger-soft bg-danger-soft px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.08em] text-white uppercase">
+                      Needs cover
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`mt-1.5 block text-sm font-medium leading-snug ${
@@ -77,6 +84,9 @@ export function RouteSidebar({
                   }`}
                 >
                   {route.name}
+                </span>
+                <span className="mt-0.5 block text-sm text-slate/65">
+                  {route.driver ? `Driver: ${route.driver.name}` : "No driver assigned"}
                 </span>
                 <span className="mt-1 flex flex-wrap gap-x-3 text-sm tabular-nums text-slate/60">
                   <span>{route.distance.toFixed(1)} km</span>

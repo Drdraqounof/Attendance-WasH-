@@ -1,6 +1,7 @@
 import { attendanceScoreFromPoints } from "@/lib/attendance-utils";
 import {
   DEMO_ROSTER,
+  mockScope,
   riskLevelFromPoints,
   type RosterEmployee,
 } from "@/lib/dashboard-mock";
@@ -431,7 +432,7 @@ export function getPersonById(id: string, lang: Lang = "en"): PersonProfile | nu
  */
 export function isPersonInScope(id: string, scope: StationScope): boolean {
   const base = DEMO_ROSTER.find((row) => row.id === id);
-  return base !== undefined && inScope(scope, base.team);
+  return base !== undefined && inScope(mockScope(scope), base.team);
 }
 
 export function getAllPeople(
@@ -439,7 +440,7 @@ export function getAllPeople(
   scope: StationScope = ALL_STATIONS,
 ): PersonProfile[] {
   // Scope is applied before localization — see isPersonInScope.
-  const people = filterToScope(DEMO_ROSTER, scope, (row) => row.team).map((row) => {
+  const people = filterToScope(DEMO_ROSTER, mockScope(scope), (row) => row.team).map((row) => {
     const extra = profiles[row.id];
     if (!extra) {
       throw new Error(`Missing profile for ${row.id}`);

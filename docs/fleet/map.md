@@ -1,7 +1,10 @@
 # Map — fleet delivery routes
 
 **Status:** Built 2026-09-27 from the "Boston Fleet Optimizer"
-prototype. It uses **demo route data** and is not live vehicle tracking.
+prototype. Since 2026-10-04 the main depot is WCL's real Lynn plant.
+Routes and other stops are still **demo data**, and the page doesn't
+track live vehicles. For what's real, and how to add more real
+locations, see [map-integration.md](map-integration.md).
 
 ## What this is
 
@@ -35,16 +38,33 @@ that viewer's screen. Nothing is saved, and no one else's view changes.
 Supervisors and HR. The page is gated by `requireSession()` like every
 other page (see [roles-and-stations.md](../auth/roles-and-stations.md)).
 
+**Station scoping:** every route belongs to the mock "Delivery Drivers"
+team, and `routesForScope(session.scope)` filters routes the same way
+the other mock pages filter `DEMO_ROSTER` (through `mockScope`). HR, and
+Supervisors whose station covers Delivery Drivers (Yard, in
+`DEMO_STATION_TEAMS`), see every route. Other Supervisors get a "No
+delivery routes at this station" empty state.
+
+**Drivers and cover flags:** truck routes have mock drivers from
+`DEMO_ROSTER` (Downtown Loop and South Shore Express: Devon Briggs, e03;
+Cambridge — Charlestown Run: Aisha Rahman, e08). Bike routes have no
+driver. The route list shows each driver's name. The detail panel shows
+their points, risk band and last signal, and links to their person
+page. When a driver is at the **at-risk band or higher** (8+ points, from
+`riskLevelFromPoints` in the policy engine), the route gets a **Needs
+cover** badge. A banner at the top counts active routes that need cover.
+Devon (8 points, "Out sick") triggers it in the demo.
+
 ## Files
 
 | File | Purpose |
 | --- | --- |
 | `src/app/map/page.tsx` | Server page: session gate and `OpsShell` chrome. |
 | `src/app/map/fleet-dashboard.tsx` | Client layout: map (with the `useMapFullscreen` hook), then the route list and detail panel. |
-| `src/app/map/fleet-map.tsx` | Leaflet map, loaded client-only via `next/dynamic` because Leaflet needs `window`. Includes `FitBounds` (zooms to the selected route) and `ResizeWatcher`. |
+| `src/app/map/fleet-map.tsx` | Leaflet map, loaded client-only via `next/dynamic` because Leaflet needs `window`. Includes `FitBounds` (zooms to the selected route, or to every node when none is selected) and `ResizeWatcher`. |
 | `src/app/map/use-routes.ts` | Loads the gas price, routes every stop list through OSRM, and computes the metrics. |
 | `src/app/map/route-sidebar.tsx`, `route-detail-panel.tsx`, `kpi-bar.tsx`, `stat-cell.tsx` | Panels. |
-| `src/lib/fleet/` | Types, cost/CO₂ math (`theme.ts`), OSRM client with a straight-line fallback (`osrm.ts`), and demo data (`nodes.ts`, `routes.ts`). Tested in `fleet.test.ts`. |
+| `src/lib/fleet/` | Types, cost/CO₂ math (`theme.ts`), OSRM client with a straight-line fallback (`osrm.ts`), `scoped-routes.ts` (`routesForScope`: station filter and driver lookup), and map data (`nodes.ts`: the real `wcl_lynn` depot plus demo nodes; `routes.ts`: demo routes). Tested in `fleet.test.ts`. |
 | `src/app/api/gas-price/route.ts` | `GET` returns the EIA New England gas price. Signed-in users only. |
 
 ## External services
@@ -65,8 +85,8 @@ Without it, the page uses the fallback price.
   Boston-area plant at 626 Lynnway, Lynn, MA (coordinates from
   OpenStreetMap). All other nodes, the Seaport Hub and all routes are
   hardcoded Boston examples. They aren't tied to WCL's real vehicles,
-  drivers or stations. Every supervisor sees the same fleet, whatever
-  their station.
+  drivers or stations. Driver assignments and station scoping come from
+  mock data (see "Station scoping" above).
 - **Lynn adds distance.** Lynn is about 15 km north-east of downtown, so
   the truck routes that start there (Downtown Loop, South Shore Express)
   include that drive. Their distance, fuel and CO₂ figures are higher

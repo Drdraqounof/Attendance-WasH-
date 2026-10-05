@@ -53,7 +53,7 @@ Open [http://localhost:3000](http://localhost:3000) and sign in, or create an ac
 | `/analytics` | Floor trends, risk mix, teams and signal mix | HR, Supervisor |
 | `/insights` | AI-grounded insights: at-risk employees, patterns, executive summary | HR, Supervisor |
 | `/insights/report` | Exportable insights report builder (PDF) | HR, Supervisor |
-| `/map` | Fleet delivery routes on a Boston map, with a full-screen mode (demo routes) | HR, Supervisor |
+| `/map` | Fleet delivery routes on a Boston map, with a full-screen mode (real Lynn plant depot; demo routes) | HR, Supervisor |
 | `/settings` | Automation toggles, policy thresholds, escalation schedule | Edit: HR · View: Supervisor |
 | `/profile` | Your account, role assignments and notification preferences | Signed in |
 
@@ -88,7 +88,7 @@ Accounts, sessions, roles/stations, notifications, warnings, the point ledger an
 ## Known limitations
 
 - **Anyone can register as HR.** Self-selected roles stand in for an HR approval step that doesn't exist yet. Fix this before production.
-- **Demo data vs. real stations.** Demo-data pages use different team names from the real stations (Dock A, Dock B, Pack line, Sort hub, Yard), so a Supervisor sees them empty.
+- **Demo data vs. real stations.** Demo-data pages (`/dashboard`, `/analytics`, `/map`, person pages) map each real station to made-up mock teams through `DEMO_STATION_TEAMS`, so a Supervisor sees demo people, not their real staff. See [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md).
 - **No email delivery.** Password reset links aren't emailed yet.
 - **No rate limiting** on sign-in, register or reset.
 - **SMS intake isn't connected.** Zoom/Zoho integrations are blocked on WashCycle approval.
@@ -100,7 +100,7 @@ The full list is in [`docs/Updates/2026-09-20-production-readiness-checklist.md`
 - Overview: [`docs/overview/plain-english.md`](docs/overview/plain-english.md) · [`docs/overview/system-overview.md`](docs/overview/system-overview.md)
 - Sign-in, registration, password reset: [`docs/auth/authentication.md`](docs/auth/authentication.md)
 - Roles, stations, scoping, audit: [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md)
-- Map: [`docs/fleet/map.md`](docs/fleet/map.md)
+- Map: [`docs/fleet/map.md`](docs/fleet/map.md) · Real-location integration: [`docs/fleet/map-integration.md`](docs/fleet/map-integration.md) · Live routing plan (alternate routes, traffic, blockers): [`LIVE_ROUTING_PLAN.md`](LIVE_ROUTING_PLAN.md)
 - Product spec: [`docs/planning/Attendance-Plan.md`](docs/planning/Attendance-Plan.md) · Stakeholder feedback status: [`docs/planning/2026-09-16-stakeholder-feedback-response.md`](docs/planning/2026-09-16-stakeholder-feedback-response.md)
 
 ## Stack

@@ -4,7 +4,7 @@ import type { MapNode } from "@/lib/fleet/types";
  * Map nodes (lat, lng) for /map. `wcl_lynn` is Wash Cycle Laundry's real
  * Boston-area plant (626 Lynnway, Lynn, MA). Every other node is demo data:
  * Boston-area neighborhood centroids, not tied to any WCL system yet — see
- * docs/fleet/map.md.
+ * docs/fleet/map-integration.md.
  */
 export const NODES: Record<string, MapNode> = {
   wcl_lynn: { lat: 42.4531, lng: -70.9615, label: "Wash Cycle Laundry — Lynn Plant", type: "depot" },

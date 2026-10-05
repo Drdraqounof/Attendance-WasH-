@@ -26,7 +26,7 @@ Frontline teams often report attendance by SMS. AttendPoint converts those messa
 | `/dashboard/people/[id]` | Employee profile: schedule, open points, ledger, live track record | HR, Supervisor (own station only) |
 | `/analytics` | Floor analytics: trends, risk mix, teams, signal types | HR, Supervisor |
 | `/insights`, `/insights/report` | DB-backed insights with an AI summary; PDF report builder | HR, Supervisor |
-| `/map` | Fleet delivery routes (Leaflet + OSRM), full-screen mode | HR, Supervisor |
+| `/map` | Fleet delivery routes (Leaflet + OSRM), full-screen mode; depot is the real Lynn plant, routes are demo | HR, Supervisor |
 | `/settings` | Automation toggles, policy thresholds, escalation schedule | Edit: HR · View: Supervisor |
 | `/profile` | Signed-in user's account and role assignments | Signed in |
 
