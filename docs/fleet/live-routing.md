@@ -39,11 +39,12 @@ about 3 minutes of TomTom having it. At midday on 2026-10-05 the Boston
 area had about 75 live incidents (closures and jams) and no accidents.
 Accidents are uncommon at any given moment, so a count of zero is normal.
 
-**Access:** the same viewers as the map: HR, and supervisors whose station
-covers Delivery Drivers (Yard). The API routes enforce this:
-- a viewer with no fleet routes gets 403
-- trips can start only from depots or hubs on the viewer's own routes
-  (`originNodesForScope`)
+**Access:** every signed-in workspace: HR, and Supervisors at **every**
+station. Only the fleet routes and drivers are station-scoped (Yard).
+- Place search and incidents need only a session.
+- Trips can start from the Lynn plant (open to everyone) or from depots
+  and hubs on the viewer's own fleet routes (`originNodesForScope`).
+  Anything else returns 403.
 
 ## How it works
 

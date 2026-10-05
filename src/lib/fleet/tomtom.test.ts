@@ -195,13 +195,14 @@ describe("tomtom — quota guard", () => {
 describe("live routing — access and fallback", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("only lets viewers plan trips from depots/hubs on their own routes", () => {
+  it("lets everyone plan from the plant, and only from depots/hubs on their own routes", () => {
     expect(originNodesForScope({ all: true })).toEqual(
       expect.arrayContaining(["wcl_lynn", "depot_east", "cambridge"]),
     );
     expect(originNodesForScope({ all: true })).not.toContain("downtown"); // a stop
     expect(originNodesForScope({ all: false, teams: ["Yard"] })).toContain("wcl_lynn");
-    expect(originNodesForScope({ all: false, teams: ["Dock A"] })).toEqual([]);
+    // Stations without fleet routes can still plan trips from the plant.
+    expect(originNodesForScope({ all: false, teams: ["Dock A"] })).toEqual(["wcl_lynn"]);
   });
 
   it("falls back to OSRM alternatives, then a straight line", async () => {

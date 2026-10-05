@@ -42,8 +42,11 @@ other page (see [roles-and-stations.md](../auth/roles-and-stations.md)).
 team, and `routesForScope(session.scope)` filters routes the same way
 the other mock pages filter `DEMO_ROSTER` (through `mockScope`). HR, and
 Supervisors whose station covers Delivery Drivers (Yard, in
-`DEMO_STATION_TEAMS`), see every route. Other Supervisors get a "No
-delivery routes at this station" empty state.
+`DEMO_STATION_TEAMS`), see every route. Supervisors at other stations
+still get the map. It opens on **Plan a trip** (from the Lynn plant), with
+the live incidents layer. The Fleet routes tab shows the map without
+routes, plus a note that fleet routes belong to Yard. (Changed
+2026-10-05: before that, those supervisors saw only an empty state.)
 
 **Drivers and cover flags:** truck routes have mock drivers from
 `DEMO_ROSTER` (Downtown Loop and South Shore Express: Devon Briggs, e03;

@@ -16,7 +16,8 @@ import { requireApiSession } from "@/lib/session";
  * GET ?from=<nodeId>&to=<lat>,<lng>&mode=truck|bike -> up to 3 route
  * options with live-traffic ETAs, the fastest flagged, and the live
  * incidents (accidents, closures, jams…) on each as `blockers`.
- * `from` must be a depot/hub on one of the viewer's routes. Falls back
+ * `from` must be the Lynn plant or a depot/hub on one of the viewer's
+ * routes (originNodesForScope). Falls back
  * to OSRM alternatives (`isLive: false`, no traffic or blockers) when
  * TomTom is unavailable. See LIVE_ROUTING_PLAN.md.
  */

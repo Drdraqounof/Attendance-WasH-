@@ -36,12 +36,16 @@ export function routesForScope(scope: StationScope = ALL_STATIONS): ScopedRouteD
   }));
 }
 
+/** The real WCL plant — every map viewer may plan trips from it. */
+export const PLANT_NODE = "wcl_lynn";
+
 /**
- * Depots and hubs on the viewer's routes — the only origins live
- * routing (/api/fleet/directions) accepts from them. Empty means the
- * viewer has no map access at all.
+ * Origins live routing (/api/fleet/directions) accepts from this viewer:
+ * the Lynn plant for everyone, plus the depots and hubs on their own
+ * fleet routes. Every supervisor can plan trips; only the fleet routes
+ * themselves are station-scoped.
  */
 export function originNodesForScope(scope: StationScope): string[] {
-  const ids = new Set(routesForScope(scope).flatMap((r) => r.stops));
+  const ids = new Set([PLANT_NODE, ...routesForScope(scope).flatMap((r) => r.stops)]);
   return Object.keys(NODES).filter((id) => ids.has(id) && NODES[id]!.type !== "stop");
 }

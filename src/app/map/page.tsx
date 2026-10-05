@@ -59,20 +59,13 @@ export default async function MapPage() {
           )}
         </div>
 
-        {definitions.length > 0 ? (
-          <FleetDashboard definitions={definitions} origins={originNodesForScope(session.scope)} />
-        ) : (
-          <div className="animate-fade-up-delay-1 mt-6 border border-line bg-white/70 px-6 py-10 text-center">
-            <p className="font-display text-lg font-semibold text-ink">
-              No delivery routes at this station
-            </p>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate/65">
-              Routes belong to the Delivery Drivers team
-              {DELIVERY_STATIONS.length > 0 && <> ({DELIVERY_STATIONS.join(", ")})</>}. Switch
-              workspace, or ask HR, to view the fleet.
-            </p>
-          </div>
-        )}
+        <FleetDashboard
+          definitions={definitions}
+          origins={originNodesForScope(session.scope)}
+          noRoutesNote={`Fleet routes belong to the Delivery Drivers team${
+            DELIVERY_STATIONS.length > 0 ? ` (${DELIVERY_STATIONS.join(", ")})` : ""
+          }, so none show at this station. Live incidents and Plan a trip still work.`}
+        />
       </main>
     </OpsShell>
   );

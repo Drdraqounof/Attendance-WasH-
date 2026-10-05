@@ -187,13 +187,18 @@ function useMovableHost(slot: RefObject<HTMLDivElement | null>, detached: boolea
 export function FleetDashboard({
   definitions,
   origins,
+  noRoutesNote,
 }: {
   definitions: ScopedRouteDefinition[];
   /** Depots/hubs the viewer may plan trips from (originNodesForScope). */
   origins: string[];
+  /** Shown in Fleet routes mode when this station has no routes. */
+  noRoutesNote: string;
 }) {
   const { routes, toggleRoute, gasPrice } = useRoutes(definitions);
-  const [mode, setMode] = useState<MapMode>("fleet");
+  const hasRoutes = definitions.length > 0;
+  // Stations without fleet routes land on the part of the map they can use.
+  const [mode, setMode] = useState<MapMode>(hasRoutes ? "fleet" : "trip");
   const [showIncidents, setShowIncidents] = useState(true);
   const [tripOrigin, setTripOrigin] = useState(
     origins.includes("wcl_lynn") ? "wcl_lynn" : (origins[0] ?? ""),
@@ -427,6 +432,10 @@ export function FleetDashboard({
             />
           </div>
         </div>
+      ) : !hasRoutes ? (
+        <p className="mt-4 border border-line bg-white/70 px-5 py-4 text-sm leading-relaxed text-slate/70">
+          {noRoutesNote}
+        </p>
       ) : routes ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="lg:max-h-[32rem] lg:min-h-0 lg:[&>aside]:h-full">
