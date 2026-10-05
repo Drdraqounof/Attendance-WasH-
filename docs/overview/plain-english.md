@@ -27,7 +27,7 @@ Everyone signs in with their own account and works in one of two roles:
 | **Person** | One worker's schedule and points history (click a name) |
 | **Analytics** | Trends and team-level patterns |
 | **AI Insights** | Written summary of attendance patterns and who needs attention |
-| **Map** | Delivery routes across Boston, which you can view full screen |
+| **Map** | Delivery routes from the Lynn plant, live accidents and road closures, and **Plan a trip**: search a place (like "Burger King") to compare live routes and see what's in the way |
 | **Settings** | Policy point values (HR edits; supervisors can only view) |
 | **Profile** | Your account and roles |
 
@@ -45,5 +45,5 @@ Points count over a rolling 12 months:
 ## Important
 
 - Real SMS intake isn't hooked up yet. Some pages (dashboard, analytics) still show **demo data**.
-- Map routes are examples, not live vehicle tracking.
+- Map delivery routes and drivers are examples, and there's no live truck tracking. Traffic, accidents and Plan a trip use live data from TomTom.
 - For now, anyone can create an account and choose to be HR. That's temporary, until an approval step exists.

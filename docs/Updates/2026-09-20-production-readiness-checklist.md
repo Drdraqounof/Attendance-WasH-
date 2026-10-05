@@ -53,6 +53,10 @@ Per [docs/database/database.md](../database/database.md)'s 2026-09-15 note and [
 
 ## 6. Operational readiness
 
+- [ ] Set `TOM_TOM_API_KEY` in the production environment for live routing and incidents on `/map`. Without it, the map falls back to free-flow routes with no blockers.
+- [ ] Review TomTom's terms for (a) commercial use on the Freemium plan and (b) drawing TomTom routes and incidents over OpenStreetMap tiles. Decide whether Pay As You Grow credit is needed beyond 2,500 requests/day ([live-routing.md](../fleet/live-routing.md)).
+- [ ] Replace the public OSRM demo server and OSM tile servers (fair-use limits) before real use ([map.md](../fleet/map.md))
+
 - [ ] Confirm hosting/deployment target (Vercel, etc.) and environment variable setup for production
 - [ ] Add monitoring/error tracking and uptime alerting — none configured yet
 - [ ] Add structured logging for the point-event ledger and notification pipeline for auditability

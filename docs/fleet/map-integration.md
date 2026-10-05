@@ -1,8 +1,9 @@
 # Map integration — real WCL locations
 
-**Status:** Started 2026-10-04 on branch `map-integration`. One real
-location is wired in: the Lynn plant. Everything else on `/map` is still
-demo data.
+**Status:** Started 2026-10-04 on branch `map-integration` (pushed
+2026-10-05). One real location is wired in: the Lynn plant. Live traffic,
+incidents and trip routing are real (see [live-routing.md](live-routing.md)).
+The fleet routes, stops and drivers are still demo data.
 
 This doc tracks how `/map` (see [map.md](map.md)) moves from the demo
 "Boston Fleet Optimizer" data to Wash Cycle Laundry's real facilities,
@@ -31,8 +32,9 @@ doesn't show a ZIP.
 - **Savings** use a fixed inefficiency factor, not a solver.
 - **Drivers and station scoping come from mock data.** Truck routes are
   assigned mock drivers from `DEMO_ROSTER` and flagged "Needs cover" when
-  the driver is at-risk or worse. Routes are scoped to the Yard station
-  through the demo `DEMO_STATION_TEAMS` map. Both are explained in
+  the driver is at-risk or worse. Fleet routes are scoped to the Yard
+  station through the demo `DEMO_STATION_TEAMS` map. Every station still
+  gets the map, live incidents and Plan a trip. Both are explained in
   [map.md](map.md).
 - **No real vehicles or live positions.**
 

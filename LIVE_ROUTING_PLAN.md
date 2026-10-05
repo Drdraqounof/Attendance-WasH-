@@ -92,7 +92,7 @@ Browser (/map, "Plan a trip")
    ▼
 Next.js API routes  ── requireApiSession, scope check, cache, quota guard
    │
-   ├─► TomTom Search / Routing / Traffic Incidents   (TOMTOM_API_KEY)
+   ├─► TomTom Search / Routing / Traffic Incidents   (TOM_TOM_API_KEY)
    │
    └─► Fallback: OSRM alternatives=true, server-side
          → isLive: false, no blockers, labeled "free-flow estimate"
@@ -162,9 +162,10 @@ existing `Route` types stay unchanged.
   - blocker markers with tooltips
   - a destination pin
   - the map zoomed to fit the trip
-- **Who can use it:** the same viewers as the map, meaning HR and
-  supervisors whose station covers Delivery Drivers (Yard). Other stations
-  already see the empty state.
+- **Who can use it:** every signed-in workspace, HR and supervisors at
+  every station (widened on 2026-10-05; originally Yard only). Trips start
+  from the Lynn plant, or from depots on the viewer's own fleet routes.
+  Fleet routes and drivers stay Yard-only.
 
 ### [x] Phase 5: Documentation (updated with each phase, not only at the end)
 
@@ -176,7 +177,7 @@ existing `Route` types stay unchanged.
   behavior, endpoints, quota, fallback, the final grade and known gaps.
 - **Updates elsewhere:**
   - [docs/fleet/map.md](docs/fleet/map.md): modes and the files table.
-  - [README.md](README.md): `TOMTOM_API_KEY` in the env table.
+  - [README.md](README.md): `TOM_TOM_API_KEY` in the env table.
   - [docs/fleet/map-integration.md](docs/fleet/map-integration.md): next
     steps.
 
@@ -196,7 +197,7 @@ existing `Route` types stay unchanged.
 ## Verification
 
 1. Run `npm test`, `npx tsc --noEmit`, `npm run lint` and `npm run build`.
-2. **With `TOMTOM_API_KEY` set:**
+2. **With `TOM_TOM_API_KEY` set:**
    - Run `npm run dev`, sign in as HR, open `/map`, choose **Plan a trip**
      and search "Burger King".
    - Expect 2–3 routes, each with a live ETA and traffic delay, and one
@@ -205,8 +206,10 @@ existing `Route` types stay unchanged.
    - Refresh and confirm the "Updated" time changes.
 3. **Without the key:** the same flow shows OSRM alternatives labeled
    "free-flow estimate", with no blockers.
-4. **As a Dock A supervisor:** `/map` shows the empty state. Calling
-   `/api/fleet/directions` with an origin outside their scope returns 403.
+4. **As a Dock A supervisor:** `/map` opens on Plan a trip, from the Lynn
+   plant, with live incidents. The Fleet routes tab shows a "routes belong
+   to Yard" note. Calling `/api/fleet/directions` with an origin outside
+   their scope (for example `depot_east`) returns 403.
 
 ## Setup
 
