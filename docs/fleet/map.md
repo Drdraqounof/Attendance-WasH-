@@ -55,6 +55,12 @@ page. When a driver is at the **at-risk band or higher** (8+ points, from
 cover** badge. A banner at the top counts active routes that need cover.
 Devon (8 points, "Out sick") triggers it in the demo.
 
+**Live routing:** a **Plan a trip** tab compares up to 3 live routes
+from a depot to any searched place, flags the fastest by current traffic,
+and lists blockers (accidents, closures, roadworks, jams). A **Live
+incidents** layer, in both modes, shows real-time accidents and other
+incidents. Full details: [live-routing.md](live-routing.md).
+
 ## Files
 
 | File | Purpose |
@@ -74,6 +80,7 @@ Devon (8 points, "Out sick") triggers it in the demo.
 | OpenStreetMap tiles (`tile.openstreetmap.org`) | Map background | The map area stays blank; routes still draw. |
 | Public OSRM (`router.project-osrm.org`) | Street-following geometry, distance and duration | Straight lines between stops, with duration estimated at 25 km/h. Marked "≈ estimate" in the UI. Each request times out after 8 s. |
 | EIA API (`api.eia.gov`) | Weekly New England gas price, used for truck fuel cost | Fixed $3.50/gal, marked "≈ estimate". Times out after 5 s. |
+| TomTom (`api.tomtom.com`) | "Plan a trip" (place search, live alternate routes, blockers) and the live incidents/accidents layer. Server-side only, via `/api/fleet/*` | Trips use OSRM free-flow alternatives with no blockers; incidents layer says "unavailable". See [live-routing.md](live-routing.md). |
 
 **Configuration:** set `EIA_API_KEY` in `.env` (and in the hosting
 environment) to get live gas prices. A free key is available from EIA.

@@ -1,4 +1,4 @@
-import type { RouteType } from "@/lib/fleet/types";
+import type { IncidentKind, RouteType } from "@/lib/fleet/types";
 
 /**
  * Colors + cost/emissions constants for the /map page. Route colors
@@ -10,6 +10,35 @@ export const ROUTE_COLOR: Record<RouteType, string> = {
   truck: "#0f766e", // --accent-deep
   bike: "#b45309", // --danger-soft
 };
+
+/** Live-incident markers and labels on /map (see LIVE_ROUTING_PLAN.md). */
+export const INCIDENT_STYLE: Record<IncidentKind, { label: string; color: string; glyph: string }> = {
+  accident: { label: "Accident", color: "#b91c1c", glyph: "!" }, // alert red, stands apart from the theme
+  closure: { label: "Road closed", color: "#0f1c24", glyph: "×" }, // --ink
+  roadworks: { label: "Roadworks", color: "#b45309", glyph: "⚒" }, // --danger-soft
+  lane_closed: { label: "Lane closed", color: "#b45309", glyph: "≡" },
+  jam: { label: "Traffic jam", color: "#c2410c", glyph: "≈" },
+  broken_down: { label: "Broken-down vehicle", color: "#b45309", glyph: "!" },
+  hazard: { label: "Hazard", color: "#b45309", glyph: "⚠" },
+  weather: { label: "Weather", color: "#1a2b36", glyph: "☂" }, // --slate
+  other: { label: "Incident", color: "#1a2b36", glyph: "•" },
+};
+
+/** Draw order and list order: most serious first. */
+export const INCIDENT_PRIORITY: IncidentKind[] = [
+  "accident",
+  "closure",
+  "broken_down",
+  "hazard",
+  "roadworks",
+  "lane_closed",
+  "jam",
+  "weather",
+  "other",
+];
+
+/** How often live trips and incidents refresh while /map is visible. */
+export const LIVE_REFRESH_MS = 2 * 60 * 1000;
 
 export const KPI_COLOR = {
   time: "#0d9488", // --accent

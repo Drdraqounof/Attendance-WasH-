@@ -1,6 +1,9 @@
 # Live routing plan: alternate routes and blockers on `/map`
 
-**Status:** Planned 2026-10-05. Not started. Provider: TomTom.
+**Status:** Built 2026-10-05 (phases 1–5 done). Provider: TomTom. Also
+adds a live incidents/accidents layer, which wasn't in the original plan.
+The finished reference is
+[docs/fleet/live-routing.md](docs/fleet/live-routing.md).
 **Branch:** `map-integration`
 **Related docs:** [docs/fleet/map.md](docs/fleet/map.md) ·
 [docs/fleet/map-integration.md](docs/fleet/map-integration.md)
@@ -23,28 +26,33 @@ sees:
 
 ## How close we are: readiness grade
 
-This grades what the codebase has today against what the feature needs.
+This grades the codebase as it was before the build (2026-10-05) against
+what the feature needs. The "After" column is the grade once the build
+landed.
 
-| # | Needed capability | Grade | What exists today |
-| --- | --- | --- | --- |
-| 1 | Interactive map, layers, selection | **A** | Leaflet / react-leaflet, polylines, markers, `FitBounds`, full screen (`src/app/map/fleet-map.tsx`, `fleet-dashboard.tsx`) |
-| 2 | Auth and station scoping | **A** | `requireSession` / `requireApiSession` (`src/lib/session.ts`), `routesForScope` (`src/lib/fleet/scoped-routes.ts`) |
-| 3 | Server proxy for a keyed external API | **A-** | `src/app/api/gas-price/route.ts`: session check, timeout, caching, fallback. The new routes copy this pattern. |
-| 4 | Timeouts, fallbacks, and tests with a stubbed `fetch` | **B+** | `osrm.ts` timeout and straight-line fallback; `fleet.test.ts` fetch stubs |
-| 5 | Route list and detail UI | **B** | Sidebar, detail panel, KPI bars, driver cards. Built for fixed routes, not for comparing options. |
-| 6 | Routing engine | **C** | Public OSRM demo server, called from the browser. Car profile only, rate-limited, no truck rules. |
-| 7 | Data model for route options and blockers | **C-** | `Route` / `RouteMetrics` describe one route. No option, delay or incident types. |
-| 8 | Alternate routes | **F** | Not requested. OSRM supports `alternatives`, but the code doesn't use it. |
-| 9 | Live traffic ETA ("quickest now") | **F** | None. Durations are free-flow, or 25 km/h in the fallback. |
-| 10 | Blockers (jams, closures, roadworks, incidents) | **F** | None |
-| 11 | Destination search (places like "Burger King") | **F** | None. Only the hardcoded `NODES`. |
-| 12 | Quota, rate limiting and caching of paid calls | **D** | Only `revalidate` on the gas price. No app-wide rate limiting (a known limitation in the README). |
-| 13 | Live vehicle position (route from where the truck is) | **F** | No GPS or telematics. Out of scope: the origin is a depot or a chosen node. |
+| # | Needed capability | Before | What existed | After |
+| --- | --- | --- | --- | --- |
+| 1 | Interactive map, layers, selection | **A** | Leaflet / react-leaflet, polylines, markers, `FitBounds`, full screen (`src/app/map/fleet-map.tsx`, `fleet-dashboard.tsx`) | **A** |
+| 2 | Auth and station scoping | **A** | `requireSession` / `requireApiSession` (`src/lib/session.ts`), `routesForScope` (`src/lib/fleet/scoped-routes.ts`) | **A** (`originNodesForScope` too) |
+| 3 | Server proxy for a keyed external API | **A-** | `src/app/api/gas-price/route.ts`: session check, timeout, caching, fallback. The new routes copy this pattern. | **A** (3 new routes) |
+| 4 | Timeouts, fallbacks, and tests with a stubbed `fetch` | **B+** | `osrm.ts` timeout and straight-line fallback; `fleet.test.ts` fetch stubs | **A** (`tomtom.test.ts`) |
+| 5 | Route list and detail UI | **B** | Sidebar, detail panel, KPI bars, driver cards. Built for fixed routes, not for comparing options. | **A-** ("Plan a trip" panels) |
+| 6 | Routing engine | **C** | Public OSRM demo server, called from the browser. Car profile only, rate-limited, no truck rules. | **A-** (TomTom truck mode, server-side) |
+| 7 | Data model for route options and blockers | **C-** | `Route` / `RouteMetrics` describe one route. No option, delay or incident types. | **A** |
+| 8 | Alternate routes | **F** | Not requested. OSRM supports `alternatives`, but the code doesn't use it. | **A** (up to 3) |
+| 9 | Live traffic ETA ("quickest now") | **F** | None. Durations are free-flow, or 25 km/h in the fallback. | **A** |
+| 10 | Blockers (jams, closures, roadworks, incidents) | **F** | None | **A-** (direction-aware matching) |
+| 11 | Destination search (places like "Burger King") | **F** | None. Only the hardcoded `NODES`. | **A** |
+| 12 | Quota, rate limiting and caching of paid calls | **D** | Only `revalidate` on the gas price. No app-wide rate limiting (a known limitation in the README). | **B** (daily budget, caching, debounce; per instance) |
+| 13 | Live vehicle position (route from where the truck is) | **F** | No GPS or telematics. Out of scope: the origin is a depot or a chosen node. | **F** (needs telematics) |
 
 **Grade key:** **A** works as-is · **B** needs small extensions ·
 **C** exists but needs rework · **D** barely started · **F** missing.
 
-**Overall: about 40% ready.** The app around the feature is solid: map,
+**Overall after the build: about 90%.** Only live vehicle position
+(row 13) remains, and it needs hardware or a telematics feed.
+
+**Overall before the build: about 40% ready.** The app around the feature is solid: map,
 auth, the proxy pattern, tests and panels (rows 1–5). Everything "live" is
 missing (rows 8–11), and TomTom provides that. Row 13, routing in real time
 from a moving truck, isn't possible without a telematics feed, and none has
@@ -94,7 +102,7 @@ The key stays on the server. The browser never calls TomTom directly.
 
 ## Build phases
 
-### [ ] Phase 1: TomTom client (`src/lib/fleet/tomtom.ts`, new, server-only)
+### [x] Phase 1: TomTom client (`src/lib/fleet/tomtom.ts`, new, server-only)
 
 Pure parsers are kept separate from the `fetch` wrappers so they can be
 unit-tested with fixture JSON. Requests use `AbortSignal.timeout`, as in
@@ -112,7 +120,7 @@ unit-tested with fixture JSON. Requests use `AbortSignal.timeout`, as in
   routes it lies on (within about 30 m of the line, using `haversineKm`
   from `osrm.ts`) and flags the fastest option.
 
-### [ ] Phase 2: API routes (copy the `gas-price/route.ts` pattern)
+### [x] Phase 2: API routes (copy the `gas-price/route.ts` pattern)
 
 - **`GET /api/fleet/places?q=`:** requires a session and at least 3
   characters. Results are cached for 1 day.
@@ -127,12 +135,12 @@ unit-tested with fixture JSON. Requests use `AbortSignal.timeout`, as in
 - **Quota guard:** a daily counter stops calling TomTom at about 2,000
   calls and switches to the fallback. It logs a warning when that happens.
 
-### [ ] Phase 3: Types (`src/lib/fleet/types.ts`)
+### [x] Phase 3: Types (`src/lib/fleet/types.ts`)
 
 Add `PlaceResult`, `RouteOption`, `Blocker` and `DirectionsResponse`. The
 existing `Route` types stay unchanged.
 
-### [ ] Phase 4: UI, the "Plan a trip" mode on `/map`
+### [x] Phase 4: UI, the "Plan a trip" mode on `/map`
 
 - **`src/app/map/trip-planner.tsx` (new):**
   - An origin select: the viewer's depots and hubs, with the Lynn plant as
@@ -158,7 +166,7 @@ existing `Route` types stay unchanged.
   supervisors whose station covers Delivery Drivers (Yard). Other stations
   already see the empty state.
 
-### [ ] Phase 5: Documentation (updated with each phase, not only at the end)
+### [x] Phase 5: Documentation (updated with each phase, not only at the end)
 
 - **This file:** tick the phase boxes and re-grade the table.
 - **Code comments:** doc comments on `tomtom.ts`, both API routes and
@@ -203,8 +211,8 @@ existing `Route` types stay unchanged.
 ## Setup
 
 1. Create a free account at developer.tomtom.com and copy the API key.
-2. Add `TOMTOM_API_KEY=<key>` to your local `.env` and to the hosting
-   environment. **Add it yourself:** `.env*` files are read-only for
+2. Add `TOM_TOM_API_KEY=<key>` to your local `.env` and to the hosting
+   environment. `TOMTOM_API_KEY` also works. **Add it yourself:** `.env*` files are read-only for
    automated changes in this repo (see CLAUDE.md).
 3. Without a key, the feature still works in fallback mode, without live
    traffic or blockers.

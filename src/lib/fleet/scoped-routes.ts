@@ -1,6 +1,7 @@
 import { ALL_STATIONS, filterToScope, type StationScope } from "@/lib/access";
 import { DEMO_ROSTER, mockScope, RISK_LABELS } from "@/lib/dashboard-mock";
 import { riskLevelFromPoints, type RiskLevel } from "@/lib/policy-engine";
+import { NODES } from "./nodes";
 import { ROUTE_DEFINITIONS } from "./routes";
 import type { RouteDriver, ScopedRouteDefinition } from "./types";
 
@@ -33,4 +34,14 @@ export function routesForScope(scope: StationScope = ALL_STATIONS): ScopedRouteD
     ...def,
     driver: driverFor(def.driverId),
   }));
+}
+
+/**
+ * Depots and hubs on the viewer's routes — the only origins live
+ * routing (/api/fleet/directions) accepts from them. Empty means the
+ * viewer has no map access at all.
+ */
+export function originNodesForScope(scope: StationScope): string[] {
+  const ids = new Set(routesForScope(scope).flatMap((r) => r.stops));
+  return Object.keys(NODES).filter((id) => ids.has(id) && NODES[id]!.type !== "stop");
 }

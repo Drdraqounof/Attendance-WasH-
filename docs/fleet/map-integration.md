@@ -92,9 +92,9 @@ These are blocked on information from WCL, not on code:
 - **Vehicle data:** truck fuel economy and the bike fleet, to replace
   `TRUCK_MPG` and the CO₂ constants in `theme.ts`. Live positions would
   need a telematics feed, and none is identified yet.
-- **Live alternate routes and blockers:** planned with TomTom. See
-  [LIVE_ROUTING_PLAN.md](../../LIVE_ROUTING_PLAN.md) for the readiness
-  grade (about 40% today), the phases and the setup steps.
+- **Live alternate routes and blockers:** built 2026-10-05 with TomTom
+  (see [live-routing.md](live-routing.md)). It still routes from a depot,
+  not a truck's live position, which needs a telematics feed.
 - **Production routing and tiles:** see the "Not production routing"
   gap in [map.md](map.md). The longer Lynn routes send more requests to
   the public OSRM server.

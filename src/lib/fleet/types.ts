@@ -66,3 +66,85 @@ export type GasPriceResponse = {
   period: string | null;
   isFallback: boolean;
 };
+
+// -- Live routing (TomTom) — see LIVE_ROUTING_PLAN.md -------------------------
+
+/** A destination found by place search ("Burger King"). */
+export type PlaceResult = {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+};
+
+export type PlacesResponse = {
+  places: PlaceResult[];
+  /** False when live search is unavailable (no key, quota, error). */
+  isLive: boolean;
+};
+
+export type IncidentKind =
+  | "accident"
+  | "closure"
+  | "roadworks"
+  | "jam"
+  | "lane_closed"
+  | "hazard"
+  | "weather"
+  | "broken_down"
+  | "other";
+
+/** A live traffic incident — a "blocker" when it sits on a route option. */
+export type Incident = {
+  id: string;
+  kind: IncidentKind;
+  description: string;
+  /** e.g. "Centre St, from Cabot St to Commonwealth Ave" */
+  road: string;
+  /** Extra seconds of delay, when TomTom reports it. */
+  delaySec: number | null;
+  /** 0 unknown · 1 minor · 2 moderate · 3 major · 4 undefined (closures). */
+  magnitude: number;
+  /** Marker position, [lat, lng]. */
+  position: [number, number];
+  /** Affected stretch of road, [lat, lng] pairs. */
+  path: [number, number][];
+};
+
+export type IncidentsResponse = {
+  incidents: Incident[];
+  isLive: boolean;
+  fetchedAt: string;
+};
+
+/** A slow stretch reported along one route option. */
+export type TrafficSection = {
+  kind: "jam" | "roadworks" | "closure" | "other";
+  delaySec: number;
+  speedKmh: number | null;
+  /** [lat, lng] pairs for the slowed stretch. */
+  path: [number, number][];
+};
+
+/** One way to get from the origin to the destination. */
+export type RouteOption = {
+  id: string;
+  distanceKm: number;
+  /** Live-traffic ETA when `isLive`, otherwise free-flow. */
+  durationMin: number;
+  /** Free-flow time, for comparison. */
+  noTrafficMin: number;
+  trafficDelayMin: number;
+  geometry: [number, number][];
+  trafficSections: TrafficSection[];
+  /** Live incidents lying on this option's path. */
+  blockers: Incident[];
+  isFastest: boolean;
+};
+
+export type DirectionsResponse = {
+  options: RouteOption[];
+  isLive: boolean;
+  fetchedAt: string;
+};

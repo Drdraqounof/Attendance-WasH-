@@ -1,4 +1,4 @@
-import type { RouteType } from "@/lib/fleet/types";
+import type { RouteOption, RouteType } from "@/lib/fleet/types";
 
 /**
  * Street-following route geometry from the public OSRM demo server
@@ -83,4 +83,55 @@ export async function fetchRouteGeometry(
   } catch {
     return straightLineFallback(coords);
   }
+}
+
+/**
+ * Fallback for live routing (/api/fleet/directions) when TomTom is
+ * unavailable: up to 3 OSRM alternatives, free-flow times, no traffic or
+ * blockers. Straight line if OSRM is down too.
+ */
+export async function fetchAlternatives(
+  origin: [number, number],
+  dest: [number, number],
+): Promise<RouteOption[]> {
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/` +
+    `${origin[1]},${origin[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson&alternatives=3`;
+  let routes: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[] =
+    [];
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(OSRM_TIMEOUT_MS) });
+    if (!res.ok) throw new Error(`OSRM ${res.status}`);
+    routes = (await res.json())?.routes ?? [];
+  } catch {
+    routes = [];
+  }
+
+  const options: RouteOption[] = routes.map((r, i) => ({
+    id: `opt-${i + 1}`,
+    distanceKm: r.distance / 1000,
+    durationMin: r.duration / 60,
+    noTrafficMin: r.duration / 60,
+    trafficDelayMin: 0,
+    geometry: r.geometry.coordinates.map(([lng, lat]): [number, number] => [lat, lng]),
+    trafficSections: [],
+    blockers: [],
+    isFastest: i === 0,
+  }));
+  if (options.length > 0) return options;
+
+  const line = straightLineFallback([origin, dest]);
+  return [
+    {
+      id: "opt-1",
+      distanceKm: line.distanceKm,
+      durationMin: line.durationMin,
+      noTrafficMin: line.durationMin,
+      trafficDelayMin: 0,
+      geometry: line.geometry,
+      trafficSections: [],
+      blockers: [],
+      isFastest: true,
+    },
+  ];
 }

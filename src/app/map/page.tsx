@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { OpsShell } from "@/components/ops-shell";
 import { ROLE_LABELS } from "@/lib/access";
 import { DEMO_STATION_TEAMS } from "@/lib/dashboard-mock";
-import { routesForScope } from "@/lib/fleet/scoped-routes";
+import { originNodesForScope, routesForScope } from "@/lib/fleet/scoped-routes";
 import { requireSession } from "@/lib/session";
 import { FleetDashboard } from "./fleet-dashboard";
 
@@ -39,13 +39,14 @@ export default async function MapPage() {
               Delivery routes
             </h1>
             <p className="border border-line bg-white/70 px-3 py-1.5 text-sm text-slate/65">
-              Demo routes · not live vehicle tracking
+              Demo fleet routes · live traffic via TomTom
             </p>
           </div>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate/75">
             Truck and bike routes across Boston with distance, drive time, fuel cost and
             estimated savings versus an unoptimized sequence, plus each driver&apos;s
-            attendance standing. Viewing as {ROLE_LABELS[session.active.role]} ·{" "}
+            attendance standing. Use Plan a trip to compare live routes to any destination
+            and see accidents, closures and jams in the way. Viewing as {ROLE_LABELS[session.active.role]} ·{" "}
             {session.active.station?.name ?? "All stations"}.
           </p>
           {needCover > 0 && (
@@ -59,7 +60,7 @@ export default async function MapPage() {
         </div>
 
         {definitions.length > 0 ? (
-          <FleetDashboard definitions={definitions} />
+          <FleetDashboard definitions={definitions} origins={originNodesForScope(session.scope)} />
         ) : (
           <div className="animate-fade-up-delay-1 mt-6 border border-line bg-white/70 px-6 py-10 text-center">
             <p className="font-display text-lg font-semibold text-ink">

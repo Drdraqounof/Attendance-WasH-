@@ -3,10 +3,37 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import type { ScopedRouteDefinition } from "@/lib/fleet/types";
+import { NODES } from "@/lib/fleet/nodes";
+import type { PlaceResult, RouteType, ScopedRouteDefinition } from "@/lib/fleet/types";
 import { RouteDetailPanel } from "./route-detail-panel";
 import { RouteSidebar, type RouteFilter } from "./route-sidebar";
+import { formatTime, TripControls, TripDetail } from "./trip-planner";
+import { useIncidents, usePlaceSearch, useTrip, type BBox } from "./use-live";
 import { useRoutes } from "./use-routes";
+
+type MapMode = "fleet" | "trip";
+
+const MODE_LABELS: Record<MapMode, string> = {
+  fleet: "Fleet routes",
+  trip: "Plan a trip",
+};
+
+/** Every node, padded ~3 km — the default live-incidents area. */
+function nodesBbox(extra: [number, number][] = []): BBox {
+  const points: [number, number][] = [
+    ...Object.values(NODES).map((n): [number, number] => [n.lat, n.lng]),
+    ...extra,
+  ];
+  const lats = points.map((p) => p[0]);
+  const lngs = points.map((p) => p[1]);
+  const pad = 0.03;
+  return [
+    Math.min(...lngs) - pad,
+    Math.min(...lats) - pad,
+    Math.max(...lngs) + pad,
+    Math.max(...lats) + pad,
+  ];
+}
 
 // Leaflet needs `window` — render the map on the client only.
 const FleetMap = dynamic(() => import("./fleet-map"), {
@@ -44,7 +71,25 @@ function FullscreenIcon({ exit }: { exit: boolean }) {
   );
 }
 
-function Legend() {
+function Legend({ mode }: { mode: MapMode }) {
+  if (mode === "trip") {
+    return (
+      <span className="flex flex-wrap items-center gap-4">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-1 w-4 bg-accent-deep" aria-hidden />
+          Selected route
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-1 w-4 bg-slate/35" aria-hidden />
+          Alternates
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-1 w-4 bg-[#c2410c]" aria-hidden />
+          Slow traffic
+        </span>
+      </span>
+    );
+  }
   return (
     <span className="flex items-center gap-4">
       <span className="flex items-center gap-2">
@@ -139,8 +184,46 @@ function useMovableHost(slot: RefObject<HTMLDivElement | null>, detached: boolea
   return host;
 }
 
-export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefinition[] }) {
+export function FleetDashboard({
+  definitions,
+  origins,
+}: {
+  definitions: ScopedRouteDefinition[];
+  /** Depots/hubs the viewer may plan trips from (originNodesForScope). */
+  origins: string[];
+}) {
   const { routes, toggleRoute, gasPrice } = useRoutes(definitions);
+  const [mode, setMode] = useState<MapMode>("fleet");
+  const [showIncidents, setShowIncidents] = useState(true);
+  const [tripOrigin, setTripOrigin] = useState(
+    origins.includes("wcl_lynn") ? "wcl_lynn" : (origins[0] ?? ""),
+  );
+  const [tripMode, setTripMode] = useState<RouteType>("truck");
+  const [destination, setDestination] = useState<PlaceResult | null>(null);
+  const [chosenOption, setChosenOption] = useState<string | null>(null);
+  const search = usePlaceSearch();
+  const trip = useTrip(tripOrigin, destination, tripMode);
+  const tripOptions = useMemo(() => trip.data?.options ?? [], [trip.data]);
+  // Keep the user's pick across refreshes; otherwise default to the fastest.
+  const selectedOptionId =
+    tripOptions.find((o) => o.id === chosenOption)?.id ??
+    tripOptions.find((o) => o.isFastest)?.id ??
+    null;
+  const selectedOption = tripOptions.find((o) => o.id === selectedOptionId);
+
+  const incidentsBbox = useMemo(
+    () => nodesBbox(mode === "trip" && destination ? [[destination.lat, destination.lng]] : []),
+    [mode, destination],
+  );
+  const incidents = useIncidents(incidentsBbox, showIncidents);
+  const accidentCount =
+    incidents.data?.incidents.filter((i) => i.kind === "accident").length ?? 0;
+
+  function chooseDestination(place: PlaceResult | null) {
+    setDestination(place);
+    setChosenOption(null);
+    if (!place) search.setQuery("");
+  }
   const [filter, setFilter] = useState<RouteFilter>("all");
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(definitions[0]?.id ?? null);
@@ -178,7 +261,56 @@ export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefini
             {gasPrice.isFallback && <span className="ml-1 text-slate/50">≈ estimate</span>}
           </span>
         )}
-        <Legend />
+        <Legend mode={mode} />
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="grid grid-cols-2 gap-px border border-line bg-line" role="tablist" aria-label="Map mode">
+          {(["fleet", "trip"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => setMode(m)}
+              className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
+                mode === m ? "bg-ink text-white" : "bg-white/90 text-slate/70 hover:bg-surface-2 hover:text-ink"
+              }`}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate/65">
+          {showIncidents && incidents.data && (
+            <span aria-live="polite">
+              {incidents.data.isLive ? (
+                <>
+                  <span
+                    className={accidentCount > 0 ? "font-semibold text-[#b91c1c]" : "font-semibold text-ink"}
+                  >
+                    {accidentCount} {accidentCount === 1 ? "accident" : "accidents"}
+                  </span>
+                  {" · "}
+                  {incidents.data.incidents.length} live incidents · updated{" "}
+                  {formatTime(incidents.data.fetchedAt)}
+                </>
+              ) : (
+                "Live incidents unavailable"
+              )}
+            </span>
+          )}
+          <label className="flex cursor-pointer items-center gap-2 font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={showIncidents}
+              onChange={(e) => setShowIncidents(e.target.checked)}
+              className="h-4 w-4 accent-[#0f766e]"
+            />
+            Live incidents
+          </label>
+        </div>
       </div>
 
       {/* Map — full width and as tall as the viewport allows. Rendered into
@@ -198,18 +330,38 @@ export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefini
           >
             {routes ? (
               <FleetMap
-                routes={visibleRoutes}
+                routes={mode === "fleet" ? visibleRoutes : []}
                 hovered={hovered}
-                selected={selected}
+                selected={mode === "fleet" ? selected : null}
                 onHover={setHovered}
                 onSelect={setSelected}
+                incidents={showIncidents ? (incidents.data?.incidents ?? []) : []}
+                trip={
+                  mode === "trip" && destination
+                    ? {
+                        options: tripOptions,
+                        selectedId: selectedOptionId,
+                        destination,
+                        onSelect: setChosenOption,
+                      }
+                    : undefined
+                }
               />
             ) : (
               <MapPlaceholder label="Loading routes…" />
             )}
 
             <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex items-start gap-2">
-              {fullscreen.isFullscreen && selectedRoute ? (
+              {fullscreen.isFullscreen && mode === "trip" && selectedOption && destination ? (
+                <p className="pointer-events-auto border border-line bg-white/95 px-3 py-2 text-sm text-ink shadow-sm">
+                  <span className="font-semibold">To {destination.name}</span>
+                  <span className="text-slate/60">
+                    {" "}
+                    · {Math.round(selectedOption.durationMin)} min ·{" "}
+                    {selectedOption.blockers.length} blockers
+                  </span>
+                </p>
+              ) : fullscreen.isFullscreen && mode === "fleet" && selectedRoute ? (
                 <p className="pointer-events-auto border border-line bg-white/95 px-3 py-2 text-sm text-ink shadow-sm">
                   <span className="font-semibold">{selectedRoute.name}</span>
                   <span className="text-slate/60">
@@ -236,7 +388,7 @@ export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefini
 
             {fullscreen.isFullscreen ? (
               <div className="absolute bottom-6 left-3 z-[1000] border border-line bg-white/95 px-3 py-2 text-sm text-slate/70 shadow-sm">
-                <Legend />
+                <Legend mode={mode} />
               </div>
             ) : null}
           </div>,
@@ -244,7 +396,38 @@ export function FleetDashboard({ definitions }: { definitions: ScopedRouteDefini
         )}
 
       {/* Route list + details, side by side under the map. */}
-      {routes ? (
+      {mode === "trip" ? (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="lg:max-h-[36rem] lg:min-h-0 lg:[&>aside]:h-full">
+            <TripControls
+              origins={origins}
+              origin={tripOrigin}
+              onOriginChange={(id) => {
+                setTripOrigin(id);
+                setChosenOption(null);
+              }}
+              mode={tripMode}
+              onModeChange={(m) => {
+                setTripMode(m);
+                setChosenOption(null);
+              }}
+              search={search}
+              destination={destination}
+              onDestinationChange={chooseDestination}
+              trip={trip}
+              selectedOption={selectedOptionId}
+              onSelectOption={setChosenOption}
+            />
+          </div>
+          <div className="lg:max-h-[36rem] lg:min-h-0 lg:[&>aside]:h-full">
+            <TripDetail
+              option={selectedOption}
+              destination={destination}
+              isLive={trip.data?.isLive ?? false}
+            />
+          </div>
+        </div>
+      ) : routes ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="lg:max-h-[32rem] lg:min-h-0 lg:[&>aside]:h-full">
             <RouteSidebar
