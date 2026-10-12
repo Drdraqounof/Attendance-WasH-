@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LIVE_REFRESH_MS } from "@/lib/fleet/theme";
+import { createLogger, elapsedMs, now } from "@/lib/log";
 import type {
   DirectionsResponse,
   IncidentsResponse,
@@ -13,9 +14,28 @@ import type {
 /**
  * Client hooks for live data on /map: the incidents layer and "Plan a
  * trip". Both call the /api/fleet/* routes (which hold the TomTom key)
- * and refresh every LIVE_REFRESH_MS while the tab is visible. See
- * LIVE_ROUTING_PLAN.md.
+ * and refresh every LIVE_REFRESH_MS while the tab is visible. Failures
+ * and fallbacks are logged to the browser console as `[map/live]`, with
+ * the server's request id to match against server logs. See
+ * docs/operations/logging.md.
  */
+
+const log = createLogger("map/live");
+
+/** Fallback reasons already logged, so a 2-minute refresh doesn't repeat them. */
+const loggedFallbacks = new Set<string>();
+
+function noteFallback(what: string, data: { isLive: boolean; fallbackReason?: string }) {
+  const key = `${what}:${data.fallbackReason ?? "unknown"}`;
+  if (data.isLive) {
+    // Recovered: allow the same reason to be logged again later.
+    for (const k of [...loggedFallbacks]) if (k.startsWith(`${what}:`)) loggedFallbacks.delete(k);
+    return;
+  }
+  if (loggedFallbacks.has(key)) return;
+  loggedFallbacks.add(key);
+  log.warn(`${what}: live data unavailable — showing fallback`, { reason: data.fallbackReason });
+}
 
 /** Runs `fn` every LIVE_REFRESH_MS while enabled and the tab is visible. */
 function useVisibleInterval(fn: () => void, enabled: boolean) {
@@ -34,8 +54,29 @@ function useVisibleInterval(fn: () => void, enabled: boolean) {
 }
 
 async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(url, { signal: signal ?? AbortSignal.timeout(20000) });
-  if (!res.ok) throw new Error(`${url} ${res.status}`);
+  const start = now();
+  const path = url.split("?")[0];
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: signal ?? AbortSignal.timeout(20000) });
+  } catch (error) {
+    if (!(error instanceof Error && error.name === "AbortError")) {
+      log.error(`${path} request failed`, { ms: elapsedMs(start), error });
+    }
+    throw error;
+  }
+  const requestId = res.headers.get("x-request-id") ?? undefined;
+  if (!res.ok) {
+    let detail: string | undefined;
+    try {
+      detail = ((await res.json()) as { error?: string }).error;
+    } catch {
+      // Non-JSON error body.
+    }
+    log.error(`${path} returned ${res.status}`, { requestId, detail, ms: elapsedMs(start) });
+    throw new Error(`${path} ${res.status}`);
+  }
+  log.debug(`${path} ok`, { requestId, ms: elapsedMs(start) });
   return res.json();
 }
 
@@ -49,7 +90,9 @@ export function useIncidents(bbox: BBox, enabled: boolean) {
 
   const load = useCallback(async () => {
     try {
-      setData(await getJson<IncidentsResponse>(`/api/fleet/incidents?bbox=${key}`));
+      const result = await getJson<IncidentsResponse>(`/api/fleet/incidents?bbox=${key}`);
+      noteFallback("incidents", result);
+      setData(result);
       setError(false);
     } catch {
       setError(true);
@@ -89,6 +132,7 @@ export function usePlaceSearch() {
           `/api/fleet/places?q=${encodeURIComponent(q)}`,
           controller.signal,
         );
+        noteFallback("place search", data);
         setResults(data.places);
         setStatus(data.isLive ? "done" : "unavailable");
       } catch {
@@ -116,7 +160,9 @@ export function useTrip(origin: string, destination: PlaceResult | null, mode: R
       const url =
         `/api/fleet/directions?from=${encodeURIComponent(origin)}` +
         `&to=${destination.lat},${destination.lng}&mode=${mode}`;
-      setData(await getJson<DirectionsResponse>(url));
+      const result = await getJson<DirectionsResponse>(url);
+      noteFallback("directions", result);
+      setData(result);
       setError(false);
     } catch {
       setError(true);

@@ -10,7 +10,11 @@ import {
   parsePlaces,
   parseRoutes,
   resetQuota,
+  searchPlaces,
+  TomTomError,
+  tomtomStatus,
 } from "./tomtom";
+import { fallbackReason } from "./api-log";
 
 // Shapes trimmed from real TomTom responses (2026-10-05).
 const SEARCH = {
@@ -232,5 +236,48 @@ describe("live routing — access and fallback", () => {
       [42.4, -71],
       [42.38, -71],
     ]);
+  });
+});
+
+describe("tomtom — failure diagnostics", () => {
+  afterEach(() => {
+    resetQuota();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("records TomTom's own error text and status, without leaking the key", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detailedError: { message: "Invalid API key" } }), {
+          status: 403,
+        }),
+      ),
+    );
+
+    const failure = await searchPlaces("burger king", "SECRET-KEY").catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(TomTomError);
+    expect(failure).toMatchObject({ endpoint: "search", reason: "http", status: 403 });
+    expect(fallbackReason(failure)).toBe("http 403");
+
+    const status = tomtomStatus();
+    expect(status.endpoints.search).toMatchObject({ calls: 1, failures: 1 });
+    expect(status.endpoints.search.lastFailure?.reason).toBe("HTTP 403: Invalid API key");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("SECRET-KEY");
+  });
+
+  it("labels timeouts and the spent budget distinctly", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new DOMException("timed out", "TimeoutError")),
+    );
+    await expect(searchPlaces("burger king", "k")).rejects.toMatchObject({ reason: "timeout" });
+
+    for (let i = 0; i < DAILY_CALL_BUDGET; i++) consumeQuota();
+    await expect(searchPlaces("burger king", "k")).rejects.toMatchObject({ reason: "budget" });
+    expect(tomtomStatus().quota).toMatchObject({ exhausted: true, used: DAILY_CALL_BUDGET });
   });
 });

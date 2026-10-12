@@ -59,6 +59,8 @@ Risk bands (policy PDF §5, rolling 12-month points): **Clear** 0, **Low** 1–3
 - Signal mix from point ledgers
 - Highest open-points list (links to person profiles)
 
+Logging: the map stack logs through `src/lib/log.ts` (request IDs, fallback reasons, redacted secrets), and HR can open `/api/fleet/status` for diagnostics. See [logging.md](../operations/logging.md).
+
 Header nav on ops pages: **Dashboard** · **Analytics** · **AI Insights** · **Map** · **Settings**, plus a role/station badge (with **Switch** when the user has more than one assignment), notifications, Profile and Sign out. On phones, the nav sits on its own horizontally scrolling row.
 
 ## Auth note

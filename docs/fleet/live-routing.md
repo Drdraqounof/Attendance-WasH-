@@ -90,6 +90,9 @@ shortest route.
 | `src/app/map/fleet-map.tsx` | Trip layer, slow-stretch lines, incident badges, destination pin |
 | `src/app/map/fleet-dashboard.tsx` | Mode tabs, live-incidents toggle and counter |
 | `src/lib/fleet/theme.ts` | `INCIDENT_STYLE`, `INCIDENT_PRIORITY`, `LIVE_REFRESH_MS` |
+| `src/lib/fleet/api-log.ts` | `startRequest()` (request ID and per-request log line) and `fallbackReason()` |
+| `src/app/api/fleet/status/route.ts` | HR-only diagnostics: keys configured, budget, endpoint health, recent problems |
+| `src/lib/log.ts` | Shared logger (see [logging.md](../operations/logging.md)) |
 | `src/lib/fleet/tomtom.test.ts` | Parsers, blocker matching (including opposite-direction and cross-street cases), quota, access, fallback |
 
 ## Configuration and quota
@@ -112,6 +115,22 @@ shortest route.
   - responses are cached about 60 s
 - **Rough daily budget:** with one viewer keeping a trip open, about 90
   calls an hour, or roughly 20 viewer-hours a day.
+
+## When something doesn't work
+
+- **Server logs:** every TomTom call and `/api/fleet/*` request is logged
+  with status, timing and a request ID. Scopes are `tomtom`,
+  `fleet/directions` and so on.
+- **Browser console:** failures are logged as `[map/live]`, with the same
+  request ID.
+- **Status endpoint:** `GET /api/fleet/status` (HR only) shows whether
+  the key is set, today's budget, per-endpoint failures and recent
+  problems.
+- **Fallback reasons:** API responses that aren't live include a
+  `fallbackReason` (`no_key`, `http 403`, `timeout`, `budget`…).
+
+Symptoms, log lines and fixes are listed in
+[docs/operations/logging.md](../operations/logging.md).
 
 ## Known gaps
 

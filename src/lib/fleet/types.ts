@@ -82,6 +82,8 @@ export type PlacesResponse = {
   places: PlaceResult[];
   /** False when live search is unavailable (no key, quota, error). */
   isLive: boolean;
+  /** Why live data wasn't used, e.g. "no_key", "budget", "http 403" (logged by the client). */
+  fallbackReason?: string;
 };
 
 export type IncidentKind =
@@ -115,6 +117,8 @@ export type Incident = {
 export type IncidentsResponse = {
   incidents: Incident[];
   isLive: boolean;
+  /** Why live data wasn't used, e.g. "no_key", "budget", "http 403" (logged by the client). */
+  fallbackReason?: string;
   fetchedAt: string;
 };
 
@@ -146,5 +150,7 @@ export type RouteOption = {
 export type DirectionsResponse = {
   options: RouteOption[];
   isLive: boolean;
+  /** Why live data wasn't used, e.g. "no_key", "budget", "http 403" (logged by the client). */
+  fallbackReason?: string;
   fetchedAt: string;
 };

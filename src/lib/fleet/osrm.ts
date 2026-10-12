@@ -1,4 +1,8 @@
 import type { RouteOption, RouteType } from "@/lib/fleet/types";
+import { createLogger, elapsedMs, now } from "@/lib/log";
+
+// Runs in the browser (fleet routes) and on the server (trip fallback).
+const log = createLogger("osrm");
 
 /**
  * Street-following route geometry from the public OSRM demo server
@@ -62,6 +66,7 @@ export async function fetchRouteGeometry(
   const coordPath = coords.map(([lat, lng]) => `${lng},${lat}`).join(";");
   const url = `https://router.project-osrm.org/route/v1/${profile}/${coordPath}?overview=full&geometries=geojson`;
 
+  const start = now();
   try {
     // A hung request would otherwise keep the whole map on "Loading routes…".
     const res = await fetch(url, { signal: AbortSignal.timeout(OSRM_TIMEOUT_MS) });
@@ -80,7 +85,13 @@ export async function fetchRouteGeometry(
       geometry,
       isFallback: false,
     };
-  } catch {
+  } catch (error) {
+    log.warn("route geometry failed — drawing straight lines", {
+      type,
+      stops: coords.length,
+      ms: elapsedMs(start),
+      error,
+    });
     return straightLineFallback(coords);
   }
 }
@@ -99,11 +110,14 @@ export async function fetchAlternatives(
     `${origin[1]},${origin[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson&alternatives=3`;
   let routes: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[] =
     [];
+  const start = now();
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(OSRM_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`OSRM ${res.status}`);
     routes = (await res.json())?.routes ?? [];
-  } catch {
+    log.info("fallback alternatives from OSRM", { routes: routes.length, ms: elapsedMs(start) });
+  } catch (error) {
+    log.warn("OSRM alternatives failed — using a straight line", { ms: elapsedMs(start), error });
     routes = [];
   }
 

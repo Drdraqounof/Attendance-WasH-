@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { FALLBACK_GAS_PRICE_PER_GALLON } from "@/lib/fleet/theme";
 import type { GasPriceResponse } from "@/lib/fleet/types";
+import { createLogger } from "@/lib/log";
 import { requireApiSession } from "@/lib/session";
+
+const log = createLogger("gas-price");
 
 /**
  * GET -> latest EIA weekly retail regular-gasoline price for PADD 1A
@@ -29,6 +32,7 @@ export async function GET(request: Request) {
 
   const apiKey = process.env.EIA_API_KEY;
   if (!apiKey) {
+    log.debug("EIA_API_KEY is not set — using the fixed fallback price");
     return NextResponse.json<GasPriceResponse>(FALLBACK);
   }
 
@@ -50,7 +54,7 @@ export async function GET(request: Request) {
       isFallback: false,
     });
   } catch (error) {
-    console.error("[gas-price] EIA request failed:", error);
+    log.error("EIA request failed — using the fixed fallback price", { error });
     return NextResponse.json<GasPriceResponse>(FALLBACK);
   }
 }

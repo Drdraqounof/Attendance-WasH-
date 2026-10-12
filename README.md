@@ -22,6 +22,7 @@ Open [http://localhost:3000](http://localhost:3000) and sign in, or create an ac
 | `OPENAI_API_KEY` | AI summaries on `/insights`. Without it, the page falls back to rule-based text. |
 | `EIA_API_KEY` | Live gas price on `/map`. Without it, $3.50/gal is used. |
 | `TOM_TOM_API_KEY` | Live routes, place search and traffic incidents/accidents on `/map`. Without it, trips use free-flow OSRM routes with no blockers. See [`docs/fleet/live-routing.md`](docs/fleet/live-routing.md). |
+| `LOG_LEVEL`, `LOG_FORMAT` | Optional. Log detail (`debug`/`info`/`warn`/`error`) and `json` output. See [`docs/operations/logging.md`](docs/operations/logging.md). |
 | `APP_URL` | Base URL for password reset links. Defaults to the request origin. |
 | `SEED_LOGIN_EMAILS`, `SEED_LOGIN_PASSWORD` | `npm run db:seed-login` (create sign-ins). |
 | `SEED_ROLE_ASSIGNMENTS` | `npm run db:seed-roles` (assign roles/stations; JSON, format in `src/db/seed-roles.ts`). |
@@ -101,6 +102,7 @@ The full list is in [`docs/Updates/2026-09-20-production-readiness-checklist.md`
 - Overview: [`docs/overview/plain-english.md`](docs/overview/plain-english.md) · [`docs/overview/system-overview.md`](docs/overview/system-overview.md)
 - Sign-in, registration, password reset: [`docs/auth/authentication.md`](docs/auth/authentication.md)
 - Roles, stations, scoping, audit: [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md)
+- Logging and troubleshooting: [`docs/operations/logging.md`](docs/operations/logging.md)
 - Map: [`docs/fleet/map.md`](docs/fleet/map.md) · Real-location integration: [`docs/fleet/map-integration.md`](docs/fleet/map-integration.md) · Live routing and accidents: [`docs/fleet/live-routing.md`](docs/fleet/live-routing.md) (plan: [`LIVE_ROUTING_PLAN.md`](LIVE_ROUTING_PLAN.md))
 - Product spec: [`docs/planning/Attendance-Plan.md`](docs/planning/Attendance-Plan.md) · Stakeholder feedback status: [`docs/planning/2026-09-16-stakeholder-feedback-response.md`](docs/planning/2026-09-16-stakeholder-feedback-response.md)
 

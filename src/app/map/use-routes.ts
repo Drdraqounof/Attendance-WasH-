@@ -10,6 +10,9 @@ import {
   truckFuelCost,
 } from "@/lib/fleet/theme";
 import type { GasPriceResponse, Route, ScopedRouteDefinition } from "@/lib/fleet/types";
+import { createLogger } from "@/lib/log";
+
+const log = createLogger("map/routes");
 
 function toCoords(stops: string[]): [number, number][] {
   return stops.filter((s) => NODES[s]).map((s) => [NODES[s].lat, NODES[s].lng]);
@@ -20,7 +23,8 @@ async function loadGasPrice(): Promise<GasPriceResponse> {
     const res = await fetch("/api/gas-price", { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`gas-price ${res.status}`);
     return await res.json();
-  } catch {
+  } catch (error) {
+    log.warn("gas price unavailable — using the fixed estimate", { error });
     return { pricePerGallon: FALLBACK_GAS_PRICE_PER_GALLON, period: null, isFallback: true };
   }
 }

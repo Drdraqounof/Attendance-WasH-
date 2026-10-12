@@ -5,6 +5,9 @@ import type {
   RouteOption,
   TrafficSection,
 } from "@/lib/fleet/types";
+import { createLogger, elapsedMs, now } from "@/lib/log";
+
+const log = createLogger("tomtom");
 
 /**
  * Server-only TomTom client for live routing on /map: place search,
@@ -59,7 +62,10 @@ export function consumeQuota(now: Date = new Date()): boolean {
   }
   if (quota.count >= DAILY_CALL_BUDGET) {
     if (quota.count === DAILY_CALL_BUDGET) {
-      console.warn(`[tomtom] daily budget of ${DAILY_CALL_BUDGET} calls reached — using fallbacks`);
+      log.warn("Daily call budget reached — live routing falls back until UTC midnight", {
+        budget: DAILY_CALL_BUDGET,
+        day,
+      });
       quota.count++;
     }
     return false;
@@ -72,16 +78,150 @@ export function consumeQuota(now: Date = new Date()): boolean {
 export function resetQuota(): void {
   quota.day = "";
   quota.count = 0;
+  for (const key of Object.keys(health) as TomTomEndpoint[]) health[key] = emptyHealth();
 }
 
-async function tomtomGet(url: string, revalidate: number): Promise<unknown> {
-  if (!consumeQuota()) throw new Error("TomTom daily budget reached");
-  const res = await fetch(url, {
-    next: { revalidate },
-    signal: AbortSignal.timeout(TOMTOM_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`TomTom ${res.status}`);
-  return res.json();
+// -- Calls + health ------------------------------------------------------------------
+
+export type TomTomEndpoint = "search" | "routing" | "incidents";
+
+export type EndpointHealth = {
+  calls: number;
+  failures: number;
+  lastOkAt: string | null;
+  lastFailure: { at: string; reason: string; status: number | null } | null;
+  lastMs: number | null;
+};
+
+const emptyHealth = (): EndpointHealth => ({
+  calls: 0,
+  failures: 0,
+  lastOkAt: null,
+  lastFailure: null,
+  lastMs: null,
+});
+
+const health: Record<TomTomEndpoint, EndpointHealth> = {
+  search: emptyHealth(),
+  routing: emptyHealth(),
+  incidents: emptyHealth(),
+};
+
+/** Per-endpoint call counts and last success/failure, for /api/fleet/status. */
+export function tomtomStatus() {
+  return {
+    keyConfigured: tomtomKey() !== null,
+    quota: {
+      day: quota.day || null,
+      used: Math.min(quota.count, DAILY_CALL_BUDGET),
+      budget: DAILY_CALL_BUDGET,
+      exhausted: quota.count >= DAILY_CALL_BUDGET,
+    },
+    endpoints: structuredClone(health),
+  };
+}
+
+/** Thrown for any TomTom failure; `reason` is safe to log and show in status. */
+export class TomTomError extends Error {
+  constructor(
+    readonly endpoint: TomTomEndpoint,
+    readonly reason: "budget" | "timeout" | "network" | "http" | "parse",
+    message: string,
+    readonly status: number | null = null,
+  ) {
+    super(message);
+    this.name = "TomTomError";
+  }
+}
+
+/** TomTom's own explanation, e.g. "You are not allowed to access this endpoint". */
+async function errorDetail(res: Response): Promise<string> {
+  try {
+    const text = (await res.text()).slice(0, 300);
+    try {
+      const body = JSON.parse(text) as {
+        detailedError?: { message?: string };
+        errorText?: string;
+        error?: { description?: string } | string;
+      };
+      return (
+        body.detailedError?.message ??
+        body.errorText ??
+        (typeof body.error === "string" ? body.error : body.error?.description) ??
+        text
+      );
+    } catch {
+      return text;
+    }
+  } catch {
+    return "";
+  }
+}
+
+async function tomtomGet(
+  endpoint: TomTomEndpoint,
+  url: string,
+  revalidate: number,
+  context: Record<string, unknown> = {},
+): Promise<unknown> {
+  const h = health[endpoint];
+  const fail = (error: TomTomError, ms: number | null): never => {
+    h.failures++;
+    h.lastMs = ms;
+    h.lastFailure = { at: new Date().toISOString(), reason: error.message, status: error.status };
+    log.warn(`${endpoint} call failed (${error.reason})`, {
+      ...context,
+      status: error.status ?? undefined,
+      ms: ms ?? undefined,
+      detail: error.message,
+    });
+    throw error;
+  };
+
+  if (!consumeQuota()) {
+    return fail(new TomTomError(endpoint, "budget", "Daily call budget reached"), null);
+  }
+  h.calls++;
+  const start = now();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      next: { revalidate },
+      signal: AbortSignal.timeout(TOMTOM_TIMEOUT_MS),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return fail(
+      new TomTomError(
+        endpoint,
+        timedOut ? "timeout" : "network",
+        timedOut
+          ? `No response within ${TOMTOM_TIMEOUT_MS} ms`
+          : `Network error: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+      elapsedMs(start),
+    );
+  }
+
+  if (!res.ok) {
+    // 403 = bad key or product not enabled · 429 = TomTom rate/quota limit · 5xx = TomTom down
+    const detail = await errorDetail(res);
+    return fail(
+      new TomTomError(endpoint, "http", `HTTP ${res.status}${detail ? `: ${detail}` : ""}`, res.status),
+      elapsedMs(start),
+    );
+  }
+
+  try {
+    const body = await res.json();
+    h.lastOkAt = new Date().toISOString();
+    h.lastMs = elapsedMs(start);
+    log.debug(`${endpoint} ok`, { ...context, ms: h.lastMs, quotaUsed: quota.count });
+    return body;
+  } catch {
+    return fail(new TomTomError(endpoint, "parse", "Response was not JSON"), elapsedMs(start));
+  }
 }
 
 // -- Place search ----------------------------------------------------------------
@@ -123,7 +263,9 @@ export async function searchPlaces(query: string, key: string): Promise<PlaceRes
   const url =
     `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json` +
     `?key=${key}&lat=${lat}&lon=${lng}&radius=${SEARCH_RADIUS_M}&limit=8&countrySet=US`;
-  return parsePlaces(await tomtomGet(url, 86400));
+  const places = parsePlaces(await tomtomGet("search", url, 86400, { query }));
+  if (places.length === 0) log.info("search returned no places", { query });
+  return places;
 }
 
 // -- Live incidents ----------------------------------------------------------------
@@ -208,12 +350,23 @@ const INCIDENT_FIELDS =
   "events{description,code,iconCategory},from,to,delay,roadNumbers}}}";
 
 export async function incidentsInBbox(bbox: BBox, key: string): Promise<Incident[]> {
-  if (bboxAreaKm2(bbox) > MAX_INCIDENT_BBOX_KM2) throw new Error("Incident area too large");
+  const areaKm2 = Math.round(bboxAreaKm2(bbox));
+  if (areaKm2 > MAX_INCIDENT_BBOX_KM2) {
+    log.warn("incident area too large — skipped", { areaKm2, max: MAX_INCIDENT_BBOX_KM2 });
+    throw new TomTomError("incidents", "http", `Area ${areaKm2} km² is over ${MAX_INCIDENT_BBOX_KM2} km²`);
+  }
   const url =
     `https://api.tomtom.com/traffic/services/5/incidentDetails?key=${key}` +
     `&bbox=${bbox.map((v) => v.toFixed(5)).join(",")}` +
     `&fields=${encodeURIComponent(INCIDENT_FIELDS)}&language=en-US&timeValidityFilter=present`;
-  return parseIncidents(await tomtomGet(url, 60));
+  const raw = await tomtomGet("incidents", url, 60, { areaKm2 });
+  const incidents = parseIncidents(raw);
+  const total = (raw as { incidents?: unknown[] })?.incidents?.length ?? 0;
+  if (total > incidents.length) {
+    // Shapes we can't draw (e.g. polygons) are dropped by the parser.
+    log.debug("dropped incidents with unsupported geometry", { total, kept: incidents.length });
+  }
+  return incidents;
 }
 
 // -- Routing ---------------------------------------------------------------------
@@ -294,7 +447,9 @@ export async function routeOptions(
       ? "travelMode=truck&traffic=true&maxAlternatives=2&sectionType=traffic&computeTravelTimeFor=all"
       : "travelMode=bicycle&traffic=false&maxAlternatives=2";
   const url = `https://api.tomtom.com/routing/1/calculateRoute/${path}/json?key=${key}&${params}`;
-  return parseRoutes(await tomtomGet(url, 60));
+  const options = parseRoutes(await tomtomGet("routing", url, 60, { mode }));
+  if (options.length === 0) log.warn("routing returned no usable routes", { mode });
+  return options;
 }
 
 // -- Blockers: incidents that lie on a route ---------------------------------------
