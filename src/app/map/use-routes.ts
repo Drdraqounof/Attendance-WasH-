@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { NODES } from "@/lib/fleet/nodes";
 import { fetchRouteGeometry } from "@/lib/fleet/osrm";
-import { ROUTE_DEFINITIONS } from "@/lib/fleet/routes";
 import {
   FALLBACK_GAS_PRICE_PER_GALLON,
   inefficiencyFactor,
   TRUCK_CO2_PER_KM,
   truckFuelCost,
 } from "@/lib/fleet/theme";
-import type { GasPriceResponse, Route } from "@/lib/fleet/types";
+import type { GasPriceResponse, Route, ScopedRouteDefinition } from "@/lib/fleet/types";
+import { createLogger } from "@/lib/log";
+
+const log = createLogger("map/routes");
 
 function toCoords(stops: string[]): [number, number][] {
   return stops.filter((s) => NODES[s]).map((s) => [NODES[s].lat, NODES[s].lng]);
@@ -18,20 +20,22 @@ function toCoords(stops: string[]): [number, number][] {
 
 async function loadGasPrice(): Promise<GasPriceResponse> {
   try {
-    const res = await fetch("/api/gas-price");
+    const res = await fetch("/api/gas-price", { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`gas-price ${res.status}`);
     return await res.json();
-  } catch {
+  } catch (error) {
+    log.warn("gas price unavailable — using the fixed estimate", { error });
     return { pricePerGallon: FALLBACK_GAS_PRICE_PER_GALLON, period: null, isFallback: true };
   }
 }
 
 /**
- * Loads the gas price, then routes every demo route through OSRM and
- * derives distance / duration / fuel / CO₂ / "vs. unoptimized" savings.
- * Toggling a route is a per-viewer view filter only — nothing is saved.
+ * Loads the gas price, then routes each of the viewer's (already scoped)
+ * routes through OSRM and derives distance / duration / fuel / CO₂ /
+ * "vs. unoptimized" savings. Toggling a route is a per-viewer view
+ * filter only — nothing is saved.
  */
-export function useRoutes() {
+export function useRoutes(definitions: ScopedRouteDefinition[]) {
   const [routes, setRoutes] = useState<Route[] | null>(null);
   const [gasPrice, setGasPrice] = useState<GasPriceResponse | null>(null);
 
@@ -39,13 +43,19 @@ export function useRoutes() {
     let cancelled = false;
 
     async function load() {
-      const price = await loadGasPrice();
+      // Gas price and route geometry are independent — fetch them together.
+      const pricePromise = loadGasPrice();
+      const geometries = definitions.map((def) =>
+        fetchRouteGeometry(def.type, toCoords(def.stops)),
+      );
+
+      const price = await pricePromise;
       if (cancelled) return;
       setGasPrice(price);
 
       const withMetrics = await Promise.all(
-        ROUTE_DEFINITIONS.map(async (def): Promise<Route> => {
-          const result = await fetchRouteGeometry(def.type, toCoords(def.stops));
+        definitions.map(async (def, i): Promise<Route> => {
+          const result = await geometries[i];
           const factor = inefficiencyFactor(def.type);
           const fuelCost =
             def.type === "truck" ? truckFuelCost(result.distanceKm, price.pricePerGallon) : 0;
@@ -74,7 +84,7 @@ export function useRoutes() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [definitions]);
 
   function toggleRoute(id: string) {
     setRoutes((rs) => rs?.map((r) => (r.id === id ? { ...r, active: !r.active } : r)) ?? rs);

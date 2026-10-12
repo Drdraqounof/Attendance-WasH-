@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { NODES } from "@/lib/fleet/nodes";
 import { KPI_COLOR, KPI_MAX } from "@/lib/fleet/theme";
-import type { Route } from "@/lib/fleet/types";
+import type { Route, RouteDriver } from "@/lib/fleet/types";
 import { KpiBar } from "./kpi-bar";
 import { StatCell } from "./stat-cell";
 
@@ -18,6 +19,41 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="mb-3 text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
       {children}
     </p>
+  );
+}
+
+function DriverCard({ driver }: { driver: RouteDriver | null }) {
+  if (!driver) {
+    return <p className="text-sm text-slate/65">No driver assigned (demo route).</p>;
+  }
+  return (
+    <div
+      className={`border px-3 py-3 ${
+        driver.atRisk ? "border-danger-soft/50 bg-danger-soft/10" : "border-line bg-white/80"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <Link
+          href={`/dashboard/people/${driver.id}`}
+          className="text-sm font-semibold text-ink underline decoration-line underline-offset-4 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {driver.name}
+        </Link>
+        <span
+          className={`text-sm font-medium tabular-nums ${driver.atRisk ? "text-danger-soft" : "text-slate/70"}`}
+        >
+          {driver.points} pts · {driver.riskLabel}
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-slate/70">
+        {driver.lastSignal} <span className="text-slate/50">· {driver.lastSignalAgo}</span>
+      </p>
+      {driver.atRisk && (
+        <p className="mt-2 text-sm font-medium text-danger-soft">
+          Needs cover: driver is at the at-risk band or higher.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -68,6 +104,11 @@ export function RouteDetailPanel({
             {stops.length} stops · {selectedRoute.distance.toFixed(1)} km
             {selectedRoute.isFallbackGeometry && " · straight-line estimate"}
           </p>
+
+          <p className="mt-5 mb-2 text-sm font-semibold tracking-[0.14em] text-slate/55 uppercase">
+            Driver
+          </p>
+          <DriverCard driver={selectedRoute.driver} />
 
           <div className="mt-4 space-y-2">
             <MetricRow label="Duration" value={`${selectedRoute.duration.toFixed(0)} min`} />

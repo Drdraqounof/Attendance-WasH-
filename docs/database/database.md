@@ -26,7 +26,8 @@ real queries is a separate follow-up — this pass is schema + seed only.
 | `src/db/client.ts` | Server-only Drizzle client using Neon's HTTP driver (`@neondatabase/serverless` + `drizzle-orm/neon-http`). Throws at import if `DATABASE_URL` is unset. |
 | `src/db/seed.ts` | Seed script — imports the existing mock modules directly (`getAllPeople()`, `DEMO_MANAGER`, `POSITIVE_POINT_RULES`, etc.) and inserts equivalent rows. Idempotent: deletes in FK-safe order before re-inserting. |
 | `drizzle.config.ts` | drizzle-kit config — points at `src/db/schema.ts`, migrations output to `drizzle/`, reads `DATABASE_URL` via `dotenv`. |
-| `drizzle/0000_windy_blob.sql` | Generated migration — the actual DDL applied to Neon. |
+| `drizzle/0000_windy_blob.sql` … `0005_password_reset_tokens.sql` | Generated migrations, applied in order by `npm run db:migrate`. 0004 (roles/stations/sessions/audit) and 0005 (password reset) were applied to the shared Neon database on 2026-09-28. |
+| `src/db/seed-login-credentials.ts`, `src/db/seed-roles.ts` | `npm run db:seed-login` / `db:seed-roles`: sign-ins and role/station assignments, driven by `.env` (or inline) variables. |
 
 ## Schema → mock mapping
 
@@ -43,6 +44,7 @@ real queries is a separate follow-up — this pass is schema + seed only.
 | `automation_toggles` | `settings-mock.ts` → `AUTOMATION_TOGGLES` | Key is the natural primary key (`smsIntake`, `managerAlerts`, …). **Not actually read from — known gap:** `/settings`' `AutomationToggles` UI (`src/app/settings/automation-toggles.tsx`) persists its on/off state to browser `localStorage` only (`AUTOMATION_TOGGLES_STORAGE_KEY`), and only ever reads toggle *definitions* (label/description/default/locked) from the static `settings-mock.ts` constant, never from this table. Unlike thresholds/escalation rules (see `docs/policy/policy-thresholds-editing.md`), no route reads or writes `automation_toggles` today — the table exists in schema/seed but is otherwise dead. |
 | `attendance_alerts` | `alerts-mock.ts` → `generateAttendanceAlerts()` | In the mock layer these are computed at request time from employees; here they're persisted as a snapshot so a real alerting pipeline has somewhere to write later. |
 | `stations`, `user_roles`, `user_profiles`, `sessions`, `notification_reads`, `audit_log` | New (2026-09-25) — no mock equivalent | Role/station access, per-user sessions, per-user notification read state and the audit trail. Migration `drizzle/0004_roles_and_stations.sql` also adds nullable `created_by` to `point_events`/`warnings` and `voided_at`/`voided_by` (soft delete) to `point_events` — voided events are excluded from every points total. Full details: [docs/auth/roles-and-stations.md](../auth/roles-and-stations.md). |
+| `password_reset_tokens` | New (2026-09-28), no mock equivalent | One-time password reset links: sha256 of the token, `email` (FK to `login_credentials`), `expires_at` (1 hour), `used_at`. Migration `drizzle/0005_password_reset_tokens.sql`. See [docs/auth/authentication.md](../auth/authentication.md). |
 
 Enums: `schedule_status`, `point_source`, `alert_severity`,
 `point_rule_category`, `warning_status`, `user_role` (`hr`/`supervisor`) — all mirror the TypeScript

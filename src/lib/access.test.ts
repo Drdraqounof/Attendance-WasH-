@@ -10,7 +10,7 @@ import {
   stationScope,
   type RoleAssignment,
 } from "./access";
-import { localizedRoster } from "./dashboard-mock";
+import { DEMO_STATION_TEAMS, localizedRoster, TEAMS } from "./dashboard-mock";
 import { getAllPeople, isPersonInScope } from "./people-mock";
 
 const DRIVERS = { id: 1, name: "Delivery Drivers" };
@@ -55,6 +55,38 @@ describe("access — station scope", () => {
     expect(isPersonInScope(driver.id, scope)).toBe(true);
     expect(isPersonInScope(other.id, scope)).toBe(false);
     expect(isPersonInScope("does-not-exist", { all: true })).toBe(false);
+  });
+});
+
+describe("access — real stations on mock data", () => {
+  const supStation = (name: string): RoleAssignment => ({
+    role: "supervisor",
+    station: { id: 99, name },
+  });
+
+  it("maps every mock team to exactly one real station", () => {
+    const mapped = Object.values(DEMO_STATION_TEAMS).flat();
+    expect([...mapped].sort()).toEqual([...TEAMS].sort());
+  });
+
+  it("shows each real station its mapped mock teams", () => {
+    for (const [station, teams] of Object.entries(DEMO_STATION_TEAMS)) {
+      const roster = localizedRoster("en", stationScope(supStation(station)));
+      expect(roster.length, station).toBeGreaterThan(0);
+      expect(roster.every((row) => teams.includes(row.team as (typeof TEAMS)[number]))).toBe(true);
+    }
+  });
+
+  it("scopes the person page and people list through the same map", () => {
+    const scope = stationScope(supStation("Yard"));
+    expect(getAllPeople("en", scope).every((p) => p.team === "Delivery Drivers")).toBe(true);
+    const driver = getAllPeople().find((p) => p.team === "Delivery Drivers")!;
+    expect(isPersonInScope(driver.id, scope)).toBe(true);
+    expect(isPersonInScope(driver.id, stationScope(supStation("Dock A")))).toBe(false);
+  });
+
+  it("still shows nothing for an unmapped station", () => {
+    expect(localizedRoster("en", stationScope(supStation("Unknown dock")))).toEqual([]);
   });
 });
 

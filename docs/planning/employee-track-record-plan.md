@@ -90,3 +90,8 @@ A manager can move an employee to **any** of the four statuses (Clear / Watch / 
 - Live Neon verification (via temporary scripts, since removed): confirmed `getEmployeePolicySnapshot`, `getEmployeeHistory`, and (2026-09-08) `setEmployeeStatus` moving an employee up through Watch → At Risk → PIP (adding points, opening warnings each step) and back down to Clear in one move (deducting all points, resolving every open warning). Database reseeded afterward each time to restore the original demo state.
 
 Note: the "Open Questions" table in §5 above is unchanged from the draft — none of those three questions are resolved by this implementation.
+
+> **Update 2026-09-25:** open question 2 is resolved. `setEmployeeStatus`
+> (`/api/warnings`) is now **HR only**, scoped to HR's active station and
+> recorded in `audit_log`. The "no role/permission system" note above is
+> historical. See [docs/auth/roles-and-stations.md](../auth/roles-and-stations.md).

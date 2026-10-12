@@ -41,6 +41,34 @@ export const TEAMS = [
   "Production Supervisors",
 ] as const;
 
+/**
+ * Demo-only bridge between the real stations (`stations.name` in the DB,
+ * which is what a Supervisor's scope holds) and the mock TEAMS above.
+ * Without it, a Supervisor's scope never matches a DEMO_ROSTER row and
+ * every mock-backed page is empty for them. Delete this once those pages
+ * read from the DB — see docs/auth/roles-and-stations.md.
+ */
+export const DEMO_STATION_TEAMS: Record<string, readonly (typeof TEAMS)[number][]> = {
+  "Dock A": ["Laundry Team Members – First Shift"],
+  "Dock B": ["Laundry Team Members – Second Shift"],
+  "Pack line": ["Team Leads", "Production Supervisors"],
+  "Sort hub": ["Maintenance Technicians"],
+  Yard: ["Delivery Drivers"],
+};
+
+/**
+ * A station scope widened to the mock team names it covers (see
+ * DEMO_STATION_TEAMS). Use it whenever filtering mock data; DB queries
+ * keep using the plain scope.
+ */
+export function mockScope(scope: StationScope): StationScope {
+  if (scope.all) return scope;
+  return {
+    all: false,
+    teams: scope.teams.flatMap((station) => [station, ...(DEMO_STATION_TEAMS[station] ?? [])]),
+  };
+}
+
 /** Demo floor roster — highest risk first. SMS intake not connected. */
 export const DEMO_ROSTER: RosterEmployee[] = [
   {
@@ -161,7 +189,7 @@ export function localizedRoster(
   scope: StationScope = ALL_STATIONS,
 ): RosterEmployee[] {
   // Filter on the untranslated team names, then localize.
-  return localizeRoster(filterToScope(DEMO_ROSTER, scope, (row) => row.team), lang);
+  return localizeRoster(filterToScope(DEMO_ROSTER, mockScope(scope), (row) => row.team), lang);
 }
 
 export const DEMO_SHIFT_META = {
