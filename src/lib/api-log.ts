@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { TomTomError } from "@/lib/fleet/tomtom";
 import { createLogger, elapsedMs, newRequestId, now, type Logger } from "@/lib/log";
 
 /**
- * Shared request logging for the /api/fleet/* routes: a per-request id
- * (returned as `x-request-id`), a start/finish line with timing, and a
- * short, safe fallback reason. See docs/operations/logging.md.
+ * Shared request logging for API routes: a per-request id (returned as
+ * `x-request-id`), a start/finish line with timing. See
+ * docs/operations/logging.md.
  */
 export function startRequest(scope: string, request: Request) {
   const requestId = newRequestId();
@@ -29,12 +28,4 @@ export function startRequest(scope: string, request: Request) {
       });
     },
   };
-}
-
-/** A short reason for a fallback, safe to return to the client. */
-export function fallbackReason(error: unknown): string {
-  if (error instanceof TomTomError) {
-    return error.status ? `${error.reason} ${error.status}` : error.reason;
-  }
-  return "error";
 }

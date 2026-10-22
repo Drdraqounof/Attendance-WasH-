@@ -20,8 +20,6 @@ Open [http://localhost:3000](http://localhost:3000) and sign in, or create an ac
 | --- | --- |
 | `DATABASE_URL` | **Required.** Neon Postgres connection. |
 | `OPENAI_API_KEY` | AI summaries on `/insights`. Without it, the page falls back to rule-based text. |
-| `EIA_API_KEY` | Live gas price on `/map`. Without it, $3.50/gal is used. |
-| `TOM_TOM_API_KEY` | Live routes, place search and traffic incidents/accidents on `/map`. Without it, trips use free-flow OSRM routes with no blockers. See [`docs/fleet/live-routing.md`](docs/fleet/live-routing.md). |
 | `LOG_LEVEL`, `LOG_FORMAT` | Optional. Log detail (`debug`/`info`/`warn`/`error`) and `json` output. See [`docs/operations/logging.md`](docs/operations/logging.md). |
 | `APP_URL` | Base URL for password reset links. Defaults to the request origin. |
 | `SEED_LOGIN_EMAILS`, `SEED_LOGIN_PASSWORD` | `npm run db:seed-login` (create sign-ins). |
@@ -55,7 +53,6 @@ Open [http://localhost:3000](http://localhost:3000) and sign in, or create an ac
 | `/analytics` | Floor trends, risk mix, teams and signal mix | HR, Supervisor |
 | `/insights` | AI-grounded insights: at-risk employees, patterns, executive summary | HR, Supervisor |
 | `/insights/report` | Exportable insights report builder (PDF) | HR, Supervisor |
-| `/map` | Fleet delivery routes on a Boston map, with a full-screen mode (real Lynn plant depot; demo routes), live incidents/accidents, and "Plan a trip" with live alternate routes | HR, Supervisor |
 | `/settings` | Automation toggles, policy thresholds, escalation schedule | Edit: HR · View: Supervisor |
 | `/profile` | Your account, role assignments and notification preferences | Signed in |
 
@@ -75,7 +72,7 @@ Rolling 12-month points, per the WCL attendance policy (editable by HR from `/se
 ## Testing
 
 ```bash
-npm test           # Vitest (policy engine, access rules, account rules, fleet math, mock helpers)
+npm test           # Vitest (policy engine, access rules, account rules, logging, mock helpers)
 npx tsc --noEmit   # type-check
 npm run lint       # ESLint
 npm run build      # production build
@@ -90,7 +87,7 @@ Accounts, sessions, roles/stations, notifications, warnings, the point ledger an
 ## Known limitations
 
 - **Anyone can register as HR.** Self-selected roles stand in for an HR approval step that doesn't exist yet. Fix this before production.
-- **Demo data vs. real stations.** Demo-data pages (`/dashboard`, `/analytics`, `/map`, person pages) map each real station to made-up mock teams through `DEMO_STATION_TEAMS`, so a Supervisor sees demo people, not their real staff. See [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md).
+- **Demo data vs. real stations.** Demo-data pages (`/dashboard`, `/analytics`, person pages) map each real station to made-up mock teams through `DEMO_STATION_TEAMS`, so a Supervisor sees demo people, not their real staff. See [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md).
 - **No email delivery.** Password reset links aren't emailed yet.
 - **No rate limiting** on sign-in, register or reset.
 - **SMS intake isn't connected.** Zoom/Zoho integrations are blocked on WashCycle approval.
@@ -102,10 +99,10 @@ The full list is in [`docs/Updates/2026-09-20-production-readiness-checklist.md`
 - Overview: [`docs/overview/plain-english.md`](docs/overview/plain-english.md) · [`docs/overview/system-overview.md`](docs/overview/system-overview.md)
 - Sign-in, registration, password reset: [`docs/auth/authentication.md`](docs/auth/authentication.md)
 - Roles, stations, scoping, audit: [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md)
+- AI use policy: [`docs/ai/ai-policies.md`](docs/ai/ai-policies.md) · How the OpenAI connection works: [`docs/ai/ai-integration.md`](docs/ai/ai-integration.md)
 - Logging and troubleshooting: [`docs/operations/logging.md`](docs/operations/logging.md)
-- Map: [`docs/fleet/map.md`](docs/fleet/map.md) · Real-location integration: [`docs/fleet/map-integration.md`](docs/fleet/map-integration.md) · Live routing and accidents: [`docs/fleet/live-routing.md`](docs/fleet/live-routing.md) (plan: [`LIVE_ROUTING_PLAN.md`](LIVE_ROUTING_PLAN.md))
 - Product spec: [`docs/planning/Attendance-Plan.md`](docs/planning/Attendance-Plan.md) · Stakeholder feedback status: [`docs/planning/2026-09-16-stakeholder-feedback-response.md`](docs/planning/2026-09-16-stakeholder-feedback-response.md)
 
 ## Stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS · Drizzle ORM (Neon Postgres) · Leaflet · OpenAI · Vitest
+Next.js 16 · React 19 · TypeScript · Tailwind CSS · Drizzle ORM (Neon Postgres) · OpenAI · Vitest

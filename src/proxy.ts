@@ -20,7 +20,6 @@ export const config = {
     "/dashboard/:path*",
     "/analytics/:path*",
     "/insights/:path*",
-    "/map/:path*",
     "/settings/:path*",
     "/profile/:path*",
     "/login/workspace",

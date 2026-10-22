@@ -26,7 +26,6 @@ Frontline teams often report attendance by SMS. AttendPoint converts those messa
 | `/dashboard/people/[id]` | Employee profile: schedule, open points, ledger, live track record | HR, Supervisor (own station only) |
 | `/analytics` | Floor analytics: trends, risk mix, teams, signal types | HR, Supervisor |
 | `/insights`, `/insights/report` | DB-backed insights with an AI summary; PDF report builder | HR, Supervisor |
-| `/map` | Fleet delivery routes (demo, Yard-scoped) from the real Lynn plant; live TomTom incidents/accidents layer; "Plan a trip" with live alternate routes and blockers ([live-routing.md](../fleet/live-routing.md)); full-screen mode | HR, Supervisor (every station) |
 | `/settings` | Automation toggles, policy thresholds, escalation schedule | Edit: HR · View: Supervisor |
 | `/profile` | Signed-in user's account and role assignments | Signed in |
 
@@ -59,9 +58,9 @@ Risk bands (policy PDF §5, rolling 12-month points): **Clear** 0, **Low** 1–3
 - Signal mix from point ledgers
 - Highest open-points list (links to person profiles)
 
-Logging: the map stack logs through `src/lib/log.ts` (request IDs, fallback reasons, redacted secrets), and HR can open `/api/fleet/status` for diagnostics. See [logging.md](../operations/logging.md).
+Logging: server code logs through `src/lib/log.ts` (request IDs, redacted secrets). See [logging.md](../operations/logging.md).
 
-Header nav on ops pages: **Dashboard** · **Analytics** · **AI Insights** · **Map** · **Settings**, plus a role/station badge (with **Switch** when the user has more than one assignment), notifications, Profile and Sign out. On phones, the nav sits on its own horizontally scrolling row.
+Header nav on ops pages: **Dashboard** · **Analytics** · **AI Insights** · **Settings**, plus a role/station badge (with **Switch** when the user has more than one assignment), notifications, Profile and Sign out. On phones, the nav sits on its own horizontally scrolling row.
 
 ## Auth note
 

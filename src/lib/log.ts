@@ -1,18 +1,18 @@
 /**
  * Small structured logger, safe on server and client (no Node imports).
  *
- *   const log = createLogger("fleet/directions");
- *   log.warn("TomTom routing failed — using OSRM", { status: 429, ms: 812 });
+ *   const log = createLogger("attendance-import");
+ *   log.warn("row skipped", { row: 12, reason: "unknown employee" });
  *
  * Server output is one line per event, e.g.
- *   2026-10-05T15:40:00.000Z WARN  [fleet/directions] TomTom routing failed — using OSRM {"status":429,"ms":812}
+ *   2026-10-05T15:40:00.000Z WARN  [attendance-import] row skipped {"row":12,"reason":"unknown employee"}
  * or JSON lines with LOG_FORMAT=json (for log platforms). LOG_LEVEL sets
  * the minimum level (debug | info | warn | error; default info, debug
  * in development). Secrets are redacted: anything shaped like
  * `key=…`, `api_key=…` or `token=…` in messages and fields.
  *
  * Warnings and errors are also kept in a small in-memory ring buffer
- * (per server instance) for the HR-only /api/fleet/status endpoint.
+ * (per server instance), readable via recentProblems().
  * See docs/operations/logging.md.
  */
 

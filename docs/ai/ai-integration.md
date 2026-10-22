@@ -4,6 +4,8 @@
 **Status:** Connected (live), narrative + per-employee recommendation layers
 **Provider:** OpenAI (`gpt-4o-mini`)
 
+**Policy:** every AI feature must follow [ai-policies.md](ai-policies.md).
+
 ## What this is
 
 The `/insights` (AI Attendance Analysis) page previously showed only

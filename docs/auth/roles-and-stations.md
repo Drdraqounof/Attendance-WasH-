@@ -30,7 +30,6 @@ undone, and is recorded.
 | Notifications | For employees in scope | For employees at their station |
 | Mark notifications read | Affects only that user | Affects only that user |
 | Void (soft-delete) a point event, and undo it | Any event in scope | Only events they recorded, at their station |
-| Map (`/map`, see [map.md](../fleet/map.md)) | Yes: all fleet routes, live incidents, Plan a trip | Yes: live incidents and Plan a trip (from the Lynn plant) at every station. Fleet routes and drivers only if their station covers Delivery Drivers (Yard) |
 
 "Station" currently means an `employees.team` value. In the shared
 database these are **Dock A, Dock B, Pack line, Sort hub and Yard**.
@@ -150,7 +149,7 @@ cookies are no longer accepted.
   sites exist, add a proper `employees.station_id` (a schema change on
   HR records, so it needs sign-off) and point `stationScope` at it.
 - **Mock-backed pages use a demo station→team map.** `/dashboard`,
-  `/analytics`, `/map` and most of `/dashboard/people/[id]` still read
+  `/analytics` and most of `/dashboard/people/[id]` still read
   `DEMO_ROSTER`, whose team names ("Delivery Drivers", "Team Leads", …)
   differ from the database stations. Since 2026-10-04,
   `DEMO_STATION_TEAMS` in `src/lib/dashboard-mock.ts` bridges them, and
