@@ -99,6 +99,7 @@ The full list is in [`docs/Updates/2026-09-20-production-readiness-checklist.md`
 - Overview: [`docs/overview/plain-english.md`](docs/overview/plain-english.md) · [`docs/overview/system-overview.md`](docs/overview/system-overview.md)
 - Sign-in, registration, password reset: [`docs/auth/authentication.md`](docs/auth/authentication.md)
 - Roles, stations, scoping, audit: [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md)
+- AI use policy: [`docs/ai/ai-policies.md`](docs/ai/ai-policies.md) · How the OpenAI connection works: [`docs/ai/ai-integration.md`](docs/ai/ai-integration.md)
 - Logging and troubleshooting: [`docs/operations/logging.md`](docs/operations/logging.md)
 - Product spec: [`docs/planning/Attendance-Plan.md`](docs/planning/Attendance-Plan.md) · Stakeholder feedback status: [`docs/planning/2026-09-16-stakeholder-feedback-response.md`](docs/planning/2026-09-16-stakeholder-feedback-response.md)
 
