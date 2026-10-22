@@ -15,7 +15,6 @@ type OpsNavActive =
   | "dashboard"
   | "analytics"
   | "insights"
-  | "map"
   | "settings"
   | "profile"
   | "people";
@@ -75,7 +74,6 @@ export async function OpsHeader({
             {navLink("/dashboard", copy.navDashboard, active === "dashboard")}
             {navLink("/analytics", copy.navAnalytics, active === "analytics")}
             {navLink("/insights", copy.navInsights, active === "insights")}
-            {navLink("/map", copy.navMap, active === "map")}
             {navLink("/settings", copy.navSettings, active === "settings")}
           </nav>
           {crumb ? (
@@ -127,7 +125,6 @@ export async function OpsHeader({
         {navLink("/dashboard", copy.navDashboardShort, active === "dashboard")}
         {navLink("/analytics", copy.navAnalytics, active === "analytics")}
         {navLink("/insights", copy.navInsightsShort, active === "insights")}
-        {navLink("/map", copy.navMap, active === "map")}
         {navLink("/settings", copy.navSettings, active === "settings")}
       </nav>
     </header>

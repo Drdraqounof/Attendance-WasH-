@@ -24,7 +24,7 @@ attendance policy.
   [`docs/auth/roles-and-stations.md`](docs/auth/roles-and-stations.md).
   Registration currently lets users pick their own role (temporary).
 - **Logging:** use `createLogger(scope)` from `src/lib/log.ts` (and
-  `startRequest()` in `src/lib/fleet/api-log.ts` for API routes) rather
+  `startRequest()` in `src/lib/api-log.ts` for API routes) rather
   than bare `console.*`. It redacts secrets. See
   [`docs/operations/logging.md`](docs/operations/logging.md).
 - Run `npm test`, `npx tsc --noEmit`, and `npm run build` after code
